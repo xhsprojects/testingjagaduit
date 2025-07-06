@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { Wallet, Expense, Income, Category, SavingGoal, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Wallet as WalletIcon, PlusCircle, Pencil, Trash2, Loader2, ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Tag, Landmark, CreditCard, Search, ArrowLeftRight, MoreVertical } from 'lucide-react';
+import { Wallet as WalletIcon, PlusCircle, Pencil, Trash2, Loader2, ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Tag, Landmark, CreditCard, Search, ArrowLeftRight } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -19,7 +19,7 @@ import { AddWalletForm } from '@/components/AddWalletForm';
 import { deleteWallet } from './actions';
 import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { AddIncomeForm } from '@/components/AddIncomeForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -27,7 +27,6 @@ import { updateTransaction, deleteTransaction } from '../history/actions';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { TransferFundsForm } from '@/components/TransferFundsForm';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
 
 type UnifiedTransaction = (Expense | Income) & {
@@ -340,26 +339,16 @@ export default function WalletsPage() {
                                     <CardContent>
                                         <p className="text-3xl font-bold text-center">{formatCurrency(currentBalance)}</p>
                                     </CardContent>
-                                    <CardFooter className="grid grid-cols-2 gap-2 pt-4 border-t">
+                                    <CardFooter className="grid grid-cols-3 gap-2 pt-4 border-t">
                                         <Button variant="outline" size="sm" onClick={() => handleWalletClick(wallet)}>
                                             <FileText className="mr-2 h-4 w-4"/> Riwayat
                                         </Button>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="secondary" size="sm" className="w-full">
-                                                    Aksi <MoreVertical className="ml-auto h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => handleOpenForm(wallet)}>
-                                                    <Pencil className="mr-2 h-4 w-4"/> Ubah Dompet
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDeleteRequest(wallet.id)}>
-                                                    <Trash2 className="mr-2 h-4 w-4"/> Hapus Dompet
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                        <Button variant="outline" size="sm" onClick={() => handleOpenForm(wallet)}>
+                                            <Pencil className="mr-2 h-4 w-4"/> Ubah
+                                        </Button>
+                                        <Button variant="destructive" size="sm" onClick={() => handleDeleteRequest(wallet.id)}>
+                                            <Trash2 className="mr-2 h-4 w-4"/> Hapus
+                                        </Button>
                                     </CardFooter>
                                 </Card>
                             )
