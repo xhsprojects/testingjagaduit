@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Loader2, ArrowLeft, Bell, CheckCheck, CalendarClock, Gem, Repeat, Megaphone, Trash2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { markAllNotificationsAsRead, markNotificationAsRead, deleteReadNotifications } from './actions'
 import { type AppNotification } from '@/lib/types'
@@ -114,25 +114,17 @@ export default function NotificationsPage() {
     
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40 pb-16">
-            <header className="sticky top-0 z-30 flex h-auto min-h-16 flex-wrap items-center justify-between gap-4 border-b bg-background px-4 py-3 md:h-16 md:flex-nowrap md:py-2">
-                <div className='flex items-center gap-2'>
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                        <ArrowLeft className="h-5 w-5" />
-                        <span className="sr-only">Kembali</span>
-                    </Button>
-                    <div className="flex items-center gap-2">
-                        <Bell className="h-5 w-5 text-primary" />
-                        <h1 className="font-headline text-xl font-bold text-foreground">
-                            Notifikasi
-                        </h1>
-                    </div>
+            <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+                <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                    <ArrowLeft className="h-5 w-5" />
+                    <span className="sr-only">Kembali</span>
+                </Button>
+                <div className="flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-primary" />
+                    <h1 className="font-headline text-xl font-bold text-foreground">
+                        Notifikasi
+                    </h1>
                 </div>
-                 {unreadNotifications.length > 0 && (
-                    <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
-                        <CheckCheck className="mr-2 h-4 w-4" />
-                        Tandai Semua Dibaca
-                    </Button>
-                )}
             </header>
             <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-6">
                 <Card>
@@ -155,18 +147,20 @@ export default function NotificationsPage() {
                             </div>
                         )}
                     </CardContent>
+                    {unreadNotifications.length > 0 && (
+                        <CardFooter>
+                            <Button variant="outline" size="sm" onClick={handleMarkAllRead} className="w-full sm:w-auto">
+                                <CheckCheck className="mr-2 h-4 w-4" />
+                                Tandai Semua Dibaca
+                            </Button>
+                        </CardFooter>
+                    )}
                 </Card>
                  {readNotifications.length > 0 && (
                     <Card>
-                        <CardHeader className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-                            <div>
-                                <CardTitle>Notifikasi Terdahulu</CardTitle>
-                                <CardDescription>Notifikasi yang sudah Anda baca.</CardDescription>
-                            </div>
-                            <Button variant="destructive" size="sm" onClick={handleDeleteRead} className="w-full sm:w-auto">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Hapus Terbaca
-                            </Button>
+                        <CardHeader>
+                            <CardTitle>Notifikasi Terdahulu</CardTitle>
+                            <CardDescription>Notifikasi yang sudah Anda baca.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <div className="space-y-4">
@@ -175,6 +169,12 @@ export default function NotificationsPage() {
                                 ))}
                             </div>
                         </CardContent>
+                        <CardFooter>
+                            <Button variant="destructive" size="sm" onClick={handleDeleteRead} className="w-full sm:w-auto">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus Terbaca
+                            </Button>
+                        </CardFooter>
                     </Card>
                  )}
             </main>

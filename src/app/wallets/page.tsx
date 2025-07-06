@@ -28,6 +28,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { TransferFundsForm } from '@/components/TransferFundsForm';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import Link from 'next/link';
 
 type UnifiedTransaction = (Expense | Income) & {
   type: 'expense' | 'income';
@@ -324,35 +325,42 @@ export default function WalletsPage() {
                             const Icon = iconMap[wallet.icon] || WalletIcon;
                             const currentBalance = calculateWalletBalance(wallet.id, wallet.initialBalance);
                             return (
-                                <Card key={wallet.id} className="flex flex-col cursor-pointer" onClick={() => handleWalletClick(wallet)}>
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                        <CardTitle className="text-base font-medium font-headline">{wallet.name}</CardTitle>
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
-                                                        <MoreVertical className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleWalletClick(wallet)}>
-                                                        <FileText className="mr-2 h-4 w-4"/> Lihat Riwayat
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleOpenForm(wallet)}>
-                                                        <Pencil className="mr-2 h-4 w-4"/> Ubah Dompet
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
-                                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDeleteRequest(wallet.id)}>
-                                                        <Trash2 className="mr-2 h-4 w-4"/> Hapus Dompet
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                <Card key={wallet.id} className="flex flex-col">
+                                    <CardHeader className="flex-grow">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-3">
+                                                <Icon className="h-8 w-8 text-primary" />
+                                                <div>
+                                                    <CardTitle className="text-lg font-bold font-headline">{wallet.name}</CardTitle>
+                                                    <CardDescription className="text-xs">Saldo Awal: {formatCurrency(wallet.initialBalance)}</CardDescription>
+                                                </div>
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-2xl font-bold">{formatCurrency(currentBalance)}</div>
-                                        <p className="text-xs text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
+                                        <p className="text-3xl font-bold text-center">{formatCurrency(currentBalance)}</p>
                                     </CardContent>
+                                    <CardFooter className="grid grid-cols-2 gap-2 pt-4 border-t">
+                                        <Button variant="outline" size="sm" onClick={() => handleWalletClick(wallet)}>
+                                            <FileText className="mr-2 h-4 w-4"/> Riwayat
+                                        </Button>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="secondary" size="sm" className="w-full">
+                                                    Aksi <MoreVertical className="ml-auto h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleOpenForm(wallet)}>
+                                                    <Pencil className="mr-2 h-4 w-4"/> Ubah Dompet
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDeleteRequest(wallet.id)}>
+                                                    <Trash2 className="mr-2 h-4 w-4"/> Hapus Dompet
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </CardFooter>
                                 </Card>
                             )
                         })}
@@ -575,7 +583,7 @@ export default function WalletsPage() {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Batal</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDeleteTransaction} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                           {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                           {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                            Ya, Hapus
                         </AlertDialogAction>
                     </AlertDialogFooter>
