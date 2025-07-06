@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import type { Wallet, Expense, Income, Category, SavingGoal, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, Pencil, Trash2 } from 'lucide-react';
+import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, ChevronRight } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
@@ -144,6 +144,13 @@ export default function WalletsPage() {
         return wallets.reduce((total, wallet) => {
             return total + calculateWalletBalance(wallet.id, wallet.initialBalance);
         }, 0);
+    }, [wallets, calculateWalletBalance]);
+    
+     const walletsWithBalance = React.useMemo(() => {
+        return wallets.map(wallet => ({
+            ...wallet,
+            currentBalance: calculateWalletBalance(wallet.id, wallet.initialBalance),
+        })).sort((a,b) => b.currentBalance - a.currentBalance);
     }, [wallets, calculateWalletBalance]);
 
     const handleOpenForm = (wallet?: Wallet) => {
@@ -299,26 +306,25 @@ export default function WalletsPage() {
                         <p>Anda belum menambahkan sumber dana. Gunakan tombol (+) untuk memulai.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {wallets.map(wallet => {
+                    <div className="space-y-4">
+                        {walletsWithBalance.map(wallet => {
                             const Icon = iconMap[wallet.icon] || WalletIcon;
                             return (
                                 <Card 
                                     key={wallet.id} 
-                                    className="flex flex-col cursor-pointer transition-all hover:border-primary/80"
+                                    className="cursor-pointer transition-all hover:border-primary/80"
                                     onClick={() => handleWalletClick(wallet)}
                                 >
-                                    <CardHeader className="flex-grow">
-                                        <div className="flex items-center gap-3">
-                                            <Icon className="h-8 w-8 text-primary" />
-                                            <div>
-                                                <CardTitle className="text-lg font-bold font-headline">{wallet.name}</CardTitle>
-                                                <CardDescription className="text-xs">Saldo Awal: {formatCurrency(wallet.initialBalance)}</CardDescription>
-                                            </div>
+                                    <CardContent className="p-4 flex items-center gap-4">
+                                        <Icon className="h-8 w-8 text-primary flex-shrink-0" />
+                                        <div className="flex-grow">
+                                            <p className="font-bold font-headline">{wallet.name}</p>
+                                            <p className="text-sm text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="text-3xl font-bold text-center">{formatCurrency(calculateWalletBalance(wallet.id, wallet.initialBalance))}</p>
+                                        <div className="text-right">
+                                            <p className="font-bold text-lg">{formatCurrency(wallet.currentBalance)}</p>
+                                        </div>
+                                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                                     </CardContent>
                                 </Card>
                             )
