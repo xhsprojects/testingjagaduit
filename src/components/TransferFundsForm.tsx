@@ -88,7 +88,7 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
   const canTransfer = wallets.length >= 2;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange} modal={false}>
       <DialogContent className="flex h-full flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle className='font-headline'>Transfer Antar Dompet</DialogTitle>
