@@ -86,8 +86,15 @@ export function AddExpenseForm({
                 path: ["debtId"],
             });
         }
+        if (data.categoryId === savingsCategoryId && !data.savingGoalId) {
+             ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Silakan pilih tujuan tabungan untuk alokasi dana ini.",
+                path: ["savingGoalId"],
+            });
+        }
     });
-  }, [debtPaymentCategory]);
+  }, [debtPaymentCategory, savingsCategoryId]);
 
 
   const form = useForm<FormValues>({
@@ -480,7 +487,7 @@ export function AddExpenseForm({
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Kategori</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isDebtPaymentMode}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isDebtPaymentMode || expenseToEdit?.categoryId === savingsCategoryId}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue placeholder="Pilih kategori" />
@@ -512,7 +519,7 @@ export function AddExpenseForm({
                         name="savingGoalId"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Alokasikan ke Tujuan (Opsional)</FormLabel>
+                            <FormLabel>Alokasikan ke Tujuan (Wajib)</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
