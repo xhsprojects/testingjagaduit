@@ -13,69 +13,89 @@ export default function NotificationHandler() {
   const { toast } = useToast();
 
   const requestPermissionAndSaveToken = useCallback(async () => {
-    if (!messaging || !user || !idToken || typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    // Ensure all dependencies are available
+    if (!messaging || !user || !idToken || typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
 
     try {
+      // 1. Request permission from the user
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
+        
+        // 2. Get the VAPID key from environment variables
         const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
         if (!vapidKey) {
             console.error('VAPID key not found in environment variables.');
             toast({
                 title: "Konfigurasi Notifikasi Error",
-                description: "VAPID key untuk notifikasi web tidak ditemukan.",
+                description: "Kunci VAPID untuk notifikasi web tidak ditemukan.",
                 variant: "destructive"
             });
             return;
         }
 
-        // Ensure the service worker is ready before getting the token
+        // 3. Ensure the service worker is ready
         const registration = await navigator.serviceWorker.ready;
+
+        // 4. Send Firebase config to the service worker to initialize it
+        if (navigator.serviceWorker.controller) {
+          const firebaseConfig = messaging.app.options;
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SET_FIREBASE_CONFIG',
+            config: firebaseConfig,
+          });
+        }
+
+        // 5. Get the FCM token
         const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
         
+        // 6. Save the token to Firestore for this user
         if (currentToken) {
           await saveNotificationToken(idToken, currentToken);
         } else {
           console.log('No registration token available. Request permission to generate one.');
         }
+      } else {
+        console.log('User denied notification permission.');
       }
     } catch (err) {
-      console.error('An error occurred while retrieving token. ', err);
+      console.error('An error occurred while setting up notifications: ', err);
+      toast({
+        title: "Gagal Mengaktifkan Notifikasi",
+        description: "Terjadi kesalahan. Coba muat ulang halaman atau periksa setelan browser Anda.",
+        variant: "destructive"
+      });
     }
-  }, [user, idToken, toast]);
+  }, [user, idToken, toast, messaging]);
 
+  // Run the setup process when the user logs in
   useEffect(() => {
-    // We only need to request permission once the user is logged in.
     if (user) {
       requestPermissionAndSaveToken();
     }
   }, [user, requestPermissionAndSaveToken]);
 
+  // Listen for messages when the app is in the foreground
   useEffect(() => {
     if (!messaging) return;
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('Foreground message received. ', payload);
       const { title, body } = payload.notification || {};
       
-      // When the app is in the foreground, we manually create a notification
-      // so the user sees it, which mimics the background behavior.
-      if (title && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then((registration) => {
-          registration.showNotification(title, {
-            body: body,
-            icon: '/icons/icon-192x192.png',
-            data: {
-                url: payload.fcmOptions?.link || payload.data?.link || '/'
-            }
+      // Show a toast notification for foreground messages
+      if (title && body) {
+          toast({
+            title: title,
+            description: body,
           });
-        });
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [toast]);
 
   return null; // This component does not render anything.
 }

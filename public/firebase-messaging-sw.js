@@ -1,27 +1,53 @@
-// This file is intentionally left blank. 
-// It will be populated by the next-pwa plugin during the build process.
-// We need this file to exist for the service worker registration to succeed in development.
 
-// In a production build, next-pwa will inject the necessary Firebase Messaging SDK scripts
-// and the configuration from your next.config.js `pwa` options.
+// public/firebase-messaging-sw.js
 
-// For background notifications to work, ensure your server-side code (e.g., in a Genkit flow)
-// sends a payload that includes a `notification` object, like so:
-/*
-  await messaging.send({
-    token: fcmToken,
-    notification: {
-      title: 'Judul Notifikasi Anda',
-      body: 'Isi pesan notifikasi di sini.',
-      icon: '/icons/icon-192x192.png',
-    },
-    webpush: {
-      fcmOptions: {
-        link: '/target-url' // URL to open when notification is clicked
-      }
+// Make sure to use the same version as your 'firebase' package
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+
+// A placeholder config. The client will send the actual config.
+const firebaseConfig = {};
+
+// Wait for the config from the client
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SET_FIREBASE_CONFIG') {
+    if (!firebase.apps.length) {
+      console.log('[SW] Firebase config received. Initializing app.');
+      firebase.initializeApp(event.data.config);
+      
+      const messaging = firebase.messaging();
+      console.log('[SW] Firebase Messaging initialized for background messages.');
+      
+      messaging.onBackgroundMessage((payload) => {
+        console.log('[SW] Received background message. FCM will handle display.', payload);
+        // This handler is for data-only messages. 
+        // If the payload has a 'notification' field, FCM shows it automatically.
+      });
     }
-  });
-*/
+  }
+});
 
-// The click action is handled automatically by the Firebase Messaging SDK's default behavior
-// when it receives a notification with an fcmOptions.link.
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification click Received.', event.notification);
+  event.notification.close();
+
+  // The 'data' object is where fcmOptions.link ends up.
+  const notificationUrl = event.notification.data?.link || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then((clientsArr) => {
+      // Check if a window with the same URL is already open.
+      const clientToFocus = clientsArr.find(
+          (windowClient) => new URL(windowClient.url).pathname === new URL(notificationUrl, self.location.origin).pathname
+      );
+
+      if (clientToFocus) {
+          return clientToFocus.focus();
+      }
+      
+      // If not, open a new one.
+      return clients.openWindow(notificationUrl);
+    })
+  );
+});
