@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react';
@@ -19,7 +18,7 @@ import { AddWalletForm } from '@/components/AddWalletForm';
 import { deleteWallet } from './actions';
 import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { AddIncomeForm } from '@/components/AddIncomeForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
