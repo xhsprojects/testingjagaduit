@@ -30,6 +30,12 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'portofolio-smoky-five.vercel.app',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
