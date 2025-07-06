@@ -127,24 +127,37 @@ export async function sendTestNotification(token: string): Promise<ActionResult>
             return { success: false, message: 'Token notifikasi (FCM) untuk admin tidak ditemukan di database.' };
         }
 
-        const message = {
-            tokens: fcmTokens,
-            webpush: {
-                notification: {
-                    title: '🔔 Tes Notifikasi Jaga Duit',
-                    body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
-                    icon: '/icons/icon-192x192.png',
-                    tag: `jaga-duit-test-${Date.now()}`,
-                    data: {
-                        link: '/'
-                    }
-                },
-            }
-        };
+        // Send a unique message to each token to avoid browser collapsing them
+        let successCount = 0;
+        let failureCount = 0;
+        
+        const sendPromises = fcmTokens.map(fcmToken => {
+            const message = {
+                token: fcmToken,
+                webpush: {
+                    notification: {
+                        title: '🔔 Tes Notifikasi Jaga Duit',
+                        body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
+                        icon: '/icons/icon-192x192.png',
+                        // Make the tag truly unique for every single message sent
+                        tag: `jaga-duit-test-${Date.now()}-${Math.random()}`,
+                        data: {
+                            link: '/'
+                        }
+                    },
+                }
+            };
+            return messaging.send(message)
+                .then(() => { successCount++; })
+                .catch(error => {
+                    console.error(`Failed to send test notification to token:`, error.message);
+                    failureCount++;
+                });
+        });
 
-        await messaging.sendEachForMulticast(message);
+        await Promise.all(sendPromises);
 
-        return { success: true, message: `Notifikasi uji coba berhasil dikirim ke ${fcmTokens.length} perangkat.` };
+        return { success: true, message: `Notifikasi uji coba dikirim. Berhasil: ${successCount}, Gagal: ${failureCount}.` };
 
     } catch (error: any) {
         console.error('Error in sendTestNotification:', error);
