@@ -159,7 +159,6 @@ export default function ReportsPage() {
     const LaporanTab = () => {
         const totalExpenses = filteredData?.expenses.reduce((sum, e) => sum + e.amount, 0) || 0;
         const totalAddedIncomes = filteredData?.incomes.reduce((sum, i) => sum + i.amount, 0) || 0;
-        const totalIncome = (data.budget.income || 0) + totalAddedIncomes;
         
         const savingsCategoryId = data.budget.categories.find((c: Category) => c.name === "Tabungan & Investasi")?.id;
         const totalSavings = filteredData?.expenses.filter(e => e.categoryId === savingsCategoryId).reduce((sum, e) => sum + e.amount, 0) || 0;
@@ -171,13 +170,13 @@ export default function ReportsPage() {
         })).filter(c => c.spent > 0);
 
         const incomeData = [
-            { name: "Pemasukan Pokok", value: data.budget.income || 0 },
+            // Base budget is not considered "income" in reports, only additional income.
             { name: "Pemasukan Tambahan", value: totalAddedIncomes }
         ].filter(i => i.value > 0);
         
         const cashflowData = [{
             name: 'Arus Kas',
-            Pendapatan: totalIncome,
+            Pendapatan: totalAddedIncomes, // Only additional income
             Pengeluaran: totalExpenses,
             Tabungan: totalSavings,
         }];
@@ -206,7 +205,7 @@ export default function ReportsPage() {
                            <Card>
                                 <CardHeader>
                                     <CardTitle>Distribusi Pemasukan</CardTitle>
-                                    <CardDescription>Distribusi pemasukan Anda berdasarkan sumber.</CardDescription>
+                                    <CardDescription>Distribusi pemasukan tambahan Anda.</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                      <BudgetChart data={incomeData.map(d => ({name: d.name, spent: d.value, budget: d.value}))} />

@@ -60,9 +60,10 @@ const PeriodCard = ({ period, id, onDelete }: {
         ? `${format(new Date(period.periodStart), "d MMM yyyy", { locale: idLocale })} - Sekarang`
         : `Total ${(period.expenses || []).length + (period.incomes || []).length} transaksi`;
 
-    const totalIncome = (period.incomes || []).reduce((sum, i) => sum + i.amount, period.income || 0);
+    const totalAddedIncomes = (period.incomes || []).reduce((sum, i) => sum + i.amount, 0);
     const totalExpenses = (period.expenses || []).reduce((sum, e) => sum + e.amount, 0);
-    const remaining = totalIncome - totalExpenses;
+    // remaining budget should still include the base budget
+    const remaining = (period.income || 0) + totalAddedIncomes - totalExpenses;
 
     const handleExport = (type: 'csv' | 'pdf') => {
         const periodName = `periode_${format(new Date(period.periodStart), "yyyy-MM-dd")}`;
@@ -77,7 +78,7 @@ const PeriodCard = ({ period, id, onDelete }: {
                 ...expenses.map(e => ({ type: 'Pengeluaran', date: e.date, category: categoryMap.get(e.categoryId) || 'N/A', amount: -e.amount, notes: e.notes }))
             ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-            const rows = allTransactions.map(t => [
+            let rows = allTransactions.map(t => [
                 new Date(t.date).toLocaleString('en-CA'),
                 t.type,
                 `"${t.category}"`,
@@ -85,6 +86,12 @@ const PeriodCard = ({ period, id, onDelete }: {
                 `"${t.notes?.replace(/"/g, '""') || ''}"`
             ].join(','));
             
+            // Add summary rows
+            rows.push(''); // blank line
+            rows.push(`"Total Pemasukan Tambahan",${totalAddedIncomes}`);
+            rows.push(`"Total Pengeluaran",${-totalExpenses}`);
+            rows.push(`"Sisa Anggaran",${remaining}`);
+
             const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
@@ -110,6 +117,20 @@ const PeriodCard = ({ period, id, onDelete }: {
                     ];
                 }),
                 startY: 30,
+            });
+
+            // Add summary table
+            const finalY = (doc as any).lastAutoTable.finalY || 100;
+            autoTable(doc, {
+                startY: finalY + 10,
+                head: [['Ringkasan', 'Jumlah']],
+                body: [
+                    ['Pemasukan Tambahan', formatCurrency(totalAddedIncomes)],
+                    ['Total Pengeluaran', formatCurrency(totalExpenses)],
+                    ['Sisa Anggaran', formatCurrency(remaining)],
+                ],
+                theme: 'striped',
+                headStyles: { fillColor: [41, 128, 185] }
             });
 
             doc.save(`jagaduit_laporan_${periodName}.pdf`);
@@ -141,8 +162,8 @@ const PeriodCard = ({ period, id, onDelete }: {
                         <TrendingUp className="h-5 w-5 text-green-500"/>
                     </div>
                     <div>
-                        <p className="text-muted-foreground">Pemasukan</p>
-                        <p className="font-bold">{formatCurrency(totalIncome)}</p>
+                        <p className="text-muted-foreground">Pemasukan Tambahan</p>
+                        <p className="font-bold">{formatCurrency(totalAddedIncomes)}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -353,9 +374,13 @@ export default function HistoryPage() {
         const periodName = `riwayat_${format(new Date(), "yyyy-MM-dd")}`;
         const walletMap = new Map(wallets.map(w => [w.id, w.name]));
 
+        const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+        const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+        const netFlow = totalIncome - totalExpense;
+
         if (type === 'csv') {
             const headers = ['Tanggal', 'Tipe', 'Kategori/Detail', 'Jumlah', 'Dompet', 'Catatan'];
-            const rows = filteredTransactions.map(t => [
+            let rows = filteredTransactions.map(t => [
                 new Date(t.date).toLocaleString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
                 t.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
                 `"${t.categoryName || 'Lainnya'}"`,
@@ -363,6 +388,13 @@ export default function HistoryPage() {
                 `"${t.walletId ? walletMap.get(t.walletId) || '' : ''}"`,
                 `"${t.notes?.replace(/"/g, '""') || ''}"`
             ].join(','));
+            
+            // Add summary rows
+            rows.push(''); // blank line
+            rows.push(`"Total Pemasukan",${totalIncome}`);
+            rows.push(`"Total Pengeluaran",${totalExpense}`);
+            rows.push(`"Arus Kas Bersih",${netFlow}`);
+            
             const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
@@ -392,6 +424,21 @@ export default function HistoryPage() {
                 startY: 38,
                 headStyles: { fillColor: [41, 128, 185] },
             });
+            
+             // Add summary table
+            const finalY = (doc as any).lastAutoTable.finalY || 100;
+            autoTable(doc, {
+                startY: finalY + 10,
+                head: [['Ringkasan', 'Jumlah']],
+                body: [
+                    ['Total Pemasukan', formatCurrency(totalIncome)],
+                    ['Total Pengeluaran', formatCurrency(totalExpense)],
+                    ['Arus Kas Bersih', formatCurrency(netFlow)],
+                ],
+                theme: 'striped',
+                headStyles: { fillColor: [41, 128, 185] }
+            });
+
             doc.save(`jagaduit_${periodName}.pdf`);
         }
     };

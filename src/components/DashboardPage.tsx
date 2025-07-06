@@ -264,12 +264,15 @@ export default function DashboardPage({
   
   const handleExportCSV = () => {
     const headers = ['Tanggal', 'Kategori', 'Jumlah', 'Catatan'];
-    const rows = filteredExpenses.map(e => [
+    let rows = filteredExpenses.map(e => [
       new Date(e.date).toLocaleDateString('en-CA'),
       categoryMap.get(e.categoryId)?.name || 'N/A',
       e.amount,
       `"${e.notes?.replace(/"/g, '""') || ''}"`
     ].join(','));
+    
+    rows.push('');
+    rows.push(`"Total",,"${totalFilteredExpenses}"`);
     
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -302,6 +305,13 @@ export default function DashboardPage({
         body: tableData,
         startY: 30,
         headStyles: { fillColor: [41, 128, 185] }, // Primary color
+        didDrawPage: (data) => {
+            // Footer
+            const aT = doc as any;
+            const startY = aT.lastAutoTable.finalY + 10;
+            doc.setFontSize(10);
+            doc.text(`Total Pengeluaran: ${formatCurrency(totalFilteredExpenses)}`, data.settings.margin.left, startY);
+        }
     });
 
     doc.save("jagaduit_expenses.pdf");
@@ -309,12 +319,15 @@ export default function DashboardPage({
 
   const handleExportIncomesCSV = () => {
     const headers = ['Tanggal', 'Jumlah', 'Catatan'];
-    const rows = filteredIncomes.map(i => [
+    let rows = filteredIncomes.map(i => [
       new Date(i.date).toLocaleDateString('en-CA'),
       i.amount,
       `"${i.notes?.replace(/"/g, '""') || ''}"`
     ].join(','));
     
+    rows.push('');
+    rows.push(`"Total",${totalFilteredIncomes}`);
+
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -344,6 +357,12 @@ export default function DashboardPage({
         body: tableData,
         startY: 30,
         headStyles: { fillColor: [41, 128, 185] },
+        didDrawPage: (data) => {
+            const aT = doc as any;
+            const startY = aT.lastAutoTable.finalY + 10;
+            doc.setFontSize(10);
+            doc.text(`Total Pemasukan Tambahan: ${formatCurrency(totalFilteredIncomes)}`, data.settings.margin.left, startY);
+        }
     });
 
     doc.save("jagaduit_incomes.pdf");

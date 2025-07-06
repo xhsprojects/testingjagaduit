@@ -4,38 +4,18 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { db } from '@/lib/firebase'
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore'
-import type { AppNotification } from '@/lib/types'
-import { format, formatDistanceToNow } from 'date-fns'
-import { id as idLocale } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Loader2, ArrowLeft, Bell, CheckCheck, CalendarClock, Gem, Repeat, Megaphone } from 'lucide-react'
+import { Loader2, ArrowLeft, Bell, CheckCheck, CalendarClock, Gem, Repeat, Megaphone, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import Link from 'next/link'
 import { useToast } from '@/hooks/use-toast'
-import { markAllNotificationsAsRead } from './actions'
+import { markAllNotificationsAsRead, markNotificationAsRead, deleteReadNotifications } from './actions'
+import { type AppNotification } from '@/lib/types'
 
-const convertTimestamps = (data: any): any => {
-  if (!data) return data;
-  if (data?.toDate) {
-    return data.toDate();
-  }
-  if (Array.isArray(data)) {
-    return data.map(item => convertTimestamps(item));
-  }
-  if (typeof data === 'object' && data !== null && !data._seconds) {
-    const newObj: { [key: string]: any } = {};
-    for (const key of Object.keys(data)) {
-      newObj[key] = convertTimestamps(data[key]);
-    }
-    return newObj;
-  }
-  return data;
-};
-
-const NotificationItem = ({ notification }: { notification: AppNotification }) => {
+const NotificationItem = ({ notification, onNotificationClick }: { 
+    notification: AppNotification; 
+    onNotificationClick: (notification: AppNotification) => void;
+}) => {
     
     const getNotificationDetails = () => {
         switch (notification.type) {
@@ -48,21 +28,23 @@ const NotificationItem = ({ notification }: { notification: AppNotification }) =
     }
 
     const { icon: Icon, color } = getNotificationDetails();
-    const timeAgo = formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: idLocale });
 
     return (
-        <Link href={notification.link || '#'} className="block w-full">
-            <div className={cn("flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-secondary transition-colors", notification.isRead && 'opacity-60 bg-secondary/50')}>
-                <div className={cn("p-2 rounded-full mt-1", notification.isRead ? 'bg-muted' : 'bg-primary/10')}>
-                    <Icon className={cn("h-5 w-5", notification.isRead ? 'text-muted-foreground' : color)} />
-                </div>
-                <div className="flex-1 grid gap-1">
-                    <p className="font-semibold">{notification.title}</p>
-                    <p className="text-sm text-muted-foreground">{notification.body}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
-                </div>
+        <div 
+            onClick={() => onNotificationClick(notification)}
+            className={cn(
+                "flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-secondary transition-colors cursor-pointer", 
+                notification.isRead && 'opacity-60 bg-secondary/50'
+            )}
+        >
+            <div className={cn("p-2 rounded-full mt-1", notification.isRead ? 'bg-muted' : 'bg-primary/10')}>
+                <Icon className={cn("h-5 w-5", notification.isRead ? 'text-muted-foreground' : color)} />
             </div>
-        </Link>
+            <div className="flex-1 grid gap-1">
+                <p className="font-semibold">{notification.title}</p>
+                <p className="text-sm text-muted-foreground">{notification.body}</p>
+            </div>
+        </div>
     );
 };
 
@@ -81,12 +63,34 @@ export default function NotificationsPage() {
         }
     }, [user, authLoading, router]);
     
+    const handleNotificationClick = async (notification: AppNotification) => {
+        if (idToken && !notification.isRead) {
+            await markNotificationAsRead(idToken, notification.id);
+        }
+        if (notification.link) {
+            router.push(notification.link);
+        }
+    }
+
     const handleMarkAllRead = async () => {
         if (!idToken) {
             toast({ title: 'Sesi tidak valid', variant: 'destructive' });
             return;
         }
         const result = await markAllNotificationsAsRead(idToken);
+        if (result.success) {
+            toast({ title: 'Sukses', description: result.message });
+        } else {
+            toast({ title: 'Gagal', description: result.message, variant: 'destructive' });
+        }
+    }
+
+    const handleDeleteRead = async () => {
+         if (!idToken) {
+            toast({ title: 'Sesi tidak valid', variant: 'destructive' });
+            return;
+        }
+        const result = await deleteReadNotifications(idToken);
         if (result.success) {
             toast({ title: 'Sukses', description: result.message });
         } else {
@@ -146,7 +150,7 @@ export default function NotificationsPage() {
                         ) : (
                             <div className="space-y-4">
                                 {unreadNotifications.map(notification => (
-                                    <NotificationItem key={notification.id} notification={notification} />
+                                    <NotificationItem key={notification.id} notification={notification} onNotificationClick={handleNotificationClick} />
                                 ))}
                             </div>
                         )}
@@ -154,13 +158,20 @@ export default function NotificationsPage() {
                 </Card>
                  {readNotifications.length > 0 && (
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Notifikasi Terdahulu</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Notifikasi Terdahulu</CardTitle>
+                                <CardDescription>Notifikasi yang sudah Anda baca.</CardDescription>
+                            </div>
+                            <Button variant="destructive" size="sm" onClick={handleDeleteRead}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus Terbaca
+                            </Button>
                         </CardHeader>
                         <CardContent>
                              <div className="space-y-4">
                                 {readNotifications.slice(0, 10).map(notification => (
-                                    <NotificationItem key={notification.id} notification={notification} />
+                                    <NotificationItem key={notification.id} notification={notification} onNotificationClick={handleNotificationClick} />
                                 ))}
                             </div>
                         </CardContent>

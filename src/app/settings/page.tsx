@@ -1,18 +1,20 @@
+
 "use client"
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ArrowLeft, User, Palette, Bell, Trash2, ChevronRight, Loader2, Settings as SettingsIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import { deleteUserAccount } from './actions';
+import { deleteUserAccount, updateUserProfile } from './actions';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { Input } from '@/components/ui/input';
 
 const SettingsItem = ({ icon, title, description, href, action }: { icon: React.ElementType, title: string, description: string, href?: string, action?: () => void }) => {
     const Component = href ? Link : 'div';
@@ -38,10 +40,14 @@ export default function SettingsPage() {
     const router = useRouter();
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = React.useState(false);
+    const [isSavingName, setIsSavingName] = React.useState(false);
+    const [displayName, setDisplayName] = React.useState(user?.displayName || '');
 
     React.useEffect(() => {
         if (!loading && !user) {
             router.push('/login');
+        } else if(user) {
+            setDisplayName(user.displayName || '');
         }
     }, [user, loading, router]);
 
@@ -60,6 +66,19 @@ export default function SettingsPage() {
             toast({ title: 'Gagal Menghapus Akun', description: result.message, variant: 'destructive' });
         }
         setIsDeleting(false);
+    };
+    
+    const handleNameChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!idToken || !displayName || displayName === user?.displayName) return;
+        setIsSavingName(true);
+        const result = await updateUserProfile(idToken, displayName);
+        if (result.success) {
+            toast({ title: 'Sukses', description: result.message });
+        } else {
+            toast({ title: 'Gagal', description: result.message, variant: 'destructive' });
+        }
+        setIsSavingName(false);
     };
 
     if (loading || !user) {
@@ -85,17 +104,33 @@ export default function SettingsPage() {
             <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-6 pb-20">
                 <Card>
                     <CardHeader>
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-16 w-16">
-                                <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                                <AvatarFallback>{user.displayName?.charAt(0) || 'U'}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <CardTitle className="font-headline">{user.displayName}</CardTitle>
-                                <CardDescription>{user.email}</CardDescription>
-                            </div>
-                        </div>
+                        <CardTitle className="font-headline flex items-center gap-2"><User /> Profil</CardTitle>
                     </CardHeader>
+                    <form onSubmit={handleNameChange}>
+                        <CardContent className="space-y-4">
+                             <div className="flex items-center gap-4">
+                                <Avatar className="h-16 w-16">
+                                    <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+                                    <AvatarFallback>{user.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 space-y-1">
+                                    <label htmlFor="displayName" className="text-sm font-medium">Nama Tampilan</label>
+                                    <Input
+                                        id="displayName"
+                                        value={displayName}
+                                        onChange={(e) => setDisplayName(e.target.value)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button type="submit" disabled={isSavingName || displayName === user.displayName}>
+                                {isSavingName && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Simpan Perubahan Nama
+                            </Button>
+                        </CardFooter>
+                    </form>
                 </Card>
 
                 <Card>

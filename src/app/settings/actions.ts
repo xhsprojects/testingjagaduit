@@ -1,3 +1,4 @@
+
 'use server'
 
 import { getAuthAdmin, getDbAdmin } from '@/lib/firebase-server';
@@ -77,5 +78,38 @@ export async function deleteUserAccount(token: string): Promise<ActionResult> {
     } catch (error: any) {
         console.error("Delete Account Error:", error);
         return { success: false, message: `Gagal menghapus akun: ${error.message}` };
+    }
+}
+
+export async function updateUserProfile(token: string, newName: string): Promise<ActionResult> {
+    if (!token) return { success: false, message: 'Sesi tidak valid.' };
+    if (!newName || newName.trim().length < 2) return { success: false, message: 'Nama harus diisi.' };
+
+    const authAdmin = getAuthAdmin();
+    const db = getDbAdmin();
+    if (!authAdmin || !db) return { success: false, message: 'Konfigurasi server bermasalah.' };
+
+    try {
+        const decodedToken = await authAdmin.verifyIdToken(token);
+        const uid = decodedToken.uid;
+
+        // Update Firebase Auth display name
+        await authAdmin.updateUser(uid, {
+            displayName: newName,
+        });
+
+        // Update Firestore display name
+        const userDocRef = db.collection('users').doc(uid);
+        await userDocRef.update({
+            displayName: newName,
+        });
+        
+        revalidatePath('/settings');
+        revalidatePath('/');
+        return { success: true, message: 'Nama berhasil diperbarui.' };
+
+    } catch (error: any) {
+        console.error("Update Profile Error:", error);
+        return { success: false, message: `Gagal memperbarui nama: ${error.message}` };
     }
 }

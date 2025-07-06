@@ -166,12 +166,13 @@ export default function HistoryDetailPage() {
 
     const summaryStats = React.useMemo(() => {
         if (!period) return { income: 0, expenses: 0, remaining: 0 };
-        const income = (period.incomes || []).reduce((sum, i) => sum + i.amount, period.income || 0);
+        // FIX: Calculate income only from additional incomes, not base budget
+        const income = (period.incomes || []).reduce((sum, i) => sum + i.amount, 0);
         const expenses = (period.expenses || []).reduce((sum, e) => sum + e.amount, 0);
         return {
             income,
             expenses,
-            remaining: income - expenses,
+            remaining: (period.income || 0) + income - expenses, // Remaining budget should still consider base budget
         };
     }, [period]);
 
@@ -273,7 +274,7 @@ export default function HistoryDetailPage() {
                     <CardContent className="pt-6 flex items-center gap-4">
                         <TrendingUp className="h-6 w-6 text-green-500 flex-shrink-0" />
                         <div>
-                            <p className="text-sm text-muted-foreground">Total Pemasukan</p>
+                            <p className="text-sm text-muted-foreground">Pemasukan Tambahan</p>
                             <p className="font-bold text-lg">{formatCurrency(summaryStats.income)}</p>
                         </div>
                     </CardContent>

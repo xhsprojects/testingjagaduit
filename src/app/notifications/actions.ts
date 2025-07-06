@@ -1,3 +1,4 @@
+
 'use server';
 import { getAuthAdmin, getDbAdmin } from '@/lib/firebase-server';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -57,7 +58,9 @@ export async function markNotificationAsRead(token: string, notificationId: stri
         revalidatePath('/notifications');
         return { success: true, message: "Notifikasi ditandai sebagai dibaca." };
     } catch (error: any) {
-        return handleAuthError(error);
+        // Don't return an error message to the user for this background action
+        console.error("Failed to mark notification as read:", error);
+        return { success: false, message: 'Gagal menandai notifikasi.' };
     }
 }
 
@@ -87,6 +90,38 @@ export async function markAllNotificationsAsRead(token: string): Promise<ActionR
 
         revalidatePath('/notifications');
         return { success: true, message: "Semua notifikasi telah dibaca." };
+    } catch (error: any) {
+        return handleAuthError(error);
+    }
+}
+
+
+export async function deleteReadNotifications(token: string): Promise<ActionResult> {
+    if (!token) return { success: false, message: 'Sesi tidak valid.' };
+    
+    const authAdmin = getAuthAdmin();
+    const db = getDbAdmin();
+    if (!authAdmin || !db) return { success: false, message: 'Konfigurasi server bermasalah.' };
+    
+    try {
+        const decodedToken = await authAdmin.verifyIdToken(token);
+        const uid = decodedToken.uid;
+        
+        const notificationsRef = db.collection('users').doc(uid).collection('notifications');
+        const querySnapshot = await notificationsRef.where('isRead', '==', true).get();
+        
+        if (querySnapshot.empty) {
+            return { success: true, message: "Tidak ada notifikasi yang sudah dibaca untuk dihapus." };
+        }
+
+        const batch = db.batch();
+        querySnapshot.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        revalidatePath('/notifications');
+        return { success: true, message: `${querySnapshot.size} notifikasi telah dihapus.` };
     } catch (error: any) {
         return handleAuthError(error);
     }

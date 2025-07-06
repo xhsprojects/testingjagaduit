@@ -67,8 +67,8 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
     const wallet = wallets.find(w => w.id === watchedWalletId);
     if (!wallet) return null;
 
-    const totalIncome = (incomes).filter(i => i.walletId === watchedWalletId).reduce((sum, i) => sum + i.amount, 0);
-    const totalExpense = (expenses).filter(e => e.walletId === watchedWalletId).reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = (incomes || []).filter(i => i.walletId === watchedWalletId).reduce((sum, i) => sum + i.amount, 0);
+    const totalExpense = (expenses || []).filter(e => e.walletId === watchedWalletId).reduce((sum, e) => sum + e.amount, 0);
     return wallet.initialBalance + totalIncome - totalExpense;
   }, [watchedWalletId, wallets, incomes, expenses]);
 
