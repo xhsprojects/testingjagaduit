@@ -65,7 +65,7 @@ export default function BudgetChart({ data }: BudgetChartProps) {
     return data.reduce((acc, curr) => acc + curr.spent, 0)
   }, [data]);
 
-  const shouldShowScrollNote = chartData.length > 5;
+  const shouldShowScrollNote = chartData.length > 3;
   
   const chartConfig = React.useMemo(() => {
     const config = { ...chartConfigBase };
