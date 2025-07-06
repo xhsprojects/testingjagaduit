@@ -19,14 +19,12 @@ export default function NotificationHandler() {
     }
 
     try {
-      // 1. Request permission from the user
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         console.log('User denied notification permission.');
         return;
       }
         
-      // 2. Get the VAPID key from environment variables
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
       if (!vapidKey) {
           console.error('VAPID key not found in environment variables.');
@@ -38,23 +36,9 @@ export default function NotificationHandler() {
           return;
       }
 
-      // 3. Ensure the service worker is ready and get the registration
-      const registration = await navigator.serviceWorker.ready;
-
-      // 4. Send Firebase config to the active service worker
-      // This is more reliable than using navigator.serviceWorker.controller
-      if (registration.active) {
-        const firebaseConfig = messaging.app.options;
-        registration.active.postMessage({
-          type: 'SET_FIREBASE_CONFIG',
-          config: firebaseConfig,
-        });
-      }
-
-      // 5. Get the FCM token using the registration
-      const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
+      // The service worker is now self-sufficient, we just need to get the token.
+      const currentToken = await getToken(messaging, { vapidKey });
       
-      // 6. Save the token to Firestore for this user
       if (currentToken) {
         await saveNotificationToken(idToken, currentToken);
       } else {
@@ -69,7 +53,7 @@ export default function NotificationHandler() {
         variant: "destructive"
       });
     }
-  }, [user, idToken, toast, messaging]);
+  }, [user, idToken, toast]);
 
   // Run the setup process when the user logs in
   useEffect(() => {
