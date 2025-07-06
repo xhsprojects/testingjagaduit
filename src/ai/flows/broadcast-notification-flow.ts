@@ -9,7 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getDbAdmin, getMessagingAdmin } from '@/lib/firebase-server';
-import { FieldPath, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, FieldPath, Timestamp } from 'firebase-admin/firestore';
 
 const BroadcastInputSchema = z.object({
   title: z.string().min(1, 'Judul tidak boleh kosong.'),
@@ -82,7 +82,7 @@ const broadcastNotificationFlow = ai.defineFlow(
         }
 
         try {
-          await messaging.sendEachForMulticast({
+          const response = await messaging.sendEachForMulticast({
             tokens: fcmTokens,
             webpush: {
                 notification: {
@@ -96,9 +96,30 @@ const broadcastNotificationFlow = ai.defineFlow(
                 },
             }
           });
-          notificationsSent++;
+          notificationsSent += response.successCount;
+          
+          if (response.failureCount > 0) {
+            const tokensToRemove: string[] = [];
+            response.responses.forEach((resp, idx) => {
+              if (!resp.success) {
+                const errorCode = resp.error?.code;
+                if (errorCode === 'messaging/invalid-registration-token' ||
+                    errorCode === 'messaging/registration-token-not-registered') {
+                  tokensToRemove.push(fcmTokens[idx]);
+                } else {
+                  errors.push(`User ${userId} token error: ${errorCode}`);
+                }
+              }
+            });
+
+            if (tokensToRemove.length > 0) {
+              await db.collection('users').doc(userId).update({
+                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
+              });
+            }
+          }
         } catch (error: any) {
-          console.error(`Failed to send broadcast to user ${userId}:`, error.message);
+          console.error(`Error sending multicast for user ${userId}:`, error);
           errors.push(`User ${userId}: ${error.code || error.message}`);
         }
       }

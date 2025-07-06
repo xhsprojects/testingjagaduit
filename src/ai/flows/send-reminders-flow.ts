@@ -15,7 +15,7 @@ import { z } from 'zod';
 import { getDbAdmin, getMessagingAdmin } from '@/lib/firebase-server';
 import type { Reminder, RecurringTransaction } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
-import { Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
 // This flow doesn't require any input.
 const SendRemindersOutputSchema = z.object({
@@ -92,6 +92,8 @@ const dailyReminderFlow = ai.defineFlow(
 
         if (fcmTokens && Array.isArray(fcmTokens) && fcmTokens.length > 0) {
             usersWithToken++;
+        } else {
+            continue; // No token, skip push notification logic for this user
         }
         
         usersWithDueReminders++;
@@ -155,32 +157,46 @@ const dailyReminderFlow = ai.defineFlow(
 
 
         // Send push notification if user has tokens
-        if (fcmTokens && Array.isArray(fcmTokens) && fcmTokens.length > 0) {
-            try {
-              await messaging.sendEachForMulticast({
-                tokens: fcmTokens,
-                webpush: {
-                    notification: {
-                        title: notificationTitle,
-                        body: notificationBody,
-                        icon: '/icons/icon-192x192.png',
-                        tag: `financial-event-${userId}`,
-                        data: {
-                            link: targetLink,
-                        }
-                    },
-                }
-              });
-              notificationsSent++;
-            } catch (error: any) {
-              console.error(`Failed to send multicast notification to user ${userId}:`, error.message);
-              if (['messaging/invalid-registration-token', 'messaging/registration-token-not-registered'].includes(error.code)) {
-                await db.collection('users').doc(userId).update({ fcmTokens: null });
-                errors.push(`User ${userId}: Invalid token, removed.`);
-              } else {
-                errors.push(`User ${userId}: ${error.code}`);
+        try {
+            const response = await messaging.sendEachForMulticast({
+              tokens: fcmTokens,
+              webpush: {
+                  notification: {
+                      title: notificationTitle,
+                      body: notificationBody,
+                      icon: '/icons/icon-192x192.png',
+                      tag: `financial-event-${userId}`,
+                      data: {
+                          link: targetLink,
+                      }
+                  },
               }
+            });
+            notificationsSent += response.successCount;
+
+            if (response.failureCount > 0) {
+                const tokensToRemove: string[] = [];
+                response.responses.forEach((resp, idx) => {
+                  if (!resp.success) {
+                    const errorCode = resp.error?.code;
+                    if (errorCode === 'messaging/invalid-registration-token' ||
+                        errorCode === 'messaging/registration-token-not-registered') {
+                      tokensToRemove.push(fcmTokens[idx]);
+                    } else {
+                      errors.push(`User ${userId} token error: ${errorCode}`);
+                    }
+                  }
+                });
+
+                if (tokensToRemove.length > 0) {
+                  await db.collection('users').doc(userId).update({
+                    fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
+                  });
+                }
             }
+        } catch (error: any) {
+            console.error(`Error sending multicast for user ${userId}:`, error);
+            errors.push(`User ${userId}: ${error.code || error.message}`);
         }
       }
 

@@ -1,4 +1,3 @@
-
 'use server';
 import { getAuthAdmin, getDbAdmin } from '@/lib/firebase-server';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -28,16 +27,15 @@ export async function saveNotificationToken(token: string, fcmToken: string): Pr
         const decodedToken = await authAdmin.verifyIdToken(token);
         const userRef = db.collection('users').doc(decodedToken.uid);
         
-        // This will overwrite the array with only the latest token,
-        // solving the cross-domain notification issue.
+        // Use arrayUnion with set and merge:true. 
+        // This adds the token if it's not present and also creates the user document or fcmTokens field if they don't exist.
         await userRef.set({ 
-            fcmTokens: [fcmToken] 
+            fcmTokens: FieldValue.arrayUnion(fcmToken) 
         }, { merge: true });
 
         return { success: true, message: 'Token notifikasi disimpan.' };
     } catch (error: any) {
-        console.error('Error saving notification token:', error);
-        return { success: false, message: `Gagal menyimpan token: ${error.message}` };
+        return handleAuthError(error);
     }
 }
 
@@ -88,7 +86,7 @@ export async function markAllNotificationsAsRead(token: string): Promise<ActionR
         await batch.commit();
 
         revalidatePath('/notifications');
-        return { success: true, message: "Semua notifikasi ditandai sebagai telah dibaca." };
+        return { success: true, message: "Semua notifikasi telah dibaca." };
     } catch (error: any) {
         return handleAuthError(error);
     }
