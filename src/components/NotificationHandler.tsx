@@ -30,13 +30,12 @@ export default function NotificationHandler() {
           console.error('VAPID key not found in environment variables.');
           toast({
               title: "Konfigurasi Notifikasi Error",
-              description: "Kunci VAPID untuk notifikasi web tidak ditemukan.",
+              description: "Kunci VAPID untuk notifikasi web tidak ditemukan. Hubungi admin.",
               variant: "destructive"
           });
           return;
       }
 
-      // The service worker is now self-sufficient, we just need to get the token.
       const currentToken = await getToken(messaging, { vapidKey });
       
       if (currentToken) {
@@ -45,11 +44,30 @@ export default function NotificationHandler() {
         console.log('No registration token available. Request permission to generate one.');
       }
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('An error occurred while setting up notifications: ', err);
+      let description = "Terjadi kesalahan. Coba muat ulang halaman atau periksa setelan browser Anda.";
+      
+      if (err.code) {
+          switch (err.code) {
+              case 'messaging/permission-blocked':
+                  description = "Izin notifikasi diblokir. Harap izinkan di setelan browser Anda.";
+                  break;
+              case 'messaging/unsupported-browser':
+                  description = "Browser Anda tidak mendukung fitur notifikasi.";
+                  break;
+              case 'messaging/failed-serviceworker-registration':
+                  description = "Gagal mendaftarkan service worker. Coba muat ulang halaman.";
+                  break;
+              default:
+                  description = `Error (${err.code}). Coba muat ulang halaman.`;
+                  break;
+          }
+      }
+
       toast({
         title: "Gagal Mengaktifkan Notifikasi",
-        description: "Terjadi kesalahan. Coba muat ulang halaman atau periksa setelan browser Anda.",
+        description: description,
         variant: "destructive"
       });
     }
