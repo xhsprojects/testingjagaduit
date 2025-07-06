@@ -1,0 +1,16 @@
+diff --git a/node_modules/@capacitor-firebase/authentication/android/src/main/java/com/getcapacitor/firebase/authentication/FirebaseAuthentication.java b/node_modules/@capacitor-firebase/authentication/android/src/main/java/com/getcapacitor/firebase/authentication/FirebaseAuthentication.java
+index 28c7f91..1c0800d 100644
+--- a/node_modules/@capacitor-firebase/authentication/android/src/main/java/com/getcapacitor/firebase/authentication/FirebaseAuthentication.java
++++ b/node_modules/@capacitor-firebase/authentication/android/src/main/java/com/getcapacitor/firebase/authentication/FirebaseAuthentication.java
+@@ -172,7 +172,9 @@
+         }
+ 
+         JSObject credential = new JSObject();
+-        credential.put("idToken", result.getIdToken());
++        if (result.getIdToken() != null) {
++            credential.put("idToken", result.getIdToken());
++        }
+         credential.put("accessToken", result.getAccessToken());
+ 
+         JSObject user = new JSObject();
+

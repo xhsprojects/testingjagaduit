@@ -1,19 +1,20 @@
-# **App Name**: DuitSensei
+# **App Name**: BudgetFlow
 
 ## Core Features:
 
-- Input Transactions: User input of income and expenses, itemized and dated.
-- Spending Report: Visualization of spending habits in time, shown by category.
-- Smart Savings Tips: AI-driven insights. After some transactions are input, provide customized advice to reduce expenses, leveraging a tool for budget management and financial awareness.
-- User Profile: User account management (only local browser storage, no external database).
-- Goal Configuration: Configuration to let users define financial goals such as emergency fund target, and AI provides status against those goals.
+- Monthly Dashboard: Dashboard providing an overview of total budget, expenses, and remaining funds.
+- Daily Input: Input form for daily expenses with fields for date, category (dropdown), amount, and optional notes.
+- Monthly Recap: Automated monthly summary of expenses per category, comparison to budget, and surplus/deficit calculation.
+- Budget Visualization: Generate pie charts to visualize budget distribution versus actual spending.
+- AI Savings Assistant: Generate budget saving tips. This tool will reason about the current spending habits and financial goals to find relevant suggestions.
+- Data Export: Provide an export function for data in common formats, such as CSV and PDF.
 
 ## Style Guidelines:
 
-- Primary color: Light teal (#9edbb8), for a sense of calm, balance, and financial health.
-- Background color: Very light green (#edf5f0). A background that does not distract.
-- Accent color: Soft yellow (#eed899). Slightly separated from teal on the color wheel to provide visibility without aggression.
-- Body and headline font: 'Inter', sans-serif, for a modern machined look.
-- Use flat, minimalist icons for categories of income/expenses.
-- Clean and intuitive layout with a focus on data visualization.
-- Subtle animations to highlight key insights and spending trends.
+- Primary color: HSL 210, 65%, 50% which converts to a medium blue (#3DA3FF), evoking trust and stability appropriate for financial management.
+- Background color: Light blue at HSL 210, 20%, 95% (#F0F8FF). This creates a calm and clean backdrop.
+- Accent color: Purple at HSL 240, 50%, 60% (#735CDD). It is close to blue but contrasts well to draw attention to important interactive elements.
+- Headline Font: 'Poppins', a geometric sans-serif for a contemporary and fashionable look.
+- Body Font: 'PT Sans', a humanist sans-serif that offers a modern look with warmth and readability for detailed content.
+- Use minimalist, clear icons to represent each budget category (e.g., a fork and knife for 'Eating', a coin for 'Savings').
+- Dashboard uses a clean, card-based layout with well-spaced elements for easy readability and user experience.
