@@ -3,10 +3,10 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import type { SavingGoal, Expense, Category, Wallet, Income } from '@/lib/types';
+import type { SavingGoal, Expense, Category, Wallet, Income, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Target, PlusCircle, MinusCircle, Wallet as WalletIcon, Calendar, Coins, FileText, ArrowLeft, CreditCard, Landmark, Tag } from 'lucide-react';
+import { Target, PlusCircle, MinusCircle, Wallet as WalletIcon, Calendar, Coins, FileText, ArrowLeft, CreditCard, Landmark, Tag, PiggyBank } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, writeBatch, getDoc, updateDoc } from 'firebase/firestore';
@@ -15,12 +15,14 @@ import { WithdrawFromGoalForm } from '@/components/WithdrawFromGoalForm';
 import { awardAchievement } from '@/lib/achievements-manager';
 import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
 import { AddSavingGoalForm } from '@/components/AddSavingGoalForm';
+import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
+import { awardUserXp } from '@/app/achievements/actions';
 
 const convertTimestamps = (data: any) => {
   if (data?.date && typeof data.date.toDate === 'function') {
@@ -41,6 +43,8 @@ export default function SavingsPage() {
     const [expenses, setExpenses] = React.useState<Expense[]>([]);
     const [incomes, setIncomes] = React.useState<Income[]>([]);
     const [wallets, setWallets] = React.useState<Wallet[]>([]);
+    const [categories, setCategories] = React.useState<Category[]>([]);
+    const [debts, setDebts] = React.useState<Debt[]>([]);
     const [savingsCategoryId, setSavingsCategoryId] = React.useState<string | undefined>();
     const [isWithdrawFormOpen, setIsWithdrawFormOpen] = React.useState(false);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -50,6 +54,10 @@ export default function SavingsPage() {
     const [detailGoal, setDetailGoal] = React.useState<SavingGoal | null>(null);
     const [transactionDetail, setTransactionDetail] = React.useState<Expense | null>(null);
     
+    // States for the new "Deposit" form
+    const [isAddExpenseFormOpen, setIsAddExpenseFormOpen] = React.useState(false);
+    const [expenseToEdit, setExpenseToEdit] = React.useState<Expense | null>(null);
+
     React.useEffect(() => {
         if (!authLoading && !user) {
             router.push('/login');
@@ -60,23 +68,29 @@ export default function SavingsPage() {
         if (!user) return;
         setIsLoading(true);
         try {
-            const goalsSnapshot = await getDocs(collection(db, 'users', user.uid, 'savingGoals'));
-            setSavingGoals(goalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingGoal[]);
+            const goalsSnapshot = getDocs(collection(db, 'users', user.uid, 'savingGoals'));
+            const walletsSnapshot = getDocs(collection(db, 'users', user.uid, 'wallets'));
+            const budgetDocRef = getDoc(doc(db, 'users', user.uid, 'budgets', 'current'));
+            const debtsSnapshot = getDocs(collection(db, 'users', user.uid, 'debts'));
+
+            const [goalsSnap, walletsSnap, budgetDocSnap, debtsSnap] = await Promise.all([goalsSnapshot, walletsSnapshot, budgetDocRef, debtsSnapshot]);
+
+            setSavingGoals(goalsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingGoal[]);
+            setWallets(walletsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Wallet)));
+            setDebts(debtsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt)));
             
-            const walletsSnapshot = await getDocs(collection(db, 'users', user.uid, 'wallets'));
-            setWallets(walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Wallet)));
-            
-            const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
-            const budgetDocSnap = await getDoc(budgetDocRef);
             if (budgetDocSnap.exists()) {
                 const budgetData = budgetDocSnap.data();
                 setExpenses((budgetData.expenses || []).map(convertTimestamps));
                 setIncomes((budgetData.incomes || []).map(convertTimestamps));
-                const savingsCategory = (budgetData.categories || []).find((c: Category) => c.name === "Tabungan & Investasi");
+                const budgetCategories = (budgetData.categories || []);
+                setCategories(budgetCategories);
+                const savingsCategory = budgetCategories.find((c: Category) => c.name === "Tabungan & Investasi");
                 setSavingsCategoryId(savingsCategory?.id);
             } else {
                 setExpenses([]);
                 setIncomes([]);
+                setCategories([]);
                 setSavingsCategoryId(undefined);
             }
         } catch (error) {
@@ -152,19 +166,64 @@ export default function SavingsPage() {
         setIsAddGoalFormOpen(true);
     };
     
-    const handleExpensesUpdate = async (updatedExpenses: Expense[]) => {
-        if (!user) return;
+    const handleSaveDeposit = async (expenseData: Expense) => {
+        if (!user || !idToken) return;
+        
+        const isEditing = expenses.some(e => e.id === expenseData.id);
+        let updatedExpenses;
+        if (isEditing) {
+            updatedExpenses = expenses.map(e => (e.id === expenseData.id ? expenseData : e));
+        } else {
+            updatedExpenses = [...expenses, expenseData];
+        }
+
         try {
             const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
-            const sortedExpenses = updatedExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            await updateDoc(budgetDocRef, { expenses: updatedExpenses });
+            setExpenses(updatedExpenses.map(convertTimestamps));
+            setIsAddExpenseFormOpen(false);
+            setExpenseToEdit(null);
+            toast({ title: 'Sukses', description: `Setoran berhasil dicatat.` });
             
-            await updateDoc(budgetDocRef, { expenses: sortedExpenses });
-            setExpenses(sortedExpenses);
+            if (!isEditing) {
+                await awardUserXp(50, idToken);
+                const hasSavingsAchievement = achievements.some(a => a.badgeId === 'investor-rookie');
+                if (!hasSavingsAchievement) {
+                    await awardAchievement(user.uid, 'investor-rookie', achievements, idToken);
+                }
+            }
         } catch (error) {
-            console.error("Failed to save expense:", error);
-            toast({ title: 'Gagal Menyimpan Transaksi', variant: 'destructive' });
+            console.error("Failed to save deposit:", error);
+            toast({ title: 'Gagal Menyimpan Setoran', variant: 'destructive' });
         }
     };
+    
+    const handleOpenDepositForm = () => {
+        if (!savingsCategoryId) {
+            toast({
+                title: "Kategori Tabungan Tidak Ditemukan",
+                description: "Pastikan Anda memiliki kategori 'Tabungan & Investasi' di anggaran Anda untuk bisa menabung.",
+                variant: "destructive"
+            });
+            return;
+        }
+        setExpenseToEdit({
+            id: `exp-save-${Date.now()}`,
+            amount: 0,
+            baseAmount: 0,
+            categoryId: savingsCategoryId,
+            date: new Date(),
+            notes: 'Setoran ke tujuan tabungan'
+        });
+        setIsAddExpenseFormOpen(true);
+    };
+
+    const handleAddExpenseFormOpenChange = (open: boolean) => {
+        if (!open) {
+            setExpenseToEdit(null);
+        }
+        setIsAddExpenseFormOpen(open);
+    }
 
     const handleWithdrawal = async (withdrawalData: { amount: number; savingGoalId: string; walletId: string; notes?: string }) => {
         if (!savingsCategoryId) {
@@ -176,7 +235,6 @@ export default function SavingsPage() {
         const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
 
         const withdrawalAmount = Math.abs(withdrawalData.amount);
-        // Create a negative expense to reduce the goal's balance
         const withdrawalExpense: Expense = {
             id: `wtd-${Date.now()}`,
             amount: -withdrawalAmount,
@@ -187,7 +245,6 @@ export default function SavingsPage() {
             notes: `Penarikan: ${withdrawalData.notes || 'Tarik dana dari tujuan'}`,
         };
         
-        // Create a positive income to increase the wallet's balance
         const depositIncome: Income = {
             id: `dep-${Date.now()}`,
             amount: withdrawalAmount,
@@ -272,6 +329,9 @@ export default function SavingsPage() {
             </main>
 
             <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />}>
+                <SpeedDialAction label="Menabung" onClick={handleOpenDepositForm}>
+                    <PiggyBank className="h-5 w-5 text-blue-500" />
+                </SpeedDialAction>
                 <SpeedDialAction label="Tarik Dana" onClick={() => setIsWithdrawFormOpen(true)}>
                     <MinusCircle className="h-5 w-5 text-red-500" />
                 </SpeedDialAction>
@@ -286,6 +346,19 @@ export default function SavingsPage() {
                 onSubmit={handleSaveGoal}
                 goalToEdit={editingGoal}
                 isSubmitting={isSubmitting}
+            />
+
+            <AddExpenseForm
+                isOpen={isAddExpenseFormOpen}
+                onOpenChange={handleAddExpenseFormOpenChange}
+                categories={categories}
+                savingGoals={savingGoals}
+                debts={debts}
+                wallets={wallets}
+                expenses={expenses}
+                incomes={incomes}
+                onSubmit={handleSaveDeposit}
+                expenseToEdit={expenseToEdit}
             />
 
             <WithdrawFromGoalForm
@@ -405,3 +478,5 @@ export default function SavingsPage() {
         </div>
     );
 }
+
+    
