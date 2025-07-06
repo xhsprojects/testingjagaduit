@@ -165,7 +165,7 @@ const dailyReminderFlow = ai.defineFlow(
                       title: notificationTitle,
                       body: notificationBody,
                       icon: '/icons/icon-192x192.png',
-                      tag: `financial-event-${userId}`,
+                      tag: `financial-event-${userId}-${Date.now()}`,
                       data: {
                           link: targetLink,
                       }

@@ -134,7 +134,7 @@ export async function sendTestNotification(token: string): Promise<ActionResult>
                     title: '🔔 Tes Notifikasi Jaga Duit',
                     body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
                     icon: '/icons/icon-192x192.png',
-                    tag: 'jaga-duit-test-notification',
+                    tag: `jaga-duit-test-${Date.now()}`,
                     data: {
                         link: '/'
                     }
