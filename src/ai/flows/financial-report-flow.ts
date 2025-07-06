@@ -14,14 +14,15 @@ import {z} from 'zod';
 const FinancialReportInputSchema = z.object({
   expensesJSON: z.string().describe("A JSON string of an array of expense objects for the selected period."),
   categoriesJSON: z.string().describe("A JSON string of an array of category objects with their budgets."),
-  income: z.number().describe("The user's total income for the budget period."),
+  baseBudget: z.number().describe("The user's base monthly budget from category allocations."),
+  additionalIncomesJSON: z.string().describe("A JSON string of an array of additional income objects for the period."),
   periodLabel: z.string().describe("A label for the period being analyzed, e.g., '1 Jul - 31 Jul 2024'."),
 });
 export type FinancialReportInput = z.infer<typeof FinancialReportInputSchema>;
 
 const FinancialReportOutputSchema = z.object({
   title: z.string().describe("A short, engaging title for the report. Example: 'Analisis Keuangan Anda untuk [Period Label]'"),
-  summary: z.string().describe("A 2-3 sentence paragraph summarizing the user's financial activity. Highlight the relationship between income, expenses, and savings."),
+  summary: z.string().describe("A 2-3 sentence paragraph summarizing the user's financial activity. Highlight the relationship between total income (base budget + additional), expenses, and final savings."),
   insights: z.array(z.string()).describe("A list of 2-4 specific, actionable, and friendly insights or observations. Each insight should be a complete sentence. Example: 'Pengeluaran terbesar Anda ada di kategori Makanan, mencapai 30% dari total pengeluaran.' or 'Anda berhasil menabung Rp500.000 ke Dana Darurat, kerja bagus!'"),
   topSpending: z.object({
     categoryName: z.string().describe("The name of the category with the highest spending."),
@@ -34,7 +35,8 @@ export type FinancialReportOutput = z.infer<typeof FinancialReportOutputSchema>;
 export async function generateFinancialReport(input: {
     expenses: any[],
     categories: any[],
-    income: number,
+    baseBudget: number,
+    additionalIncomes: any[],
     periodLabel: string
 }): Promise<FinancialReportOutput | { error: string }> {
     if (!process.env.GEMINI_API_KEY) {
@@ -46,7 +48,8 @@ export async function generateFinancialReport(input: {
         const flowInput: FinancialReportInput = {
             expensesJSON: JSON.stringify(input.expenses.map(({id, date, amount, categoryId, notes}) => ({id, date, amount, categoryId, notes}))),
             categoriesJSON: JSON.stringify(input.categories),
-            income: input.income,
+            baseBudget: input.baseBudget,
+            additionalIncomesJSON: JSON.stringify(input.additionalIncomes.map(({id, date, amount, notes}) => ({id, date, amount, notes}))),
             periodLabel: input.periodLabel,
         };
         const result = await generateFinancialReportFlow(flowInput);
@@ -66,14 +69,20 @@ const prompt = ai.definePrompt({
   prompt: `Anda adalah seorang analis keuangan pribadi yang ramah dan cerdas. Tugas Anda adalah menganalisis data keuangan pengguna untuk periode "{{periodLabel}}" dan menyajikan laporan yang mudah dipahami, insightful, dan memotivasi.
 
   Berikut adalah data keuangan pengguna dalam format JSON:
-  - Pemasukan Total: {{income}}
-  - Kategori Anggaran: {{{categoriesJSON}}}
+  - Anggaran Dasar (dari alokasi kategori): {{baseBudget}}
+  - Kategori Anggaran & Budgetnya: {{{categoriesJSON}}}
+  - Daftar Pemasukan Tambahan: {{{additionalIncomesJSON}}}
   - Daftar Transaksi Pengeluaran: {{{expensesJSON}}}
 
+  **Definisi:**
+  - **Total Pemasukan** = Anggaran Dasar + Total dari Pemasukan Tambahan.
+  - **Total Pengeluaran** = Total dari semua transaksi pengeluaran.
+  - **Sisa Dana (Uang Sisa)** = Total Pemasukan - Total Pengeluaran.
+
   Tugas Anda:
-  1.  **Analisis Data:** Tinjau pemasukan, alokasi anggaran per kategori, dan semua transaksi yang terjadi. Bandingkan pengeluaran di setiap kategori dengan anggarannya. Identifikasi kategori pengeluaran terbesar.
+  1.  **Analisis Data:** Hitung Total Pemasukan dan Total Pengeluaran. Bandingkan pengeluaran di setiap kategori dengan anggarannya. Identifikasi kategori pengeluaran terbesar.
   2.  **Buat Judul Laporan:** Buat judul yang singkat dan menarik untuk laporan ini.
-  3.  **Tulis Ringkasan:** Tulis ringkasan singkat (2-3 kalimat) tentang aktivitas keuangan pengguna. Sebutkan total pengeluaran dan sisa dana (pemasukan - total pengeluaran).
+  3.  **Tulis Ringkasan:** Tulis ringkasan singkat (2-3 kalimat) tentang aktivitas keuangan pengguna. Sebutkan Total Pengeluaran dan Sisa Dana.
   4.  **Identifikasi Wawasan Penting:** Berikan 2-4 wawasan (insights) paling penting dalam bentuk daftar. Wawasan ini harus spesifik, mudah dimengerti, dan jika memungkinkan, berikan saran praktis. Fokus pada:
       -   Perbandingan pengeluaran vs. anggaran di kategori kunci.
       -   Kategori pengeluaran paling boros.

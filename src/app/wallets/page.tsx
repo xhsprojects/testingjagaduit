@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { Wallet, Expense, Income, Category, SavingGoal, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Wallet as WalletIcon, PlusCircle, Pencil, Trash2, Loader2, ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Tag, Landmark, CreditCard, Search, ArrowLeftRight } from 'lucide-react';
+import { Wallet as WalletIcon, PlusCircle, Pencil, Trash2, Loader2, ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Tag, Landmark, CreditCard, Search, ArrowLeftRight, MoreVertical } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ import { updateTransaction, deleteTransaction } from '../history/actions';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { TransferFundsForm } from '@/components/TransferFundsForm';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 
 type UnifiedTransaction = (Expense | Income) & {
   type: 'expense' | 'income';
@@ -139,6 +140,12 @@ export default function WalletsPage() {
         const totalExpense = expenses.filter(e => e.walletId === walletId).reduce((sum, e) => sum + e.amount, 0);
         return initialBalance + totalIncome - totalExpense;
     }, [incomes, expenses]);
+
+    const totalAllWalletsBalance = React.useMemo(() => {
+        return wallets.reduce((total, wallet) => {
+            return total + calculateWalletBalance(wallet.id, wallet.initialBalance);
+        }, 0);
+    }, [wallets, calculateWalletBalance]);
 
     const handleOpenForm = (wallet?: Wallet) => {
         setEditingWallet(wallet || null);
@@ -296,6 +303,16 @@ export default function WalletsPage() {
                 </div>
             </header>
             <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="font-headline">Ringkasan Total Saldo</CardTitle>
+                        <CardDescription>Total dana yang Anda miliki di semua dompet.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-3xl font-bold font-headline text-primary">{formatCurrency(totalAllWalletsBalance)}</p>
+                    </CardContent>
+                </Card>
+
                 {wallets.length === 0 ? (
                      <div className="text-center text-muted-foreground py-16">
                         <p className="text-lg font-semibold">Belum Ada Dompet</p>
@@ -307,29 +324,35 @@ export default function WalletsPage() {
                             const Icon = iconMap[wallet.icon] || WalletIcon;
                             const currentBalance = calculateWalletBalance(wallet.id, wallet.initialBalance);
                             return (
-                                <Card key={wallet.id} className="flex flex-col cursor-pointer hover:border-primary transition-colors" onClick={() => handleWalletClick(wallet)}>
-                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                        <CardTitle className="text-base font-medium font-headline">{wallet.name}</CardTitle>
-                                        <Icon className="h-5 w-5 text-muted-foreground" />
-                                    </CardHeader>
-                                    <CardContent className="flex-grow">
-                                        <div className="text-2xl font-bold">{formatCurrency(currentBalance)}</div>
-                                        <p className="text-xs text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
-                                    </CardContent>
-                                    <CardFooter className="flex justify-end gap-1 pt-4 border-t">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleWalletClick(wallet); }}>
-                                            <FileText className="h-4 w-4" />
-                                            <span className="sr-only">Lihat Riwayat</span>
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); handleOpenForm(wallet)}}>
-                                            <Pencil className="h-4 w-4" />
-                                            <span className="sr-only">Ubah</span>
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => {e.stopPropagation(); handleDeleteRequest(wallet.id)}}>
-                                            <Trash2 className="h-4 w-4" />
-                                            <span className="sr-only">Hapus</span>
-                                        </Button>
-                                    </CardFooter>
+                                <Card key={wallet.id} className="flex flex-col">
+                                    <div onClick={() => handleWalletClick(wallet)} className="cursor-pointer flex-grow">
+                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                            <CardTitle className="text-base font-medium font-headline">{wallet.name}</CardTitle>
+                                             <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2" onClick={(e) => e.stopPropagation()}>
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                                    <DropdownMenuItem onClick={() => handleWalletClick(wallet)}>
+                                                        <FileText className="mr-2 h-4 w-4"/> Lihat Riwayat
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleOpenForm(wallet)}>
+                                                        <Pencil className="mr-2 h-4 w-4"/> Ubah Dompet
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDeleteRequest(wallet.id)}>
+                                                        <Trash2 className="mr-2 h-4 w-4"/> Hapus Dompet
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="text-2xl font-bold">{formatCurrency(currentBalance)}</div>
+                                            <p className="text-xs text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
+                                        </CardContent>
+                                    </div>
                                 </Card>
                             )
                         })}

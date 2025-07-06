@@ -1,10 +1,11 @@
+
 "use client"
 
 import * as React from 'react'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BarChart3, Bot, Loader2, Sparkles, TrendingUp } from "lucide-react"
-import type { Category, Expense } from '@/lib/types'
+import type { Category, Expense, Income } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { generateFinancialReport, type FinancialReportOutput } from '@/ai/flows/financial-report-flow'
 import { formatCurrency } from '@/lib/utils'
@@ -14,18 +15,19 @@ import { awardAchievement } from '@/lib/achievements-manager'
 interface FinancialReportProps {
   expenses: Expense[]
   categories: Category[]
-  income: number
+  baseBudget: number
+  additionalIncomes: Income[]
   periodLabel: string
 }
 
-export default function FinancialReport({ expenses, categories, income, periodLabel }: FinancialReportProps) {
+export default function FinancialReport({ expenses, categories, baseBudget, additionalIncomes, periodLabel }: FinancialReportProps) {
     const { user, achievements, idToken } = useAuth();
     const [isLoading, setIsLoading] = React.useState(false)
     const [report, setReport] = React.useState<FinancialReportOutput | null>(null)
     const { toast } = useToast()
 
     const handleGenerateReport = async () => {
-        if (expenses.length === 0) {
+        if (expenses.length === 0 && additionalIncomes.length === 0) {
             toast({
                 title: "Data Tidak Cukup",
                 description: "Anda perlu memiliki setidaknya satu transaksi di periode ini untuk membuat laporan.",
@@ -40,7 +42,8 @@ export default function FinancialReport({ expenses, categories, income, periodLa
             const response = await generateFinancialReport({
                 expenses,
                 categories,
-                income,
+                baseBudget,
+                additionalIncomes,
                 periodLabel
             });
             if ('error' in response) {
@@ -52,7 +55,7 @@ export default function FinancialReport({ expenses, categories, income, periodLa
                 return;
             }
             setReport(response);
-            if (user) {
+            if (user && idToken) {
                 await awardAchievement(user.uid, 'ai-consultant', achievements, idToken);
             }
         } catch (error) {

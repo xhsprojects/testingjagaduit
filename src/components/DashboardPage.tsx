@@ -592,7 +592,8 @@ export default function DashboardPage({
           <FinancialReport
               expenses={filteredExpenses}
               categories={categories}
-              income={income + totalFilteredIncomes}
+              baseBudget={income}
+              additionalIncomes={filteredIncomes}
               periodLabel={periodLabel}
           />
           <PredictiveAnalysis

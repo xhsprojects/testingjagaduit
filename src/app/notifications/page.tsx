@@ -34,7 +34,7 @@ const NotificationItem = ({ notification, onNotificationClick }: {
             onClick={() => onNotificationClick(notification)}
             className={cn(
                 "flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-secondary transition-colors cursor-pointer", 
-                notification.isRead && 'opacity-60 bg-secondary/50'
+                notification.isRead && 'opacity-60 bg-secondary/30'
             )}
         >
             <div className={cn("p-2 rounded-full mt-1", notification.isRead ? 'bg-muted' : 'bg-primary/10')}>
