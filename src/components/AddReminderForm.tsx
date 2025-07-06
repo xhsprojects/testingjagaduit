@@ -146,6 +146,7 @@ export function AddReminderForm({ isOpen, onOpenChange, reminderToEdit }: AddRem
                             <FormControl>
                             <Input 
                                 type="text" 
+                                inputMode="decimal"
                                 placeholder="Rp 250.000" 
                                 value={field.value > 0 ? formatCurrency(field.value) : ""}
                                 onChange={(e) => {

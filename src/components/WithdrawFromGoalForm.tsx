@@ -109,7 +109,7 @@ export function WithdrawFromGoalForm({ isOpen, onOpenChange, goals, wallets, exp
                                 <SelectValue placeholder="Pilih tujuan tabungan" />
                             </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent position="popper">
                             {goals.map((goal) => (
                                 <SelectItem key={goal.id} value={goal.id}>
                                 {goal.name}
@@ -133,7 +133,7 @@ export function WithdrawFromGoalForm({ isOpen, onOpenChange, goals, wallets, exp
                                 <SelectValue placeholder="Pilih dompet tujuan" />
                             </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent position="popper">
                             {wallets.map((wallet) => (
                                 <SelectItem key={wallet.id} value={wallet.id}>
                                 {wallet.name}
@@ -158,7 +158,8 @@ export function WithdrawFromGoalForm({ isOpen, onOpenChange, goals, wallets, exp
                         <FormLabel>Jumlah Penarikan</FormLabel>
                         <FormControl>
                             <Input 
-                            type="text" 
+                            type="text"
+                            inputMode="decimal"
                             placeholder="Contoh: Rp 500.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {

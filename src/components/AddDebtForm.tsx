@@ -98,7 +98,8 @@ export function AddDebtForm({ isOpen, onOpenChange, onSubmit, debtToEdit }: AddD
                         <FormLabel>Total Utang</FormLabel>
                         <FormControl>
                             <Input 
-                            type="text" 
+                            type="text"
+                            inputMode="decimal"
                             placeholder="Contoh: Rp 15.000.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {
@@ -119,7 +120,8 @@ export function AddDebtForm({ isOpen, onOpenChange, onSubmit, debtToEdit }: AddD
                         <FormLabel>Pembayaran Minimum per Bulan</FormLabel>
                         <FormControl>
                             <Input 
-                            type="text" 
+                            type="text"
+                            inputMode="decimal"
                             placeholder="Contoh: Rp 800.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {
@@ -141,6 +143,7 @@ export function AddDebtForm({ isOpen, onOpenChange, onSubmit, debtToEdit }: AddD
                         <FormControl>
                             <Input 
                             type="number"
+                            inputMode="decimal"
                             step="0.1"
                             placeholder="Contoh: 5.5" 
                             {...field}

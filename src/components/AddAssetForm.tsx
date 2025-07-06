@@ -99,6 +99,7 @@ export function AddAssetForm({ isOpen, onOpenChange, onSubmit, assetToEdit }: Ad
                         <FormControl>
                             <Input 
                             type="text" 
+                            inputMode="decimal"
                             placeholder="Contoh: Rp 500.000.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {
@@ -123,7 +124,7 @@ export function AddAssetForm({ isOpen, onOpenChange, onSubmit, assetToEdit }: Ad
                                     <SelectValue placeholder="Pilih tipe aset" />
                                 </SelectTrigger>
                                 </FormControl>
-                                <SelectContent>
+                                <SelectContent position="popper">
                                 {assetTypes.map((type) => (
                                     <SelectItem key={type} value={type}>
                                     {type}

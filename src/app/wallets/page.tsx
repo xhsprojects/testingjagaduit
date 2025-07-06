@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from 'react';
@@ -5,20 +6,19 @@ import { useRouter } from 'next/navigation';
 import type { Wallet, Expense, Income, Category, SavingGoal, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Wallet as WalletIcon, PlusCircle, Pencil, Trash2, Loader2, ArrowLeft, TrendingUp, TrendingDown, Calendar, FileText, Tag, Landmark, CreditCard, Search, ArrowLeftRight } from 'lucide-react';
+import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { formatCurrency, cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore';
-import { iconMap } from '@/lib/icons';
 import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
 import { AddWalletForm } from '@/components/AddWalletForm';
 import { deleteWallet } from './actions';
 import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { AddIncomeForm } from '@/components/AddIncomeForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -26,7 +26,7 @@ import { updateTransaction, deleteTransaction } from '../history/actions';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { TransferFundsForm } from '@/components/TransferFundsForm';
-import Link from 'next/link';
+import { WalletCard } from '@/components/WalletCard';
 
 type UnifiedTransaction = (Expense | Income) & {
   type: 'expense' | 'income';
@@ -194,17 +194,6 @@ export default function WalletsPage() {
         setEditingIncome(null);
     };
     
-    const handleEditTransaction = (item: UnifiedTransaction) => {
-        if (item.type === 'expense') {
-            setEditingExpense(item as Expense);
-            setIsAddExpenseFormOpen(true);
-        } else {
-            setEditingIncome(item as Income);
-            setIsAddIncomeFormOpen(true);
-        }
-        setTransactionDetail(null); // Close detail dialog
-    };
-    
     const handleDeleteTransactionRequest = (item: UnifiedTransaction) => {
         setTransactionToDelete(item);
     };
@@ -264,20 +253,6 @@ export default function WalletsPage() {
         setDetailWallet(wallet);
         setDialogFilter({ tab: 'all', query: '' });
     };
-    
-    const detailViewData = React.useMemo(() => {
-        if (!transactionDetail) return null;
-        if (transactionDetail.type === 'expense') {
-            return {
-                ...transactionDetail,
-                category: categoryMap.get(transactionDetail.categoryId),
-                savingGoal: savingGoals.find(g => g.id === transactionDetail.savingGoalId),
-                debt: debts.find(d => d.id === transactionDetail.debtId),
-            }
-        }
-        return transactionDetail;
-    }, [transactionDetail, categoryMap, savingGoals, debts]);
-
 
     if (authLoading || isLoading) {
         return (
@@ -319,39 +294,16 @@ export default function WalletsPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {wallets.map(wallet => {
-                            const Icon = iconMap[wallet.icon] || WalletIcon;
-                            const currentBalance = calculateWalletBalance(wallet.id, wallet.initialBalance);
-                            return (
-                                <Card key={wallet.id} className="flex flex-col">
-                                    <CardHeader className="flex-grow">
-                                        <div className="flex justify-between items-start">
-                                            <div className="flex items-center gap-3">
-                                                <Icon className="h-8 w-8 text-primary" />
-                                                <div>
-                                                    <CardTitle className="text-lg font-bold font-headline">{wallet.name}</CardTitle>
-                                                    <CardDescription className="text-xs">Saldo Awal: {formatCurrency(wallet.initialBalance)}</CardDescription>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <p className="text-3xl font-bold text-center">{formatCurrency(currentBalance)}</p>
-                                    </CardContent>
-                                    <CardFooter className="grid grid-cols-3 gap-2 pt-4 border-t">
-                                        <Button variant="outline" size="sm" onClick={() => handleWalletClick(wallet)}>
-                                            <FileText className="mr-2 h-4 w-4"/> Riwayat
-                                        </Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleOpenForm(wallet)}>
-                                            <Pencil className="mr-2 h-4 w-4"/> Ubah
-                                        </Button>
-                                        <Button variant="destructive" size="sm" onClick={() => handleDeleteRequest(wallet.id)}>
-                                            <Trash2 className="mr-2 h-4 w-4"/> Hapus
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            )
-                        })}
+                        {wallets.map(wallet => (
+                            <WalletCard
+                                key={wallet.id}
+                                wallet={wallet}
+                                balance={calculateWalletBalance(wallet.id, wallet.initialBalance)}
+                                onHistory={() => handleWalletClick(wallet)}
+                                onEdit={() => handleOpenForm(wallet)}
+                                onDelete={() => handleDeleteRequest(wallet.id)}
+                            />
+                        ))}
                     </div>
                 )}
             </main>
@@ -425,159 +377,7 @@ export default function WalletsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            
-            <Dialog open={!!detailWallet} onOpenChange={(open) => !open && setDetailWallet(null)}>
-                <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
-                    <DialogHeader className="p-6 pb-4 border-b">
-                        <DialogTitle className="font-headline">Riwayat Transaksi: {detailWallet?.name}</DialogTitle>
-                    </DialogHeader>
-
-                    <div className="p-4 border-b space-y-4">
-                        <div className="relative">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="search"
-                                placeholder="Cari berdasarkan catatan/kategori..."
-                                className="pl-8"
-                                value={dialogFilter.query}
-                                onChange={(e) => setDialogFilter(prev => ({...prev, query: e.target.value}))}
-                            />
-                        </div>
-                        <Tabs
-                            value={dialogFilter.tab}
-                            onValueChange={(value) => setDialogFilter(prev => ({...prev, tab: value as any}))}
-                            className="w-full"
-                        >
-                            <TabsList className="grid w-full grid-cols-3">
-                                <TabsTrigger value="all">Semua</TabsTrigger>
-                                <TabsTrigger value="expense">Pengeluaran</TabsTrigger>
-                                <TabsTrigger value="income">Pemasukan</TabsTrigger>
-                            </TabsList>
-                        </Tabs>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto">
-                        <Table>
-                            <TableBody>
-                                {filteredTransactionsForWallet.length > 0 ? (
-                                    filteredTransactionsForWallet.map(t => {
-                                        const category = t.type === 'expense' ? categoryMap.get(t.categoryId) : null;
-                                        return (
-                                            <TableRow key={t.id} className="cursor-pointer" onClick={() => setTransactionDetail(t)}>
-                                                <TableCell className="p-4">
-                                                    <div className="font-medium">{t.type === 'expense' ? (category?.name || 'Lainnya') : 'Pemasukan'}</div>
-                                                    <div className="text-xs text-muted-foreground">{format(t.date, "d MMM yyyy, HH:mm", { locale: idLocale })}</div>
-                                                </TableCell>
-                                                <TableCell className={cn("p-4 text-right font-semibold", t.type === 'income' ? 'text-green-600' : 'text-foreground')}>
-                                                    {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
-                                                </TableCell>
-                                            </TableRow>
-                                        )
-                                    })
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={2} className="h-24 text-center">
-                                            Tidak ada transaksi yang cocok dengan filter.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={!!transactionDetail} onOpenChange={(open) => !open && setTransactionDetail(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Detail Transaksi</DialogTitle>
-                    </DialogHeader>
-                    {detailViewData && (
-                         <div className="space-y-4 py-2">
-                            <div className="rounded-lg bg-secondary p-4">
-                                <p className="text-sm text-muted-foreground">Jumlah</p>
-                                <p className={cn("text-2xl font-bold", detailViewData.type === 'income' ? 'text-green-600' : 'text-destructive')}>{formatCurrency(detailViewData.amount)}</p>
-                                {detailViewData.adminFee && detailViewData.adminFee > 0 && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        {detailViewData.type === 'expense'
-                                            ? `(Pokok: ${formatCurrency(detailViewData.baseAmount || 0)} + Admin: ${formatCurrency(detailViewData.adminFee)})`
-                                            : `(Pokok: ${formatCurrency(detailViewData.baseAmount || 0)} - Potongan: ${formatCurrency(detailViewData.adminFee)})`
-                                        }
-                                    </p>
-                                )}
-                            </div>
-                             <div className="space-y-3 pt-2 text-sm">
-                                <div className="flex items-start gap-3">
-                                    <Calendar className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Tanggal</p>
-                                        <p className="font-medium">{format(new Date(detailViewData.date), "EEEE, d MMMM yyyy, HH:mm", { locale: idLocale })}</p>
-                                    </div>
-                                </div>
-                                {detailViewData.type === 'expense' && detailViewData.category && (
-                                    <div className="flex items-start gap-3">
-                                        <Tag className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Kategori</p>
-                                            <p className="font-medium">{detailViewData.category.name}</p>
-                                        </div>
-                                    </div>
-                                )}
-                                {detailViewData.type === 'expense' && detailViewData.savingGoal && (
-                                    <div className="flex items-start gap-3">
-                                        <Landmark className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Tujuan Tabungan</p>
-                                            <p className="font-medium">{detailViewData.savingGoal.name}</p>
-                                        </div>
-                                    </div>
-                                )}
-                                {detailViewData.type === 'expense' && detailViewData.debt && (
-                                    <div className="flex items-start gap-3">
-                                        <CreditCard className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Pembayaran Utang</p>
-                                            <p className="font-medium">{detailViewData.debt.name}</p>
-                                        </div>
-                                    </div>
-                                )}
-                                {detailViewData.notes && (
-                                    <div className="flex items-start gap-3">
-                                        <FileText className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Catatan</p>
-                                            <p className="font-medium whitespace-pre-wrap">{detailViewData.notes}</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <Button variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDeleteTransactionRequest(transactionDetail!)}>Hapus</Button>
-                        <Button onClick={() => handleEditTransaction(transactionDetail!)}>Ubah</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-             <AlertDialog open={!!transactionToDelete} onOpenChange={(open) => !open && setTransactionToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Hapus Transaksi Ini?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Tindakan ini akan menghapus transaksi ini secara permanen dari riwayat Anda. Ini tidak bisa dibatalkan.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteTransaction} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                           {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                           Ya, Hapus
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
         </div>
     );
 }
+

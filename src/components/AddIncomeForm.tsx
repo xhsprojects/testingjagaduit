@@ -147,7 +147,8 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
                         <FormLabel>Jumlah Pemasukan</FormLabel>
                         <FormControl>
                             <Input 
-                            type="text" 
+                            type="text"
+                            inputMode="decimal"
                             placeholder="Contoh: Rp 500.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {
@@ -181,7 +182,8 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
                                 <FormLabel className="sr-only">Jumlah Potongan</FormLabel>
                                 <FormControl>
                                     <Input 
-                                    type="text" 
+                                    type="text"
+                                    inputMode="decimal"
                                     placeholder="Contoh: Rp 6.500" 
                                     value={field.value && field.value > 0 ? formatCurrency(field.value) : ""}
                                     onChange={(e) => {
@@ -212,7 +214,7 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
                                 <SelectValue placeholder="Pilih dompet tujuan" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent position="popper">
                               {wallets.map((wallet) => (
                                 <SelectItem key={wallet.id} value={wallet.id}>
                                   {wallet.name}
@@ -255,7 +257,7 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
                                         </Button>
                                         </FormControl>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <PopoverContent className="w-auto p-0" align="start" >
                                         <Calendar
                                         mode="single"
                                         selected={field.value}

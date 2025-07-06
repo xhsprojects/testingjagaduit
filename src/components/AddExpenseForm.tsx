@@ -388,6 +388,7 @@ export function AddExpenseForm({
                           <FormControl>
                               <Input 
                               type="text" 
+                              inputMode="decimal"
                               placeholder="Contoh: Rp 50.000" 
                               value={field.value > 0 ? formatCurrency(field.value) : ""}
                               onChange={(e) => {
@@ -422,7 +423,8 @@ export function AddExpenseForm({
                                 <FormLabel className="sr-only">Biaya Admin</FormLabel>
                                 <FormControl>
                                     <Input 
-                                    type="text" 
+                                    type="text"
+                                    inputMode="decimal"
                                     placeholder="Contoh: Rp 2.500" 
                                     value={field.value && field.value > 0 ? formatCurrency(field.value) : ""}
                                     onChange={(e) => {
@@ -455,7 +457,7 @@ export function AddExpenseForm({
                                 <SelectValue placeholder="Pilih sumber dana" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent position="popper">
                               {wallets.map((wallet) => (
                                 <SelectItem key={wallet.id} value={wallet.id}>
                                   {wallet.name}
@@ -484,7 +486,7 @@ export function AddExpenseForm({
                                 <SelectValue placeholder="Pilih kategori" />
                             </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent position="popper">
                             {categories.map((category) => (
                                 <SelectItem key={category.id} value={category.id}>
                                 {category.name}
@@ -517,7 +519,7 @@ export function AddExpenseForm({
                                 <SelectValue placeholder="Pilih tujuan tabungan" />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent position="popper">
                                 {savingGoals.map((goal) => (
                                 <SelectItem key={goal.id} value={goal.id}>
                                     {goal.name}
@@ -543,7 +545,7 @@ export function AddExpenseForm({
                                 <SelectValue placeholder="Pilih utang yang dibayar" />
                                 </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent position="popper">
                                 {debts.map((debt) => (
                                 <SelectItem key={debt.id} value={debt.id}>
                                     {debt.name}
@@ -582,7 +584,7 @@ export function AddExpenseForm({
                                         </Button>
                                         </FormControl>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
+                                    <PopoverContent className="w-auto p-0" align="start" >
                                         <Calendar
                                         mode="single"
                                         selected={field.value}

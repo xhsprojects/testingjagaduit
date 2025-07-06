@@ -117,6 +117,7 @@ export function AddWalletForm({ isOpen, onOpenChange, walletToEdit }: AddWalletF
                         <FormControl>
                             <Input 
                             type="text" 
+                            inputMode="decimal"
                             placeholder="Contoh: Rp 1.000.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {
@@ -146,7 +147,7 @@ export function AddWalletForm({ isOpen, onOpenChange, walletToEdit }: AddWalletF
                                                 </div>
                                             </SelectTrigger>
                                         </FormControl>
-                                        <SelectContent>
+                                        <SelectContent position="popper">
                                             {iconNames.map(iconName => {
                                                 const IconComponent = iconMap[iconName];
                                                 return (

@@ -204,6 +204,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                             <FormControl>
                                 <Input 
                                 type="text" 
+                                inputMode="decimal"
                                 placeholder="Rp 350.000" 
                                 value={field.value > 0 ? formatCurrency(field.value) : ""}
                                 onChange={(e) => {
@@ -236,6 +237,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                                   <FormControl>
                                       <Input 
                                       type="text" 
+                                      inputMode="decimal"
                                       placeholder="Contoh: Rp 2.500" 
                                       value={field.value && field.value > 0 ? formatCurrency(field.value) : ""}
                                       onChange={(e) => {
@@ -267,7 +269,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                                 <SelectValue placeholder="Pilih dompet sumber/tujuan" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent position="popper">
                               {wallets.map((wallet) => (
                                 <SelectItem key={wallet.id} value={wallet.id}>
                                   {wallet.name}
@@ -293,7 +295,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                                             <SelectValue placeholder="Pilih kategori pengeluaran" />
                                         </SelectTrigger>
                                         </FormControl>
-                                        <SelectContent>
+                                        <SelectContent position="popper">
                                         {expenseCategories.map((category) => (
                                             <SelectItem key={category.id} value={category.id}>
                                             {category.name}
@@ -325,6 +327,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                                 <FormControl>
                                     <Input 
                                     type="number"
+                                    inputMode="decimal"
                                     min="1"
                                     max="31"
                                     placeholder="Contoh: 25"

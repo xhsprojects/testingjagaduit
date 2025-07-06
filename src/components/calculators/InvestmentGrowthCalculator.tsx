@@ -115,6 +115,7 @@ export default function InvestmentGrowthCalculator() {
                                 <FormControl>
                                     <Input 
                                         type="text" 
+                                        inputMode="decimal"
                                         placeholder="1.000.000" 
                                         value={field.value > 0 ? formatCurrency(field.value) : ""}
                                         onChange={(e) => {
@@ -136,6 +137,7 @@ export default function InvestmentGrowthCalculator() {
                                 <FormControl>
                                      <Input 
                                         type="text" 
+                                        inputMode="decimal"
                                         placeholder="500.000" 
                                         value={field.value > 0 ? formatCurrency(field.value) : ""}
                                         onChange={(e) => {
@@ -155,7 +157,7 @@ export default function InvestmentGrowthCalculator() {
                                 <FormItem>
                                 <FormLabel>Estimasi Imbal Hasil (% per Tahun)</FormLabel>
                                 <FormControl>
-                                    <Input type="number" step="0.1" placeholder="7" {...field} />
+                                    <Input type="number" inputMode="decimal" step="0.1" placeholder="7" {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
@@ -168,7 +170,7 @@ export default function InvestmentGrowthCalculator() {
                                 <FormItem>
                                 <FormLabel>Jangka Waktu (Tahun)</FormLabel>
                                 <FormControl>
-                                    <Input type="number" placeholder="10" {...field} />
+                                    <Input type="number" inputMode="decimal" placeholder="10" {...field} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

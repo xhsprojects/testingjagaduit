@@ -119,7 +119,8 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
                             <FormLabel>Jumlah Transfer</FormLabel>
                             <FormControl>
                                 <Input 
-                                type="text" 
+                                type="text"
+                                inputMode="decimal"
                                 placeholder="Rp 100.000" 
                                 value={field.value > 0 ? formatCurrency(field.value) : ""}
                                 onChange={(e) => {
@@ -145,7 +146,7 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
                                         <SelectValue placeholder="Pilih dompet asal" />
                                     </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent>
+                                    <SelectContent position="popper">
                                     {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
@@ -165,7 +166,7 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
                                         <SelectValue placeholder="Pilih dompet tujuan" />
                                     </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent>
+                                    <SelectContent position="popper">
                                     {availableToWallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
