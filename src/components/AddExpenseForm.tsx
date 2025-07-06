@@ -388,7 +388,7 @@ export function AddExpenseForm({
                           <FormControl>
                               <Input 
                               type="text" 
-                              inputMode="decimal"
+                              inputMode="numeric"
                               placeholder="Contoh: Rp 50.000" 
                               value={field.value > 0 ? formatCurrency(field.value) : ""}
                               onChange={(e) => {
@@ -424,7 +424,7 @@ export function AddExpenseForm({
                                 <FormControl>
                                     <Input 
                                     type="text"
-                                    inputMode="decimal"
+                                    inputMode="numeric"
                                     placeholder="Contoh: Rp 2.500" 
                                     value={field.value && field.value > 0 ? formatCurrency(field.value) : ""}
                                     onChange={(e) => {

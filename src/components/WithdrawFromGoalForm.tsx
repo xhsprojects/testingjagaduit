@@ -159,7 +159,7 @@ export function WithdrawFromGoalForm({ isOpen, onOpenChange, goals, wallets, exp
                         <FormControl>
                             <Input 
                             type="text"
-                            inputMode="decimal"
+                            inputMode="numeric"
                             placeholder="Contoh: Rp 500.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {

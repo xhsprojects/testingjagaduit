@@ -98,7 +98,7 @@ export function AddSavingGoalForm({ isOpen, onOpenChange, onSubmit, goalToEdit, 
                         <FormControl>
                             <Input 
                             type="text"
-                            inputMode="decimal"
+                            inputMode="numeric"
                             placeholder="Contoh: Rp 10.000.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {

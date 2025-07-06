@@ -148,7 +148,7 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
                         <FormControl>
                             <Input 
                             type="text"
-                            inputMode="decimal"
+                            inputMode="numeric"
                             placeholder="Contoh: Rp 500.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {
@@ -183,7 +183,7 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
                                 <FormControl>
                                     <Input 
                                     type="text"
-                                    inputMode="decimal"
+                                    inputMode="numeric"
                                     placeholder="Contoh: Rp 6.500" 
                                     value={field.value && field.value > 0 ? formatCurrency(field.value) : ""}
                                     onChange={(e) => {

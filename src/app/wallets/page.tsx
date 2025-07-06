@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import type { Wallet, Expense, Income, Category, SavingGoal, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight } from 'lucide-react';
+import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, Pencil, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
@@ -18,7 +18,7 @@ import { AddWalletForm } from '@/components/AddWalletForm';
 import { deleteWallet } from './actions';
 import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { AddIncomeForm } from '@/components/AddIncomeForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -26,7 +26,7 @@ import { updateTransaction, deleteTransaction } from '../history/actions';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { TransferFundsForm } from '@/components/TransferFundsForm';
-import { WalletCard } from '@/components/WalletCard';
+import { iconMap } from '@/lib/icons';
 
 type UnifiedTransaction = (Expense | Income) & {
   type: 'expense' | 'income';
@@ -152,6 +152,7 @@ export default function WalletsPage() {
     };
 
     const handleDeleteRequest = (walletId: string) => {
+        setDetailWallet(null);
         setWalletToDelete(walletId);
     };
 
@@ -254,6 +255,11 @@ export default function WalletsPage() {
         setDialogFilter({ tab: 'all', query: '' });
     };
 
+    const handleEditWalletClick = (wallet: Wallet) => {
+        setDetailWallet(null);
+        handleOpenForm(wallet);
+    };
+
     if (authLoading || isLoading) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-secondary">
@@ -294,16 +300,29 @@ export default function WalletsPage() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {wallets.map(wallet => (
-                            <WalletCard
-                                key={wallet.id}
-                                wallet={wallet}
-                                balance={calculateWalletBalance(wallet.id, wallet.initialBalance)}
-                                onHistory={() => handleWalletClick(wallet)}
-                                onEdit={() => handleOpenForm(wallet)}
-                                onDelete={() => handleDeleteRequest(wallet.id)}
-                            />
-                        ))}
+                        {wallets.map(wallet => {
+                            const Icon = iconMap[wallet.icon] || WalletIcon;
+                            return (
+                                <Card 
+                                    key={wallet.id} 
+                                    className="flex flex-col cursor-pointer transition-all hover:border-primary/80"
+                                    onClick={() => handleWalletClick(wallet)}
+                                >
+                                    <CardHeader className="flex-grow">
+                                        <div className="flex items-center gap-3">
+                                            <Icon className="h-8 w-8 text-primary" />
+                                            <div>
+                                                <CardTitle className="text-lg font-bold font-headline">{wallet.name}</CardTitle>
+                                                <CardDescription className="text-xs">Saldo Awal: {formatCurrency(wallet.initialBalance)}</CardDescription>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-3xl font-bold text-center">{formatCurrency(calculateWalletBalance(wallet.id, wallet.initialBalance))}</p>
+                                    </CardContent>
+                                </Card>
+                            )
+                        })}
                     </div>
                 )}
             </main>
@@ -360,6 +379,67 @@ export default function WalletsPage() {
                 incomeToEdit={editingIncome}
             />
             
+            <Dialog open={!!detailWallet} onOpenChange={(open) => !open && setDetailWallet(null)}>
+                <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
+                    <DialogHeader className="p-4 border-b">
+                        <DialogTitle className='font-headline'>{detailWallet?.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-4">
+                        <Input 
+                            placeholder="Cari transaksi..."
+                            value={dialogFilter.query}
+                            onChange={(e) => setDialogFilter(prev => ({ ...prev, query: e.target.value }))}
+                        />
+                         <Tabs 
+                            value={dialogFilter.tab} 
+                            onValueChange={(value) => setDialogFilter(prev => ({...prev, tab: value as any}))} 
+                            className="w-full mt-2"
+                        >
+                            <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="all">Semua</TabsTrigger>
+                                <TabsTrigger value="expense">Pengeluaran</TabsTrigger>
+                                <TabsTrigger value="income">Pemasukan</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </div>
+                    <div className="flex-1 overflow-y-auto px-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Detail</TableHead>
+                                    <TableHead className="text-right">Jumlah</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                               {filteredTransactionsForWallet.length > 0 ? (
+                                    filteredTransactionsForWallet.map(t => {
+                                        const category = t.type === 'expense' ? categoryMap.get(t.categoryId) : null;
+                                        return (
+                                        <TableRow key={t.id} onClick={() => setTransactionDetail(t)} className="cursor-pointer">
+                                            <TableCell>
+                                                <p className="font-medium">{t.notes || category?.name || 'Pemasukan'}</p>
+                                                <p className="text-xs text-muted-foreground">{format(t.date, 'd MMM, HH:mm')}</p>
+                                            </TableCell>
+                                            <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-green-600' : ''}`}>
+                                                {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                                            </TableCell>
+                                        </TableRow>
+                                    )})
+                               ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="h-24 text-center">Tidak ada transaksi ditemukan.</TableCell>
+                                    </TableRow>
+                               )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                    <DialogFooter className="p-4 border-t flex justify-end gap-2">
+                        <Button variant="destructive" onClick={() => detailWallet && handleDeleteRequest(detailWallet.id)}>Hapus</Button>
+                        <Button variant="outline" onClick={() => detailWallet && handleEditWalletClick(detailWallet)}>Ubah</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <AlertDialog open={!!walletToDelete} onOpenChange={(open) => !open && setWalletToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -380,4 +460,3 @@ export default function WalletsPage() {
         </div>
     );
 }
-

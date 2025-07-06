@@ -99,7 +99,7 @@ export function AddDebtForm({ isOpen, onOpenChange, onSubmit, debtToEdit }: AddD
                         <FormControl>
                             <Input 
                             type="text"
-                            inputMode="decimal"
+                            inputMode="numeric"
                             placeholder="Contoh: Rp 15.000.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {
@@ -121,7 +121,7 @@ export function AddDebtForm({ isOpen, onOpenChange, onSubmit, debtToEdit }: AddD
                         <FormControl>
                             <Input 
                             type="text"
-                            inputMode="decimal"
+                            inputMode="numeric"
                             placeholder="Contoh: Rp 800.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {

@@ -202,7 +202,7 @@ export default function DebtPayoffCalculator() {
                                 <FormControl>
                                     <Input 
                                         type="text" 
-                                        inputMode="decimal"
+                                        inputMode="numeric"
                                         placeholder="100.000" 
                                         value={field.value > 0 ? formatCurrency(field.value) : ""}
                                         onChange={(e) => {

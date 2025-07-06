@@ -99,7 +99,7 @@ export function AddAssetForm({ isOpen, onOpenChange, onSubmit, assetToEdit }: Ad
                         <FormControl>
                             <Input 
                             type="text" 
-                            inputMode="decimal"
+                            inputMode="numeric"
                             placeholder="Contoh: Rp 500.000.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {

@@ -117,7 +117,7 @@ export function AddWalletForm({ isOpen, onOpenChange, walletToEdit }: AddWalletF
                         <FormControl>
                             <Input 
                             type="text" 
-                            inputMode="decimal"
+                            inputMode="numeric"
                             placeholder="Contoh: Rp 1.000.000" 
                             value={field.value > 0 ? formatCurrency(field.value) : ""}
                             onChange={(e) => {

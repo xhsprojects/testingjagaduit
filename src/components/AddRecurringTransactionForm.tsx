@@ -204,7 +204,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                             <FormControl>
                                 <Input 
                                 type="text" 
-                                inputMode="decimal"
+                                inputMode="numeric"
                                 placeholder="Rp 350.000" 
                                 value={field.value > 0 ? formatCurrency(field.value) : ""}
                                 onChange={(e) => {
@@ -237,7 +237,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                                   <FormControl>
                                       <Input 
                                       type="text" 
-                                      inputMode="decimal"
+                                      inputMode="numeric"
                                       placeholder="Contoh: Rp 2.500" 
                                       value={field.value && field.value > 0 ? formatCurrency(field.value) : ""}
                                       onChange={(e) => {
@@ -327,7 +327,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                                 <FormControl>
                                     <Input 
                                     type="number"
-                                    inputMode="decimal"
+                                    inputMode="numeric"
                                     min="1"
                                     max="31"
                                     placeholder="Contoh: 25"
@@ -354,7 +354,7 @@ export function AddRecurringTransactionForm({ isOpen, onOpenChange, onSubmit, tr
                     />
                 </div>
             </div>
-            <DialogFooter className="border-t bg-background p-6">
+            <DialogFooter className="mt-auto border-t bg-background p-6">
               <Button type="submit" disabled={hasNoWallets}>{isEditing ? 'Simpan Perubahan' : 'Simpan Transaksi'}</Button>
             </DialogFooter>
           </form>

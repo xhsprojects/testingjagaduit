@@ -151,6 +151,7 @@ export default function AllocationPage({ onSave }: AllocationPageProps) {
                               <FormControl>
                                 <Input 
                                   type="text" 
+                                  inputMode="numeric"
                                   placeholder="Anggaran (Rp)" 
                                   value={field.value > 0 ? formatCurrency(field.value) : ""}
                                   onChange={(e) => {

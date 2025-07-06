@@ -120,7 +120,7 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
                             <FormControl>
                                 <Input 
                                 type="text"
-                                inputMode="decimal"
+                                inputMode="numeric"
                                 placeholder="Rp 100.000" 
                                 value={field.value > 0 ? formatCurrency(field.value) : ""}
                                 onChange={(e) => {
