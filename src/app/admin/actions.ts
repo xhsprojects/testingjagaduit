@@ -129,20 +129,16 @@ export async function sendTestNotification(token: string): Promise<ActionResult>
 
         const message = {
             tokens: fcmTokens,
-            notification: {
-                title: '🔔 Tes Notifikasi Jaga Duit',
-                body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
-            },
             webpush: {
                 notification: {
                     title: '🔔 Tes Notifikasi Jaga Duit',
                     body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
                     icon: '/icons/icon-192x192.png',
-                    tag: 'jaga-duit-test-notification'
+                    tag: 'jaga-duit-test-notification',
+                    data: {
+                        link: '/'
+                    }
                 },
-                fcmOptions: {
-                    link: '/'
-                }
             }
         };
 
@@ -247,20 +243,14 @@ export async function updateSubscription(userId: string, token: string, action: 
                 try {
                     await messaging.sendEachForMulticast({
                         tokens: fcmTokens,
-                        notification: {
-                            title: notificationTitle,
-                            body: notificationBody,
-                        },
                         webpush: {
                             notification: {
                                 title: notificationTitle,
                                 body: notificationBody,
                                 icon: '/icons/icon-192x192.png',
-                                tag: `subscription-update-${userId}`
+                                tag: `subscription-update-${userId}`,
+                                data: { link: '/premium' }
                             },
-                            fcmOptions: {
-                                link: '/premium'
-                            }
                         }
                     });
                     successMessage += ' Notifikasi terkirim.';

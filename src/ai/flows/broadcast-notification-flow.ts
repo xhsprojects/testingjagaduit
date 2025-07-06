@@ -43,6 +43,7 @@ const broadcastNotificationFlow = ai.defineFlow(
 
     let notificationsSent = 0;
     const errors: string[] = [];
+    const targetLink = link || '/';
 
     if (!db || !messaging) {
       const errorMsg = "Firebase Admin SDK is not initialized. Cannot send broadcast.";
@@ -72,7 +73,7 @@ const broadcastNotificationFlow = ai.defineFlow(
             body: body,
             isRead: false,
             createdAt: Timestamp.now(),
-            link: link || '/'
+            link: targetLink
         };
         await db.collection('users').doc(userId).collection('notifications').add(notificationData);
 
@@ -83,20 +84,16 @@ const broadcastNotificationFlow = ai.defineFlow(
         try {
           await messaging.sendEachForMulticast({
             tokens: fcmTokens,
-            notification: {
-              title: title,
-              body: body,
-            },
             webpush: {
                 notification: {
                     title: title,
                     body: body,
                     icon: '/icons/icon-192x192.png',
-                    tag: `broadcast-${Date.now()}` // Unique tag for each broadcast
+                    tag: `broadcast-${Date.now()}`,
+                    data: {
+                        link: targetLink,
+                    }
                 },
-                fcmOptions: {
-                    link: link || '/'
-                }
             }
           });
           notificationsSent++;

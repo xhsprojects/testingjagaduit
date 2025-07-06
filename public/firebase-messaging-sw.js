@@ -1,69 +1,76 @@
+// public/firebase-messaging-sw.js
 
-// DO NOT MODIFY - This file is dynamically generated
-// Use compat libraries for service worker for broadest compatibility
-importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
-importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
+// Memberi nama pada service worker untuk kemudahan debugging
+self.name = 'jaga-duit-sw';
 
-// Import the configuration from our dynamic API route
-// This defines `self.firebaseConfig`
-try {
-  importScripts('/api/firebase-config');
-} catch (e) {
-  console.error('Failed to import firebase config.', e);
-}
+// Mengimpor skrip Firebase dari CDN Google
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
+
+// Mengambil konfigurasi Firebase dari API route yang sudah kita buat
+// Ini memastikan service worker mendapatkan konfigurasi terbaru saat diaktifkan
+const getConfigPromise = fetch('/api/firebase-config')
+    .then(response => response.text())
+    .then(scriptText => {
+        // Menjalankan skrip konfigurasi di dalam scope service worker
+        self.eval(scriptText);
+        // `self.firebaseConfig` sekarang seharusnya sudah tersedia
+        if (!self.firebaseConfig) {
+            throw new Error("Konfigurasi Firebase tidak ditemukan setelah fetch.");
+        }
+        return self.firebaseConfig;
+    });
+
+// Menginisialisasi aplikasi Firebase setelah konfigurasi berhasil didapatkan
+const appPromise = getConfigPromise.then(config => {
+    console.log("Service Worker: Konfigurasi Firebase diterima, inisialisasi aplikasi...");
+    return firebase.initializeApp(config);
+}).catch(err => {
+    console.error("Service Worker: Gagal mendapatkan atau menginisialisasi Firebase App.", err);
+    // Jika gagal, kita tidak bisa melanjutkan
+    return null;
+});
+
+// Menangani pesan yang diterima saat aplikasi di latar belakang
+appPromise.then(app => {
+    if (!app) {
+        console.error("Service Worker: Inisialisasi Firebase gagal, handler pesan tidak akan diatur.");
+        return;
+    }
+    const messaging = firebase.messaging(app);
+    messaging.onBackgroundMessage((payload) => {
+        console.log('[firebase-messaging-sw.js] Pesan diterima di latar belakang:', payload);
+
+        const notificationTitle = payload.notification?.title || 'Notifikasi Baru';
+        const notificationOptions = {
+            body: payload.notification?.body || '',
+            icon: payload.notification?.icon || '/icons/icon-192x192.png',
+            data: payload.data || { link: '/' }
+        };
+
+        self.registration.showNotification(notificationTitle, notificationOptions);
+    });
+});
 
 
-if (self.firebaseConfig && self.firebaseConfig.apiKey) {
-  // Initialize the Firebase app in the service worker
-  if (!firebase.apps.length) {
-      firebase.initializeApp(self.firebaseConfig);
-      console.log('Firebase messaging SW initialized');
-  }
-
-  // Retrieve an instance of Firebase Messaging so that it can handle background messages.
-  const messaging = firebase.messaging();
-
-  messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-      body: payload.notification.body,
-      icon: '/icons/icon-192x192.png',
-      // Extract link from data payload if it exists, otherwise default to root
-      data: {
-        url: payload.fcmOptions?.link || payload.data?.link || '/'
-      }
-    };
-
-    self.registration.showNotification(notificationTitle, notificationOptions);
-  });
-} else {
-    console.error("Firebase config not found or incomplete in service worker. Background notifications will not work.");
-}
-
-// This listener handles the user clicking on the notification
+// Menangani klik pada notifikasi
 self.addEventListener('notificationclick', (event) => {
-  console.log('[firebase-messaging-sw.js] Notification click received.', event.notification);
+    console.log('[firebase-messaging-sw.js] Notifikasi diklik:', event.notification);
+    
+    event.notification.close();
 
-  event.notification.close();
-
-  // This looks for an open window/tab with the app's origin and focuses it.
-  // If not found, it opens a new one to the URL specified in the notification data.
-  const urlToOpen = new URL(event.notification.data.url, self.location.origin).href;
-
-  event.waitUntil(clients.matchAll({
-    type: 'window',
-    includeUncontrolled: true
-  }).then((clientList) => {
-    for (let i = 0; i < clientList.length; i++) {
-      const client = clientList[i];
-      if (client.url === urlToOpen && 'focus' in client) {
-        return client.focus();
-      }
-    }
-    if (clients.openWindow) {
-      return clients.openWindow(urlToOpen);
-    }
-  }));
+    const link = event.notification.data?.link || '/';
+    
+    event.waitUntil(
+        clients.matchAll({ type: "window" }).then((clientList) => {
+            for (const client of clientList) {
+                if (client.url === link && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(link);
+            }
+        })
+    );
 });

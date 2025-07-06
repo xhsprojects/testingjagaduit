@@ -142,6 +142,7 @@ const dailyReminderFlow = ai.defineFlow(
 
         const notificationTitle = `🗓️ Agenda Keuangan Anda`;
         const notificationBody = eventMessages.join(' ');
+        const targetLink = '/financial-calendar';
 
         // Add notifications to Firestore for in-app center
         const notifBatch = db.batch();
@@ -158,20 +159,16 @@ const dailyReminderFlow = ai.defineFlow(
             try {
               await messaging.sendEachForMulticast({
                 tokens: fcmTokens,
-                notification: {
-                  title: notificationTitle,
-                  body: notificationBody,
-                },
                 webpush: {
                     notification: {
                         title: notificationTitle,
                         body: notificationBody,
                         icon: '/icons/icon-192x192.png',
-                        tag: `financial-event-${userId}`
+                        tag: `financial-event-${userId}`,
+                        data: {
+                            link: targetLink,
+                        }
                     },
-                    fcmOptions: {
-                        link: '/financial-calendar'
-                    }
                 }
               });
               notificationsSent++;
