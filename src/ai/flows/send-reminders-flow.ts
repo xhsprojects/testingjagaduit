@@ -154,50 +154,40 @@ const dailyReminderFlow = ai.defineFlow(
             notifBatch.set(newNotifRef, notif);
         });
         await notifBatch.commit();
-
-        const messages = fcmTokens.map(token => ({
-            token,
-            webpush: {
-                notification: {
-                    title: notificationTitle,
-                    body: notificationBody,
-                    icon: '/icons/icon-192x192.png',
-                    tag: `financial-event-${userId}-${Date.now()}-${Math.random()}`, // Unique tag for each device
-                    data: {
-                        link: targetLink,
-                    }
-                },
-            }
-        }));
         
         // Send push notification if user has tokens
-        try {
-            const response = await messaging.sendEach(messages);
-            notificationsSent += response.successCount;
-
-            if (response.failureCount > 0) {
-                const tokensToRemove: string[] = [];
-                response.responses.forEach((resp, idx) => {
-                  if (!resp.success) {
-                    const errorCode = resp.error?.code;
-                    if (errorCode === 'messaging/invalid-registration-token' ||
-                        errorCode === 'messaging/registration-token-not-registered') {
-                      tokensToRemove.push(fcmTokens[idx]);
-                    } else {
-                      errors.push(`User ${userId} token error: ${errorCode}`);
+        const tokensToRemove: string[] = [];
+        for (const token of fcmTokens) {
+            try {
+                await messaging.send({
+                    token,
+                    webpush: {
+                        notification: {
+                            title: notificationTitle,
+                            body: notificationBody,
+                            icon: '/icons/icon-192x192.png',
+                            tag: `financial-event-${userId}-${Date.now()}-${Math.random()}`,
+                            data: {
+                                link: targetLink,
+                            }
+                        },
                     }
-                  }
                 });
-
-                if (tokensToRemove.length > 0) {
-                  await db.collection('users').doc(userId).update({
-                    fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
-                  });
+                notificationsSent++;
+            } catch (error: any) {
+                const errorCode = error.code;
+                errors.push(`User ${userId} token error: ${errorCode}`);
+                if (errorCode === 'messaging/invalid-registration-token' ||
+                    errorCode === 'messaging/registration-token-not-registered') {
+                  tokensToRemove.push(token);
                 }
             }
-        } catch (error: any) {
-            console.error(`Error sending multicast for user ${userId}:`, error);
-            errors.push(`User ${userId}: ${error.code || error.message}`);
+        }
+
+        if (tokensToRemove.length > 0) {
+            await db.collection('users').doc(userId).update({
+                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
+            });
         }
       }
 
@@ -211,5 +201,3 @@ const dailyReminderFlow = ai.defineFlow(
     }
   }
 );
-
-    

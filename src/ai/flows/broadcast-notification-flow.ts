@@ -80,49 +80,39 @@ const broadcastNotificationFlow = ai.defineFlow(
         if (!fcmTokens || !Array.isArray(fcmTokens) || fcmTokens.length === 0) {
           continue; // Skip push notification if they don't have tokens
         }
-
-        const messages = fcmTokens.map(token => ({
-          token,
-          webpush: {
-            notification: {
-                title: title,
-                body: body,
-                icon: '/icons/icon-192x192.png',
-                tag: `broadcast-${Date.now()}-${Math.random()}`, // Unique tag for each device
-                data: {
-                    link: targetLink,
-                }
-            },
-          }
-        }));
-
-        try {
-          const response = await messaging.sendEach(messages);
-          notificationsSent += response.successCount;
-          
-          if (response.failureCount > 0) {
-            const tokensToRemove: string[] = [];
-            response.responses.forEach((resp, idx) => {
-              if (!resp.success) {
-                const errorCode = resp.error?.code;
+        
+        const tokensToRemove: string[] = [];
+        for (const token of fcmTokens) {
+            try {
+                await messaging.send({
+                    token,
+                    webpush: {
+                        notification: {
+                            title: title,
+                            body: body,
+                            icon: '/icons/icon-192x192.png',
+                            tag: `broadcast-${Date.now()}-${Math.random()}`,
+                            data: {
+                                link: targetLink,
+                            }
+                        },
+                    }
+                });
+                notificationsSent++;
+            } catch (error: any) {
+                const errorCode = error.code;
+                errors.push(`User ${userId} token error: ${errorCode}`);
                 if (errorCode === 'messaging/invalid-registration-token' ||
                     errorCode === 'messaging/registration-token-not-registered') {
-                  tokensToRemove.push(fcmTokens[idx]);
-                } else {
-                  errors.push(`User ${userId} token error: ${errorCode}`);
+                  tokensToRemove.push(token);
                 }
-              }
-            });
-
-            if (tokensToRemove.length > 0) {
-              await db.collection('users').doc(userId).update({
-                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
-              });
             }
-          }
-        } catch (error: any) {
-          console.error(`Error sending broadcast for user ${userId}:`, error);
-          errors.push(`User ${userId}: ${error.code || error.message}`);
+        }
+
+        if (tokensToRemove.length > 0) {
+            await db.collection('users').doc(userId).update({
+                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
+            });
         }
       }
 
@@ -136,5 +126,3 @@ const broadcastNotificationFlow = ai.defineFlow(
     }
   }
 );
-
-    

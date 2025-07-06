@@ -126,52 +126,49 @@ export async function sendTestNotification(token: string): Promise<ActionResult>
         if (!fcmTokens || !Array.isArray(fcmTokens) || fcmTokens.length === 0) {
             return { success: false, message: 'Token notifikasi (FCM) untuk admin tidak ditemukan di database.' };
         }
+        
+        let successCount = 0;
+        let failureCount = 0;
+        const tokensToRemove: string[] = [];
+        const errors: string[] = [];
 
-        const messages = fcmTokens.map(fcmToken => ({
-            token: fcmToken,
-            webpush: {
-                notification: {
-                    title: '🔔 Tes Notifikasi Jaga Duit',
-                    body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
-                    icon: '/icons/icon-192x192.png',
-                    tag: `jaga-duit-test-${Date.now()}-${Math.random()}`,
-                    data: {
-                        link: '/'
+        // Send notifications one by one to ensure unique tags and delivery.
+        for (const fcmToken of fcmTokens) {
+             try {
+                await messaging.send({
+                    token: fcmToken,
+                    webpush: {
+                        notification: {
+                            title: '🔔 Tes Notifikasi Jaga Duit',
+                            body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
+                            icon: '/icons/icon-192x192.png',
+                            tag: `jaga-duit-test-${Date.now()}-${Math.random()}`, // Unique tag per send
+                            data: {
+                                link: '/'
+                            }
+                        },
                     }
-                },
-            }
-        }));
-        
-        if (messages.length === 0) {
-            return { success: true, message: 'Tidak ada token aktif untuk dikirimi notifikasi.' };
-        }
-
-        const response = await messaging.sendEach(messages);
-        
-        let successCount = response.successCount;
-        let failureCount = response.failureCount;
-
-        if (failureCount > 0) {
-            const tokensToRemove: string[] = [];
-            response.responses.forEach((resp, idx) => {
-              if (!resp.success) {
-                const errorCode = resp.error?.code;
-                console.error(`Gagal mengirim ke token ${fcmTokens[idx]}: ${errorCode}`);
+                });
+                successCount++;
+            } catch (error: any) {
+                failureCount++;
+                const errorCode = error.code;
+                errors.push(`Token ${fcmToken.substring(0, 10)}...: ${errorCode}`);
                 if (errorCode === 'messaging/invalid-registration-token' ||
                     errorCode === 'messaging/registration-token-not-registered') {
-                  tokensToRemove.push(fcmTokens[idx]);
+                    tokensToRemove.push(fcmToken);
                 }
-              }
-            });
-
-            if (tokensToRemove.length > 0) {
-              await db.collection('users').doc(ADMIN_UID).update({
-                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
-              });
             }
         }
         
-        return { success: true, message: `Notifikasi uji coba dikirim. Berhasil: ${successCount}, Gagal: ${failureCount}.` };
+        if (tokensToRemove.length > 0) {
+            await db.collection('users').doc(ADMIN_UID).update({
+                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
+            });
+        }
+        
+        const message = `Notifikasi uji coba dikirim. Berhasil: ${successCount}, Gagal: ${failureCount}.` + (errors.length > 0 ? ` Errors: ${errors.join(', ')}` : '');
+        return { success: true, message: message };
 
     } catch (error: any) {
         console.error('Error in sendTestNotification:', error);
