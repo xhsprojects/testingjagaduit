@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 // Use standard Firebase Authentication for web
 import { signInWithPopup } from 'firebase/auth';
@@ -20,6 +21,7 @@ import {
   PiggyBank,
   Wallet,
   Terminal,
+  Info,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -130,17 +132,19 @@ export default function MobileLoginPage() {
         
         {/* Header with Logo */}
         <div className="text-center space-y-6">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="relative p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl shadow-lg">
-              <HandCoins className="h-12 w-12 text-white" />
-              {/* Single elegant money accent */}
-              <div className="absolute -top-1 -right-1 p-1 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-md">
-                <DollarSign className="h-4 w-4 text-white" />
-              </div>
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="flex items-center gap-3">
+                <div className="relative p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl shadow-lg">
+                <HandCoins className="h-12 w-12 text-white" />
+                {/* Single elegant money accent */}
+                <div className="absolute -top-1 -right-1 p-1 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-md">
+                    <DollarSign className="h-4 w-4 text-white" />
+                </div>
+                </div>
+                <h1 className="font-bold text-5xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight pb-2">
+                Jaga Duit
+                </h1>
             </div>
-            <h1 className="font-bold text-5xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight pb-2">
-              Jaga Duit
-            </h1>
           </div>
           
           <div className="space-y-4">
@@ -217,6 +221,14 @@ export default function MobileLoginPage() {
                 <DollarSign className="ml-auto h-5 w-5 opacity-60" />
               </>
             )}
+          </Button>
+
+          {/* Learn More Button - Moved Here */}
+          <Button asChild variant="outline" className="w-full h-12 text-base font-medium border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 rounded-xl">
+            <Link href="/landing" className="flex items-center justify-center space-x-2">
+              <Info className="h-5 w-5" />
+              <span>Lihat Semua Fitur</span>
+            </Link>
           </Button>
 
           {/* Security Note */}
