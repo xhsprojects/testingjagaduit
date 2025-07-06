@@ -28,9 +28,10 @@ export async function saveNotificationToken(token: string, fcmToken: string): Pr
         const decodedToken = await authAdmin.verifyIdToken(token);
         const userRef = db.collection('users').doc(decodedToken.uid);
         
-        // This will add the token to the 'fcmTokens' array. If the array doesn't exist, it creates it.
+        // This will overwrite the array with only the latest token,
+        // solving the cross-domain notification issue.
         await userRef.set({ 
-            fcmTokens: FieldValue.arrayUnion(fcmToken) 
+            fcmTokens: [fcmToken] 
         }, { merge: true });
 
         return { success: true, message: 'Token notifikasi disimpan.' };
