@@ -27,7 +27,7 @@ import { updateTransaction, deleteTransaction } from '../history/actions';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { TransferFundsForm } from '@/components/TransferFundsForm';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 type UnifiedTransaction = (Expense | Income) & {
   type: 'expense' | 'income';
