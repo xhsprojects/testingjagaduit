@@ -81,21 +81,23 @@ const broadcastNotificationFlow = ai.defineFlow(
           continue; // Skip push notification if they don't have tokens
         }
 
+        const messages = fcmTokens.map(token => ({
+          token,
+          webpush: {
+            notification: {
+                title: title,
+                body: body,
+                icon: '/icons/icon-192x192.png',
+                tag: `broadcast-${Date.now()}-${Math.random()}`, // Unique tag for each device
+                data: {
+                    link: targetLink,
+                }
+            },
+          }
+        }));
+
         try {
-          const response = await messaging.sendEachForMulticast({
-            tokens: fcmTokens,
-            webpush: {
-                notification: {
-                    title: title,
-                    body: body,
-                    icon: '/icons/icon-192x192.png',
-                    tag: `broadcast-${Date.now()}`,
-                    data: {
-                        link: targetLink,
-                    }
-                },
-            }
-          });
+          const response = await messaging.sendEach(messages);
           notificationsSent += response.successCount;
           
           if (response.failureCount > 0) {
@@ -119,7 +121,7 @@ const broadcastNotificationFlow = ai.defineFlow(
             }
           }
         } catch (error: any) {
-          console.error(`Error sending multicast for user ${userId}:`, error);
+          console.error(`Error sending broadcast for user ${userId}:`, error);
           errors.push(`User ${userId}: ${error.code || error.message}`);
         }
       }
@@ -134,3 +136,5 @@ const broadcastNotificationFlow = ai.defineFlow(
     }
   }
 );
+
+    

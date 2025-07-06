@@ -5,7 +5,7 @@
 import { getAuthAdmin, getDbAdmin, getMessagingAdmin } from '@/lib/firebase-server';
 import { sendDailyReminders, type SendRemindersOutput } from '@/ai/flows/send-reminders-flow';
 import { broadcastNotification, type BroadcastOutput } from '@/ai/flows/broadcast-notification-flow';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 const ADMIN_UID = 'qyHqNRWBVaXEZjo1don6p0reXXH3';
 type ActionType = 'add_month' | 'add_year' | 'set_lifetime' | 'stop_subscription';
@@ -127,36 +127,50 @@ export async function sendTestNotification(token: string): Promise<ActionResult>
             return { success: false, message: 'Token notifikasi (FCM) untuk admin tidak ditemukan di database.' };
         }
 
-        // Send a unique message to each token to avoid browser collapsing them
-        let successCount = 0;
-        let failureCount = 0;
+        const messages = fcmTokens.map(fcmToken => ({
+            token: fcmToken,
+            webpush: {
+                notification: {
+                    title: '🔔 Tes Notifikasi Jaga Duit',
+                    body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
+                    icon: '/icons/icon-192x192.png',
+                    tag: `jaga-duit-test-${Date.now()}-${Math.random()}`,
+                    data: {
+                        link: '/'
+                    }
+                },
+            }
+        }));
         
-        const sendPromises = fcmTokens.map(fcmToken => {
-            const message = {
-                token: fcmToken,
-                webpush: {
-                    notification: {
-                        title: '🔔 Tes Notifikasi Jaga Duit',
-                        body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
-                        icon: '/icons/icon-192x192.png',
-                        // Make the tag truly unique for every single message sent
-                        tag: `jaga-duit-test-${Date.now()}-${Math.random()}`,
-                        data: {
-                            link: '/'
-                        }
-                    },
+        if (messages.length === 0) {
+            return { success: true, message: 'Tidak ada token aktif untuk dikirimi notifikasi.' };
+        }
+
+        const response = await messaging.sendEach(messages);
+        
+        let successCount = response.successCount;
+        let failureCount = response.failureCount;
+
+        if (failureCount > 0) {
+            const tokensToRemove: string[] = [];
+            response.responses.forEach((resp, idx) => {
+              if (!resp.success) {
+                const errorCode = resp.error?.code;
+                console.error(`Gagal mengirim ke token ${fcmTokens[idx]}: ${errorCode}`);
+                if (errorCode === 'messaging/invalid-registration-token' ||
+                    errorCode === 'messaging/registration-token-not-registered') {
+                  tokensToRemove.push(fcmTokens[idx]);
                 }
-            };
-            return messaging.send(message)
-                .then(() => { successCount++; })
-                .catch(error => {
-                    console.error(`Failed to send test notification to token:`, error.message);
-                    failureCount++;
-                });
-        });
+              }
+            });
 
-        await Promise.all(sendPromises);
-
+            if (tokensToRemove.length > 0) {
+              await db.collection('users').doc(ADMIN_UID).update({
+                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
+              });
+            }
+        }
+        
         return { success: true, message: `Notifikasi uji coba dikirim. Berhasil: ${successCount}, Gagal: ${failureCount}.` };
 
     } catch (error: any) {
@@ -327,3 +341,5 @@ export async function sendBroadcastNotification(
         return { success: false, message: error.message || 'Gagal mengirim broadcast.' };
     }
 }
+
+    

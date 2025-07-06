@@ -155,23 +155,24 @@ const dailyReminderFlow = ai.defineFlow(
         });
         await notifBatch.commit();
 
-
+        const messages = fcmTokens.map(token => ({
+            token,
+            webpush: {
+                notification: {
+                    title: notificationTitle,
+                    body: notificationBody,
+                    icon: '/icons/icon-192x192.png',
+                    tag: `financial-event-${userId}-${Date.now()}-${Math.random()}`, // Unique tag for each device
+                    data: {
+                        link: targetLink,
+                    }
+                },
+            }
+        }));
+        
         // Send push notification if user has tokens
         try {
-            const response = await messaging.sendEachForMulticast({
-              tokens: fcmTokens,
-              webpush: {
-                  notification: {
-                      title: notificationTitle,
-                      body: notificationBody,
-                      icon: '/icons/icon-192x192.png',
-                      tag: `financial-event-${userId}-${Date.now()}`,
-                      data: {
-                          link: targetLink,
-                      }
-                  },
-              }
-            });
+            const response = await messaging.sendEach(messages);
             notificationsSent += response.successCount;
 
             if (response.failureCount > 0) {
@@ -210,3 +211,5 @@ const dailyReminderFlow = ai.defineFlow(
     }
   }
 );
+
+    
