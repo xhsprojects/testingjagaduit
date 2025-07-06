@@ -324,17 +324,17 @@ export default function WalletsPage() {
                             const Icon = iconMap[wallet.icon] || WalletIcon;
                             const currentBalance = calculateWalletBalance(wallet.id, wallet.initialBalance);
                             return (
-                                <Card key={wallet.id} className="flex flex-col">
-                                    <div onClick={() => handleWalletClick(wallet)} className="cursor-pointer flex-grow">
-                                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                            <CardTitle className="text-base font-medium font-headline">{wallet.name}</CardTitle>
-                                             <DropdownMenu>
+                                <Card key={wallet.id} className="flex flex-col cursor-pointer" onClick={() => handleWalletClick(wallet)}>
+                                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                        <CardTitle className="text-base font-medium font-headline">{wallet.name}</CardTitle>
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2" onClick={(e) => e.stopPropagation()}>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
                                                         <MoreVertical className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                                <DropdownMenuContent align="end">
                                                     <DropdownMenuItem onClick={() => handleWalletClick(wallet)}>
                                                         <FileText className="mr-2 h-4 w-4"/> Lihat Riwayat
                                                     </DropdownMenuItem>
@@ -347,12 +347,12 @@ export default function WalletsPage() {
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="text-2xl font-bold">{formatCurrency(currentBalance)}</div>
-                                            <p className="text-xs text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
-                                        </CardContent>
-                                    </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-2xl font-bold">{formatCurrency(currentBalance)}</div>
+                                        <p className="text-xs text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
+                                    </CardContent>
                                 </Card>
                             )
                         })}

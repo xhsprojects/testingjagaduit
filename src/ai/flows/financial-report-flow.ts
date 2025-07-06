@@ -74,13 +74,14 @@ const prompt = ai.definePrompt({
   - Daftar Pemasukan Tambahan: {{{additionalIncomesJSON}}}
   - Daftar Transaksi Pengeluaran: {{{expensesJSON}}}
 
-  **Definisi:**
-  - **Total Pemasukan** = Anggaran Dasar + Total dari Pemasukan Tambahan.
-  - **Total Pengeluaran** = Total dari semua transaksi pengeluaran.
-  - **Sisa Dana (Uang Sisa)** = Total Pemasukan - Total Pengeluaran.
+  **Definisi Penting:**
+  - **Pemasukan Tambahan** = Total dari semua item di \`additionalIncomesJSON\`.
+  - **Total Pemasukan Periode Ini** = Anggaran Dasar + Pemasukan Tambahan.
+  - **Total Pengeluaran** = Total dari semua transaksi di \`expensesJSON\`.
+  - **Sisa Dana (Uang Sisa)** = Total Pemasukan Periode Ini - Total Pengeluaran.
 
   Tugas Anda:
-  1.  **Analisis Data:** Hitung Total Pemasukan dan Total Pengeluaran. Bandingkan pengeluaran di setiap kategori dengan anggarannya. Identifikasi kategori pengeluaran terbesar.
+  1.  **Analisis Data:** Hitung Total Pemasukan Periode Ini dan Total Pengeluaran. Bandingkan pengeluaran di setiap kategori dengan anggarannya. Identifikasi kategori pengeluaran terbesar.
   2.  **Buat Judul Laporan:** Buat judul yang singkat dan menarik untuk laporan ini.
   3.  **Tulis Ringkasan:** Tulis ringkasan singkat (2-3 kalimat) tentang aktivitas keuangan pengguna. Sebutkan Total Pengeluaran dan Sisa Dana.
   4.  **Identifikasi Wawasan Penting:** Berikan 2-4 wawasan (insights) paling penting dalam bentuk daftar. Wawasan ini harus spesifik, mudah dimengerti, dan jika memungkinkan, berikan saran praktis. Fokus pada:

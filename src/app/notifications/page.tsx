@@ -114,7 +114,7 @@ export default function NotificationsPage() {
     
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40 pb-16">
-            <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6">
+            <header className="sticky top-0 z-30 flex h-auto min-h-16 flex-wrap items-center justify-between gap-4 border-b bg-background px-4 py-3 md:h-16 md:flex-nowrap md:py-2">
                 <div className='flex items-center gap-2'>
                     <Button variant="ghost" size="icon" onClick={() => router.back()}>
                         <ArrowLeft className="h-5 w-5" />
@@ -158,12 +158,12 @@ export default function NotificationsPage() {
                 </Card>
                  {readNotifications.length > 0 && (
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
+                        <CardHeader className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
                             <div>
                                 <CardTitle>Notifikasi Terdahulu</CardTitle>
                                 <CardDescription>Notifikasi yang sudah Anda baca.</CardDescription>
                             </div>
-                            <Button variant="destructive" size="sm" onClick={handleDeleteRead}>
+                            <Button variant="destructive" size="sm" onClick={handleDeleteRead} className="w-full sm:w-auto">
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Hapus Terbaca
                             </Button>
