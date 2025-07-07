@@ -1,3 +1,4 @@
+
 // src/app/premium/page.tsx
 "use client"
 
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { formatCurrency } from '@/lib/utils';
 
 const freeFeatures = [
     "Anggaran & Kategori Fleksibel",
@@ -36,10 +38,34 @@ const premiumFeatures = [
 ];
 
 const plans = {
-    monthly: { id: 'monthly', name: "Dukungan Bulanan", priceString: "Traktir 1 Kopi", period: "/ bulan", duration: "1 Bulan" },
-    yearly: { id: 'yearly', name: "Dukungan Tahunan", priceString: "Traktir 10 Kopi", period: "/ tahun", popular: true, duration: "1 Tahun" },
-    lifetime: { id: 'lifetime', name: "Dukungan Seumur Hidup", priceString: "Traktir 20 Kopi", period: "/ sekali", duration: "Seumur Hidup"},
-}
+    monthly: { 
+        id: 'monthly', 
+        name: "Premium 1 Bulan", 
+        price: 5000, 
+        period: "/ bulan", 
+        duration: "1 Bulan",
+        link: "http://lynk.id/xhasprojects/8mdl0oxm0x04/checkout"
+    },
+    yearly: { 
+        id: 'yearly', 
+        name: "Premium 1 Tahun", 
+        originalPrice: 50000,
+        price: 39000,
+        period: "/ tahun", 
+        popular: true, 
+        duration: "1 Tahun",
+        link: "http://lynk.id/xhasprojects/vrvje4nk9rvl/checkout"
+    },
+    lifetime: { 
+        id: 'lifetime', 
+        name: "Premium Seumur Hidup", 
+        originalPrice: 100000,
+        price: 79000,
+        period: "/ sekali", 
+        duration: "Seumur Hidup",
+        link: "http://lynk.id/xhasprojects/xdm0vpx33xnl/checkout"
+    },
+};
 
 export default function PremiumPage() {
     const { isPremium, loading, premiumExpiresAt } = useAuth();
@@ -65,7 +91,7 @@ export default function PremiumPage() {
                 <div className="flex items-center gap-2">
                     <Gem className="h-5 w-5 text-primary" />
                     <h1 className="font-headline text-xl font-bold text-foreground">
-                        Paket & Dukungan
+                        Paket Premium
                     </h1>
                 </div>
             </header>
@@ -74,8 +100,8 @@ export default function PremiumPage() {
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                         <Sparkles className="h-9 w-9 text-primary" />
                     </div>
-                    <h2 className="text-3xl font-bold font-headline">Bantu Aplikasi Ini Terus Berkembang</h2>
-                    <p className="mt-2 text-lg text-muted-foreground max-w-2xl mx-auto">Dukungan Anda membantu menutupi biaya server dan memungkinkan pengembangan fitur-fitur baru. Sebagai ucapan terima kasih, Anda akan mendapatkan akses ke semua fitur premium.</p>
+                    <h2 className="text-3xl font-bold font-headline">Buka Potensi Penuh Jaga Duit</h2>
+                    <p className="mt-2 text-lg text-muted-foreground max-w-2xl mx-auto">Dapatkan akses ke semua fitur AI canggih dan alat perencanaan keuangan eksklusif untuk mempercepat perjalanan finansial Anda.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl w-full my-8 items-stretch">
@@ -117,7 +143,12 @@ export default function PremiumPage() {
                                 {plan.popular && <div className="absolute top-0 right-4 -translate-y-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-semibold">Paling Populer</div>}
                                 <CardTitle className="font-headline">{plan.name}</CardTitle>
                                 <CardDescription>
-                                    <span className="text-3xl font-bold text-foreground">{plan.priceString}</span>
+                                    {(plan as any).originalPrice && (
+                                        <span className="text-xl font-medium text-muted-foreground line-through mr-2">
+                                            {formatCurrency((plan as any).originalPrice)}
+                                        </span>
+                                    )}
+                                    <span className="text-3xl font-bold text-foreground">{formatCurrency(plan.price)}</span>
                                     <span className="text-muted-foreground">{plan.period}</span>
                                 </CardDescription>
                             </CardHeader>
@@ -144,9 +175,9 @@ export default function PremiumPage() {
                                     className="w-full"
                                     variant={plan.popular ? "default" : "outline"}
                                 >
-                                    <Link href="https://trakteer.id/mshasbi" target="_blank" rel="noopener noreferrer">
+                                    <Link href={plan.link} target="_blank" rel="noopener noreferrer">
                                         <Heart className="mr-2 h-4 w-4" />
-                                        {isPremium ? "Terima Kasih!" : "Dukung via Trakteer"}
+                                        {isPremium ? "Terima Kasih!" : "Beli Sekarang"}
                                     </Link>
                                 </Button>
                             </CardFooter>
@@ -176,13 +207,13 @@ export default function PremiumPage() {
                         <AlertTitle className='font-bold'>Penting: Cara Aktivasi</AlertTitle>
                         <AlertDescription className="text-left space-y-2 mt-2">
                            <p>
-                                Setelah memberikan dukungan di Trakteer, mohon <b>tulis alamat email yang sesuai dengan akun Jaga Duit Anda</b> di kolom pesan saat pembayaran.
+                                Pastikan Anda memasukkan <b>alamat email yang sesuai dengan akun Jaga Duit Anda</b> saat melakukan pembayaran di halaman checkout.
                            </p>
                            <p>
-                               Aktivasi akan diproses dalam <b>maksimal 1x24 jam</b>.
+                                Aktivasi akan diproses secara otomatis atau dalam <b>maksimal 1x24 jam</b>.
                            </p>
                             <p>
-                                Jika ingin aktivasi lebih cepat, silakan hubungi <a href="https://wa.me/628989019049" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">Support via WhatsApp</a> dengan menyertakan bukti pembayaran.
+                                Jika mengalami kendala, silakan hubungi <a href="https://wa.me/628989019049" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">Support via WhatsApp</a> dengan menyertakan bukti pembayaran.
                            </p>
                         </AlertDescription>
                     </Alert>
@@ -191,3 +222,5 @@ export default function PremiumPage() {
         </div>
     );
 }
+
+    
