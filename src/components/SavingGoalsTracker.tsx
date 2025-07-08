@@ -54,7 +54,6 @@ export default function SavingGoalsTracker({ goals, expenses, onGoalClick }: Sav
                                     onClick={() => onGoalClick(goal)}
                                     className="border p-4 rounded-lg flex items-center gap-4 bg-background cursor-pointer hover:bg-secondary transition-colors"
                                 >
-                                    <Target className="h-8 w-8 text-primary flex-shrink-0" />
                                     <div className="flex-grow w-full">
                                         <div className="flex justify-between items-center mb-2 w-full">
                                             <p className="font-bold font-headline text-lg truncate" title={goal.name}>{goal.name}</p>
@@ -88,5 +87,4 @@ export default function SavingGoalsTracker({ goals, expenses, onGoalClick }: Sav
         </Card>
     );
 }
-
     
