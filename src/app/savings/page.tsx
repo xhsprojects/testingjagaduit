@@ -16,7 +16,7 @@ import { awardAchievement } from '@/lib/achievements-manager';
 import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
 import { AddSavingGoalForm } from '@/components/AddSavingGoalForm';
 import { AddExpenseForm } from '@/components/AddExpenseForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -322,8 +322,6 @@ export default function SavingsPage() {
                 <SavingGoalsTracker 
                     goals={savingGoals} 
                     expenses={expenses}
-                    onUpdateGoals={handleUpdateGoals}
-                    onEditGoal={handleOpenGoalForm}
                     onGoalClick={setDetailGoal}
                 />
             </main>
@@ -371,7 +369,7 @@ export default function SavingsPage() {
                 onSubmit={handleWithdrawal}
             />
 
-            <Dialog open={!!detailGoal} onOpenChange={(open) => !open && setDetailGoal(null)}>
+            <Dialog open={!!detailGoal} onOpenChange={(open) => !open && setDetailGoal(null)} modal={false}>
                 <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
                     <DialogHeader className="p-6 pb-4 border-b">
                         <DialogTitle className="font-headline">{detailGoal?.name}</DialogTitle>
@@ -422,10 +420,14 @@ export default function SavingsPage() {
                             </div>
                         </div>
                     )}
+                    <DialogFooter className="p-6 border-t flex justify-end gap-2">
+                        <Button variant="destructive" onClick={() => {if(detailGoal) handleUpdateGoals(savingGoals.filter(g => g.id !== detailGoal.id)); setDetailGoal(null);}}>Hapus</Button>
+                        <Button variant="outline" onClick={() => {if(detailGoal) handleOpenGoalForm(detailGoal)}}>Ubah</Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
             
-            <Dialog open={!!transactionDetail} onOpenChange={(open) => !open && setTransactionDetail(null)}>
+            <Dialog open={!!transactionDetail} onOpenChange={(open) => !open && setTransactionDetail(null)} modal={false}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Detail Transaksi Tabungan</DialogTitle>
@@ -478,5 +480,7 @@ export default function SavingsPage() {
         </div>
     );
 }
+
+    
 
     
