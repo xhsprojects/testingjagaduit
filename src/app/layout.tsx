@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AuthProvider } from '@/context/AuthContext';
 import { ClientLayoutWrapper } from '@/components/ClientLayoutWrapper';
+import { Analytics } from '@vercel/analytics/next';
 
 const siteUrl = 'https://www.jagaduit.top';
 
@@ -97,6 +98,7 @@ export default function RootLayout({
             </ClientLayoutWrapper>
           </ThemeProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
