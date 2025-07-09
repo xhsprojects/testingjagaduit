@@ -449,51 +449,52 @@ export function AddExpenseForm({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-1 flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto px-6">
                 <div className="space-y-4 py-2">
+                    <div className="relative">
+                        <Button type="button" variant="outline" className="w-full h-14 text-base" onClick={() => fileInputRef.current?.click()} disabled={isScanning || !isPremium}>
+                            {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-5 w-5" />}
+                            Pindai atau Unggah Struk
+                        </Button>
+                        {!isPremium && (
+                            <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">
+                                <Gem className="h-3 w-3 mr-1"/> Premium
+                            </Badge>
+                        )}
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                        <div className="flex-grow border-t"></div>
+                        <span className="text-xs text-muted-foreground">ATAU</span>
+                        <div className="flex-grow border-t"></div>
+                    </div>
+
                     <FormField
                       control={form.control}
                       name="baseAmount"
                       render={({ field }) => (
                         <FormItem>
                            <div className="flex justify-between items-center">
-                               <FormLabel>Jumlah</FormLabel>
-                               <div className="flex items-center gap-1">
-                                   <TooltipProvider>
-                                       <Tooltip>
-                                           <TooltipTrigger asChild>
-                                           <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative" onClick={() => fileInputRef.current?.click()} disabled={isScanning || !isPremium}>
-                                               {isScanning ? (<Loader2 className="h-4 w-4 animate-spin" />) : (<Camera className="h-4 w-4" />)}
-                                               {!isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
-                                           </Button>
-                                           </TooltipTrigger>
-                                           <TooltipContent>
-                                               <p className="font-semibold">Pindai Struk (Premium)</p>
-                                               {!isPremium && <p className="text-xs">Upgrade untuk menggunakan fitur ini.</p>}
-                                           </TooltipContent>
-                                       </Tooltip>
-                                   </TooltipProvider>
-                                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-
-                                   {isSpeechRecognitionSupported && (
-                                        <TooltipProvider>
-                                           <Tooltip>
-                                               <TooltipTrigger asChild>
-                                                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative" onClick={handleVoiceInput} disabled={isListening}>
-                                                       {isListening ? (<Loader2 className="h-4 w-4 animate-spin" />) : (<Mic className="h-4 w-4" />)}
-                                                       {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
-                                                   </Button>
-                                               </TooltipTrigger>
-                                               <TooltipContent>
-                                                   <p className="font-semibold">Isi dengan Suara</p>
-                                                   {isPremium ? (
-                                                       <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
-                                                   ) : (
-                                                       <p className="text-xs">Upgrade untuk tebak kategori & dompet otomatis.</p>
-                                                   )}
-                                               </TooltipContent>
-                                           </Tooltip>
-                                       </TooltipProvider>
-                                   )}
-                               </div>
+                               <FormLabel>Isi Manual Jumlah</FormLabel>
+                                {isSpeechRecognitionSupported && (
+                                    <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative" onClick={handleVoiceInput} disabled={isListening}>
+                                                    {isListening ? (<Loader2 className="h-4 w-4 animate-spin" />) : (<Mic className="h-4 w-4" />)}
+                                                    {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="font-semibold">Isi dengan Suara</p>
+                                                {isPremium ? (
+                                                    <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
+                                                ) : (
+                                                    <p className="text-xs">Upgrade untuk tebak kategori & dompet otomatis.</p>
+                                                )}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
                            </div>
                           <FormControl>
                             <Input
