@@ -1,7 +1,8 @@
+
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { HandCoins, PlusCircle, LogOut, Gem, UserCog, Star, Trophy, BookMarked, Bell, BellRing, Settings } from "lucide-react"
+import { HandCoins, PlusCircle, LogOut, Gem, UserCog, Star, Trophy, BookMarked, Bell, BellRing, Settings, BookText } from "lucide-react"
 import { ThemeToggle } from "./ThemeToggle"
 import { useAuth } from "@/context/AuthContext"
 import { auth } from "@/lib/firebase"
@@ -80,6 +81,12 @@ export default function Header() {
                                 <Link href="/achievements">
                                     <Trophy className="mr-2 h-4 w-4" />
                                      <span>Jejak Prestasi</span>
+                                </Link>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem asChild>
+                                <Link href="/notes">
+                                    <BookText className="mr-2 h-4 w-4" />
+                                     <span>Catatan Pribadi</span>
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>

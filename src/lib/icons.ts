@@ -39,6 +39,7 @@ import {
   Megaphone,
   Settings,
   User,
+  BookText,
 } from 'lucide-react';
 
 export const iconMap = {
@@ -81,6 +82,7 @@ export const iconMap = {
   Megaphone,
   Settings,
   User,
+  BookText,
 };
 
 export type IconName = keyof typeof iconMap;

@@ -120,3 +120,10 @@ export type AppNotification = {
   link?: string;
   relatedId?: string;
 };
+
+export type PersonalNote = {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: any; // Firestore Timestamp
+};
