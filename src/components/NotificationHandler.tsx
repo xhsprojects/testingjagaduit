@@ -45,31 +45,8 @@ export default function NotificationHandler() {
       }
 
     } catch (err: any) {
+      // Log the error for debugging purposes but don't show a toast to the user.
       console.error('An error occurred while setting up notifications: ', err);
-      let description = "Terjadi kesalahan. Coba muat ulang halaman atau periksa setelan browser Anda.";
-      
-      if (err.code) {
-          switch (err.code) {
-              case 'messaging/permission-blocked':
-                  description = "Izin notifikasi diblokir. Harap izinkan di setelan browser Anda.";
-                  break;
-              case 'messaging/unsupported-browser':
-                  description = "Browser Anda tidak mendukung fitur notifikasi.";
-                  break;
-              case 'messaging/failed-serviceworker-registration':
-                  description = "Gagal mendaftarkan service worker. Coba muat ulang halaman.";
-                  break;
-              default:
-                  description = `Error (${err.code}). Coba muat ulang halaman.`;
-                  break;
-          }
-      }
-
-      toast({
-        title: "Gagal Mengaktifkan Notifikasi",
-        description: description,
-        variant: "destructive"
-      });
     }
   }, [user, idToken, toast]);
 
