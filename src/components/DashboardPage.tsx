@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { iconMap } from '@/lib/icons';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import { useAuth } from '@/context/AuthContext';
@@ -38,6 +38,7 @@ import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
 import BudgetVsSpendingChart from '@/components/charts/BudgetVsSpendingChart';
+import { Separator } from './ui/separator';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -181,10 +182,15 @@ export default function DashboardPage({
 
   const totalSavings = React.useMemo(() => {
     if (!savingsCategoryId) return 0;
-    // We only consider positive amounts as savings contributions
-    return filteredExpenses
-      .filter(exp => exp.categoryId === savingsCategoryId && exp.amount > 0)
-      .reduce((sum, exp) => sum + exp.amount, 0);
+    return filteredExpenses.reduce((sum, exp) => {
+      if (exp.isSplit) {
+          return sum + (exp.splits || []).filter(s => s.categoryId === savingsCategoryId).reduce((splitSum, s) => splitSum + s.amount, 0);
+      }
+      if (exp.categoryId === savingsCategoryId && exp.amount > 0) {
+          return sum + exp.amount;
+      }
+      return sum;
+    }, 0);
   }, [filteredExpenses, savingsCategoryId]);
 
   const periodLabel = React.useMemo(() => {
@@ -201,19 +207,23 @@ export default function DashboardPage({
   const remainingBudget = income - totalFilteredExpenses;
 
   const expensesByCategory = React.useMemo(() => {
-    const data = categories.map((cat) => ({
-      ...cat,
-      spent: 0,
-    }));
-    const dataMap = new Map(data.map((d) => [d.id, d]));
-    for (const expense of filteredExpenses) {
-      if(expense.amount < 0) continue; // Don't include negative amounts (withdrawals) in spending charts
-      const categoryData = dataMap.get(expense.categoryId);
-      if (categoryData) {
-        categoryData.spent += expense.amount;
+      const dataMap = new Map(categories.map((cat) => ({ ...cat, spent: 0 })));
+      for (const expense of filteredExpenses) {
+          if (expense.isSplit && expense.splits) {
+              expense.splits.forEach(split => {
+                  const categoryData = dataMap.get(split.categoryId);
+                  if (categoryData) {
+                      categoryData.spent += split.amount;
+                  }
+              });
+          } else if (expense.categoryId && expense.amount > 0) {
+              const categoryData = dataMap.get(expense.categoryId);
+              if (categoryData) {
+                  categoryData.spent += expense.amount;
+              }
+          }
       }
-    }
-    return Array.from(dataMap.values());
+      return Array.from(dataMap.values());
   }, [filteredExpenses, categories]);
 
   const handleEdit = (expense: Expense) => {
@@ -391,7 +401,6 @@ export default function DashboardPage({
   const detailDebt = expenseDetail ? debts.find(d => d.id === expenseDetail.debtId) : null;
   const detailWallet = expenseDetail?.walletId ? wallets.find(w => w.id === expenseDetail.walletId) : null;
   const DetailCategoryIcon = detailCategory?.icon ? iconMap[detailCategory.icon] : null;
-
 
   return (
     <>
@@ -661,13 +670,34 @@ export default function DashboardPage({
                           )}
                         </div>
                         <div className="space-y-3 pt-2">
-                            <div className="flex items-start gap-3">
-                                <Tag className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Kategori</p>
-                                    <p className="font-medium">{detailCategory?.name || 'Tidak ada kategori'}</p>
+                            {expenseDetail.isSplit ? (
+                                <>
+                                  <div className="flex items-start gap-3">
+                                      <Tag className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
+                                      <div>
+                                          <p className="text-xs text-muted-foreground">Kategori</p>
+                                          <p className="font-medium">Transaksi Split</p>
+                                      </div>
+                                  </div>
+                                  <div className="pl-7 space-y-2">
+                                    {(expenseDetail.splits || []).map((split, index) => (
+                                        <div key={index} className="flex justify-between items-center text-sm border-b pb-1">
+                                            <span>{categoryMap.get(split.categoryId)?.name || 'N/A'}</span>
+                                            <span className="font-semibold">{formatCurrency(split.amount)}</span>
+                                        </div>
+                                    ))}
+                                  </div>
+                                </>
+                            ) : (
+                                <div className="flex items-start gap-3">
+                                    <Tag className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
+                                    <div>
+                                        <p className="text-xs text-muted-foreground">Kategori</p>
+                                        <p className="font-medium">{detailCategory?.name || 'Tidak ada kategori'}</p>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
+                            <Separator/>
                             <div className="flex items-start gap-3">
                                 <Calendar className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
                                 <div>

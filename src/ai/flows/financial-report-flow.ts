@@ -46,7 +46,7 @@ export async function generateFinancialReport(input: {
     }
     try {
         const flowInput: FinancialReportInput = {
-            expensesJSON: JSON.stringify(input.expenses.map(({id, date, amount, categoryId, notes}) => ({id, date, amount, categoryId, notes}))),
+            expensesJSON: JSON.stringify(input.expenses.map(({id, date, amount, categoryId, notes, isSplit, splits}) => ({id, date, amount, categoryId, notes, isSplit, splits}))),
             categoriesJSON: JSON.stringify(input.categories),
             baseBudget: input.baseBudget,
             additionalIncomesJSON: JSON.stringify(input.additionalIncomes.map(({id, date, amount, notes}) => ({id, date, amount, notes}))),
@@ -73,6 +73,11 @@ const prompt = ai.definePrompt({
   - Kategori Anggaran & Budgetnya: {{{categoriesJSON}}}
   - Daftar Pemasukan Tambahan: {{{additionalIncomesJSON}}}
   - Daftar Transaksi Pengeluaran: {{{expensesJSON}}}
+
+  **Aturan Penting Mengenai Transaksi:**
+  - Setiap transaksi pengeluaran memiliki \`amount\` yang merupakan total nilai.
+  - Jika sebuah transaksi memiliki \`isSplit: true\`, maka rincian pengeluarannya ada di dalam array \`splits\`. Anda HARUS menjumlahkan pengeluaran per kategori dari array \`splits\` ini.
+  - Jika \`isSplit\` tidak ada atau \`false\`, maka gunakan \`categoryId\` untuk menentukan kategorinya.
 
   **Definisi Penting:**
   - **Pemasukan Tambahan** = Total dari semua item di \`additionalIncomesJSON\`.

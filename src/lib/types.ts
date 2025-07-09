@@ -34,18 +34,36 @@ export type Income = {
   walletId?: string;
 };
 
+export type SplitItem = {
+  id: string;
+  categoryId: string;
+  amount: number;
+  notes?: string;
+};
+
 export type Expense = {
   id:string;
   date: Date;
-  categoryId: string;
-  amount: number; // Final amount (baseAmount + adminFee)
-  baseAmount: number;
-  adminFee?: number;
-  notes?: string;
+  amount: number; // This is the TOTAL amount
+  walletId?: string;
+  notes?: string; // General note for the whole transaction
+  
+  // New fields for split transactions
+  isSplit?: boolean;
+  splits?: SplitItem[];
+
+  // For simple transactions (isSplit is false/undefined)
+  categoryId?: string; 
+  
+  // These are for specific expense types that are not splittable for now
   savingGoalId?: string;
   debtId?: string;
-  walletId?: string;
+  
+  // These are still relevant for the total transaction
+  baseAmount: number;
+  adminFee?: number;
 };
+
 
 export type RecurringTransaction = {
   id: string;

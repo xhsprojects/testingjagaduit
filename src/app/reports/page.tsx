@@ -159,26 +159,37 @@ export default function ReportsPage() {
     
     // TAB: Laporan Content
     const LaporanTab = () => {
-        const totalExpenses = filteredData?.expenses.reduce((sum, e) => sum + e.amount, 0) || 0;
-        const totalAddedIncomes = filteredData?.incomes.reduce((sum, i) => sum + i.amount, 0) || 0;
+        const expenseByCategory = data.budget.categories.map((cat: Category) => {
+            const spent = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
+                if (e.isSplit) {
+                    return sum + (e.splits || []).filter(s => s.categoryId === cat.id).reduce((splitSum, s) => splitSum + s.amount, 0);
+                }
+                if (e.categoryId === cat.id) {
+                    return sum + e.amount;
+                }
+                return sum;
+            }, 0);
+            return { name: cat.name, spent, budget: cat.budget };
+        }).filter((c: any) => c.spent > 0);
         
+        const totalAddedIncomes = filteredData?.incomes.reduce((sum, i) => sum + i.amount, 0) || 0;
+        const totalExpenses = filteredData?.expenses.reduce((sum, e) => sum + e.amount, 0) || 0;
         const savingsCategoryId = data.budget.categories.find((c: Category) => c.name === "Tabungan & Investasi")?.id;
-        const totalSavings = filteredData?.expenses.filter(e => e.categoryId === savingsCategoryId).reduce((sum, e) => sum + e.amount, 0) || 0;
+        const totalSavings = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
+            if (e.isSplit) {
+                return sum + (e.splits || []).filter(s => s.categoryId === savingsCategoryId).reduce((splitSum, s) => splitSum + s.amount, 0);
+            }
+            if (e.categoryId === savingsCategoryId) {
+                return sum + e.amount;
+            }
+            return sum;
+        }, 0);
 
-        const expenseByCategory = data.budget.categories.map((cat: Category) => ({
-            name: cat.name,
-            spent: filteredData?.expenses.filter(e => e.categoryId === cat.id).reduce((sum, e) => sum + e.amount, 0) || 0,
-            budget: cat.budget
-        })).filter(c => c.spent > 0);
-
-        const incomeData = [
-            // Base budget is not considered "income" in reports, only additional income.
-            { name: "Pemasukan Tambahan", value: totalAddedIncomes }
-        ].filter(i => i.value > 0);
+        const incomeData = [{ name: "Pemasukan Tambahan", value: totalAddedIncomes }].filter(i => i.value > 0);
         
         const cashflowData = [{
             name: 'Arus Kas',
-            Pendapatan: totalAddedIncomes, // Only additional income
+            Pendapatan: totalAddedIncomes,
             Pengeluaran: totalExpenses,
             Tabungan: totalSavings,
         }];
@@ -194,33 +205,21 @@ export default function ReportsPage() {
                         </TabsList>
                         <TabsContent value="pengeluaran" className="mt-4">
                             <Card>
-                                <CardHeader>
-                                    <CardTitle>Distribusi Pengeluaran</CardTitle>
-                                    <CardDescription>Distribusi pengeluaran Anda berdasarkan kategori.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <BudgetChart data={expenseByCategory} />
-                                </CardContent>
+                                <CardHeader><CardTitle>Distribusi Pengeluaran</CardTitle><CardDescription>Distribusi pengeluaran Anda berdasarkan kategori.</CardDescription></CardHeader>
+                                <CardContent><BudgetChart data={expenseByCategory} /></CardContent>
                             </Card>
                         </TabsContent>
                         <TabsContent value="pemasukan" className="mt-4">
                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Distribusi Pemasukan</CardTitle>
-                                    <CardDescription>Distribusi pemasukan tambahan Anda.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                     <BudgetChart data={incomeData.map(d => ({name: d.name, spent: d.value, budget: d.value}))} />
-                                </CardContent>
+                                <CardHeader><CardTitle>Distribusi Pemasukan</CardTitle><CardDescription>Distribusi pemasukan tambahan Anda.</CardDescription></CardHeader>
+                                <CardContent><BudgetChart data={incomeData.map(d => ({name: d.name, spent: d.value, budget: d.value}))} /></CardContent>
                             </Card>
                         </TabsContent>
                     </Tabs>
                 </div>
 
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Profil Arus Kas Kamu</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle className="font-headline">Profil Arus Kas Kamu</CardTitle></CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={cashflowData} layout="vertical" barSize={40}>
@@ -238,13 +237,19 @@ export default function ReportsPage() {
                 </Card>
                 
                 <Card>
-                     <CardHeader>
-                        <CardTitle className="font-headline">Pengeluaran Berdasarkan Kategori</CardTitle>
-                    </CardHeader>
+                     <CardHeader><CardTitle className="font-headline">Pengeluaran Berdasarkan Kategori</CardTitle></CardHeader>
                      <CardContent>
                         <Accordion type="single" collapsible className="w-full">
                             {data.budget.categories.map((cat: Category) => {
-                                const spent = filteredData?.expenses.filter(e => e.categoryId === cat.id).reduce((sum, e) => sum + e.amount, 0) || 0;
+                                const spent = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
+                                    if (e.isSplit) {
+                                        return sum + (e.splits || []).filter(s => s.categoryId === cat.id).reduce((splitSum, s) => splitSum + s.amount, 0);
+                                    }
+                                    if (e.categoryId === cat.id) {
+                                        return sum + e.amount;
+                                    }
+                                    return sum;
+                                }, 0);
                                 const progress = cat.budget > 0 ? (spent / cat.budget) * 100 : 0;
                                 if (spent === 0) return null;
 
@@ -252,28 +257,23 @@ export default function ReportsPage() {
                                     <AccordionItem value={cat.id} key={cat.id}>
                                         <AccordionTrigger>
                                             <div className="w-full text-left">
-                                                <div className="flex justify-between items-center">
-                                                    <span>{cat.name}</span>
-                                                    <span className="font-bold">{formatCurrency(spent)}</span>
-                                                </div>
+                                                <div className="flex justify-between items-center"><span>{cat.name}</span><span className="font-bold">{formatCurrency(spent)}</span></div>
                                                 <Progress value={progress} className="mt-2 h-2" />
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent>
                                             <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>Tanggal</TableHead>
-                                                        <TableHead>Catatan</TableHead>
-                                                        <TableHead className="text-right">Jumlah</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
+                                                <TableHeader><TableRow><TableHead>Tanggal</TableHead><TableHead>Catatan</TableHead><TableHead className="text-right">Jumlah</TableHead></TableRow></TableHeader>
                                                 <TableBody>
-                                                {filteredData?.expenses.filter(e => e.categoryId === cat.id).map(e => (
-                                                    <TableRow key={e.id}>
-                                                        <TableCell>{format(new Date(e.date), 'd MMM yyyy')}</TableCell>
-                                                        <TableCell>{e.notes || '-'}</TableCell>
-                                                        <TableCell className="text-right">{formatCurrency(e.amount)}</TableCell>
+                                                {(filteredData?.expenses || []).flatMap((e: Expense) => 
+                                                    e.isSplit ? 
+                                                    (e.splits || []).filter(s => s.categoryId === cat.id).map(s => ({...s, date: e.date})) : 
+                                                    e.categoryId === cat.id ? [{...e, amount: e.amount, date: e.date, notes: e.notes}] : []
+                                                ).map((item, index) => (
+                                                    <TableRow key={index}>
+                                                        <TableCell>{format(new Date(item.date), 'd MMM yyyy')}</TableCell>
+                                                        <TableCell>{item.notes || '-'}</TableCell>
+                                                        <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
                                                     </TableRow>
                                                 ))}
                                                 </TableBody>
@@ -291,14 +291,19 @@ export default function ReportsPage() {
     
     // TAB: Insight Content
     const InsightTab = () => {
-        const topSpendingCategory = [...(filteredData?.expenses || [])]
-            .reduce((acc, exp) => {
+        const categoryMap = new Map(data.budget.categories.map((c: Category) => [c.id, c.name]));
+        const topSpendingCategory = (filteredData?.expenses || []).reduce((acc: Record<string, number>, exp: Expense) => {
+            if (exp.isSplit) {
+                (exp.splits || []).forEach(s => {
+                    acc[s.categoryId] = (acc[s.categoryId] || 0) + s.amount;
+                });
+            } else if(exp.categoryId) {
                 acc[exp.categoryId] = (acc[exp.categoryId] || 0) + exp.amount;
-                return acc;
-            }, {} as Record<string, number>);
+            }
+            return acc;
+        }, {});
 
         const topCategory = Object.entries(topSpendingCategory).sort((a,b) => b[1] - a[1])[0];
-        const categoryMap = new Map(data.budget.categories.map((c: Category) => [c.id, c.name]));
         
         const last4WeeksData = React.useMemo(() => {
             const weeks = Array.from({ length: 4 }).map((_, i) => {
@@ -323,9 +328,7 @@ export default function ReportsPage() {
                     periodLabel={format(dateRange?.from ?? new Date(), "d MMM yyyy")}
                 />
                  <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Ringkasan Periode</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle className="font-headline">Ringkasan Periode</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="p-4 bg-secondary rounded-lg">
                             <p className="text-sm text-muted-foreground">Pengeluaran Terbanyak</p>
@@ -344,9 +347,7 @@ export default function ReportsPage() {
                 </Card>
 
                  <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">4 Minggu Perbandingan Arus Keuangan</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle className="font-headline">4 Minggu Perbandingan Arus Keuangan</CardTitle></CardHeader>
                     <CardContent>
                        <ResponsiveContainer width="100%" height={300}>
                             <ComposedChart data={last4WeeksData}>
@@ -363,9 +364,7 @@ export default function ReportsPage() {
                 </Card>
 
                  <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Pengeluaran vs Anggaran</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle className="font-headline">Pengeluaran vs Anggaran</CardTitle></CardHeader>
                     <CardContent>
                         <BudgetVsSpendingChart data={data.budget.categories.map((c: Category) => ({ ...c, spent: (filteredData?.expenses || []).filter(e => e.categoryId === c.id).reduce((s,e) => s+e.amount, 0)}))} />
                     </CardContent>
@@ -413,18 +412,10 @@ export default function ReportsPage() {
                 </Card>
 
                  <Card>
-                    <CardHeader>
-                        <CardTitle className="font-headline">Rincian Utang</CardTitle>
-                    </CardHeader>
+                    <CardHeader><CardTitle className="font-headline">Rincian Utang</CardTitle></CardHeader>
                     <CardContent>
                         <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Nama Utang</TableHead>
-                                    <TableHead>Total Pinjaman</TableHead>
-                                    <TableHead>Sisa</TableHead>
-                                </TableRow>
-                            </TableHeader>
+                            <TableHeader><TableRow><TableHead>Nama Utang</TableHead><TableHead>Total Pinjaman</TableHead><TableHead>Sisa</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {debtsWithBalance.map((debt: any) => (
                                     <TableRow key={debt.id}>
@@ -452,15 +443,9 @@ export default function ReportsPage() {
                         <TabsTrigger value="insight">Insight</TabsTrigger>
                         <TabsTrigger value="utang">Utang</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="laporan" className="mt-6">
-                        <LaporanTab />
-                    </TabsContent>
-                    <TabsContent value="insight" className="mt-6">
-                        <InsightTab />
-                    </TabsContent>
-                    <TabsContent value="utang" className="mt-6">
-                        <UtangTab />
-                    </TabsContent>
+                    <TabsContent value="laporan" className="mt-6"><LaporanTab /></TabsContent>
+                    <TabsContent value="insight" className="mt-6"><InsightTab /></TabsContent>
+                    <TabsContent value="utang" className="mt-6"><UtangTab /></TabsContent>
                 </Tabs>
             </main>
         </div>
