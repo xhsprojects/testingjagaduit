@@ -9,6 +9,7 @@ import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import { Calendar as CalendarIcon, Camera, Loader2, Gem, PlusCircle, Info, Mic } from "lucide-react"
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Checkbox } from './ui/checkbox'
 import { parseTransactionByVoice } from '@/ai/flows/parse-transaction-by-voice-flow'
+import { ToastAction } from './ui/toast'
 
 const baseFormSchema = z.object({
   baseAmount: z.coerce.number({ required_error: "Jumlah harus diisi." }).positive("Jumlah harus angka positif."),
@@ -71,6 +73,7 @@ export function AddExpenseForm({
 }: AddExpenseFormProps) {
   const { toast } = useToast();
   const { isPremium } = useAuth();
+  const router = useRouter();
   const [isScanning, setIsScanning] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [showFeeInput, setShowFeeInput] = React.useState(false);
@@ -357,15 +360,24 @@ export function AddExpenseForm({
         } else {
             // --- FREE BASIC LOGIC ---
             toast({
-            title: "Teks Dikenali",
-            description: `"${transcript}". Memproses...`,
+                title: "Teks Dikenali",
+                description: `"${transcript}".`,
             });
             const { amount, description } = parseSpokenAmount(transcript);
             if (amount > 0) {
-            form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
+                form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
             }
             form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
-            toast({ title: "Sukses!", description: "Jumlah dan catatan telah diisi. Silakan lengkapi sisanya." });
+            
+            toast({ 
+                title: "Tips: Upgrade untuk AI Lebih Cerdas!", 
+                description: "AI bisa otomatis menebak kategori & dompet untuk Anda.",
+                action: (
+                    <ToastAction altText="Upgrade" onClick={() => router.push('/premium')}>
+                        Upgrade
+                    </ToastAction>
+                ),
+            });
         }
 
       setIsListening(false);
