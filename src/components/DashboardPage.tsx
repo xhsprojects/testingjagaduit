@@ -25,7 +25,6 @@ import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { iconMap } from '@/lib/icons';
-import FinancialReport from './FinancialReport';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
@@ -589,13 +588,6 @@ export default function DashboardPage({
               </Link>
           </div>
 
-          <FinancialReport
-              expenses={filteredExpenses}
-              categories={categories}
-              baseBudget={income}
-              additionalIncomes={filteredIncomes}
-              periodLabel={periodLabel}
-          />
           <PredictiveAnalysis
               expenses={filteredExpenses}
               categories={categories}

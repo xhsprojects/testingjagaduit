@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
-import type { BudgetPeriod, Category, Debt, Expense, Income, SavingGoal } from '@/lib/types';
+import type { BudgetPeriod, Category, Debt, Expense, Income } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { addDays, addMonths, endOfDay, endOfMonth, endOfWeek, format, startOfDay, startOfMonth, startOfWeek, subDays, subWeeks } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -25,6 +25,8 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import BudgetChart from '@/components/charts/BudgetChart';
 import BudgetVsSpendingChart from '@/components/charts/BudgetVsSpendingChart';
+import FinancialReport from '@/components/FinancialReport';
+import DebtAnalysis from '@/components/DebtAnalysis';
 
 // Data conversion utility
 const convertTimestamps = (data: any): any => {
@@ -313,6 +315,13 @@ export default function ReportsPage() {
         
         return (
              <div className="space-y-6">
+                 <FinancialReport
+                    expenses={filteredData?.expenses || []}
+                    categories={data.budget.categories}
+                    baseBudget={data.budget.income}
+                    additionalIncomes={filteredData?.incomes || []}
+                    periodLabel={format(dateRange?.from ?? new Date(), "d MMM yyyy")}
+                />
                  <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Ringkasan Periode</CardTitle>
@@ -380,6 +389,7 @@ export default function ReportsPage() {
 
         return (
             <div className="space-y-6">
+                <DebtAnalysis debts={debtsWithBalance} />
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Distribusi Utang</CardTitle>
@@ -389,7 +399,7 @@ export default function ReportsPage() {
                         {totalDebt > 0 ? (
                              <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
-                                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                                    <Tooltip formatter={(value: number) => formatCurrency(value as number)} />
                                     <Legend />
                                     <Pie data={debtsWithBalance} dataKey="remainingBalance" nameKey="name" cx="50%" cy="50%" outerRadius={120} label>
                                          {debtsWithBalance.map((entry: any, index: number) => (
@@ -456,5 +466,3 @@ export default function ReportsPage() {
         </div>
     );
 }
-
-    
