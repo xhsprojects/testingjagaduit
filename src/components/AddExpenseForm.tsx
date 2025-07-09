@@ -449,24 +449,94 @@ export function AddExpenseForm({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-1 flex-col overflow-hidden">
             <div className="flex-1 overflow-y-auto px-6">
                 <div className="space-y-4 py-2">
-                    {/* ... Scan/Voice input section ... */}
-                    <FormField name="baseAmount" render={() => <></>} /> 
-                    <div className="grid grid-cols-1 gap-2">
-                        <FormField control={form.control} name="baseAmount" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Jumlah</FormLabel>
-                            <FormControl>
-                                <Input type="text" inputMode="numeric" placeholder="Contoh: Rp 50.000" value={field.value > 0 ? formatCurrency(field.value) : ""}
-                                    onChange={(e) => {
-                                        const numericValue = Number(e.target.value.replace(/[^0-9]/g, ''));
-                                        field.onChange(numericValue);
-                                    }}/>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}/>
+                    <FormField
+                      control={form.control}
+                      name="baseAmount"
+                      render={({ field }) => (
+                        <FormItem>
+                           <FormLabel className="flex items-center gap-2">
+                                <span>Jumlah</span>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative" onClick={() => fileInputRef.current?.click()} disabled={isScanning || !isPremium}>
+                                            {isScanning ? (<Loader2 className="h-4 w-4 animate-spin" />) : (<Camera className="h-4 w-4" />)}
+                                            {!isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                        </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="font-semibold">Pindai Struk (Premium)</p>
+                                            {!isPremium && <p className="text-xs">Upgrade untuk menggunakan fitur ini.</p>}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+
+                                {isSpeechRecognitionSupported && (
+                                     <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative" onClick={handleVoiceInput} disabled={isListening}>
+                                                    {isListening ? (<Loader2 className="h-4 w-4 animate-spin" />) : (<Mic className="h-4 w-4" />)}
+                                                    {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="font-semibold">Isi dengan Suara</p>
+                                                {isPremium ? (
+                                                    <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
+                                                ) : (
+                                                    <p className="text-xs">Upgrade untuk tebak kategori & dompet otomatis.</p>
+                                                )}
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                )}
+                            </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="Contoh: Rp 50.000"
+                              value={field.value > 0 ? formatCurrency(field.value) : ""}
+                              onChange={(e) => {
+                                const numericValue = Number(e.target.value.replace(/[^0-9]/g, ''));
+                                field.onChange(numericValue);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="space-y-2">
+                        <div className="items-top flex space-x-2">
+                            <Checkbox id="includeFee" checked={showFeeInput} onCheckedChange={(checked) => setShowFeeInput(!!checked)} />
+                            <div className="grid gap-1.5 leading-none">
+                                <label htmlFor="includeFee" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Sertakan Biaya Admin</label>
+                                <p className="text-xs text-muted-foreground">Contoh: biaya transfer antar bank, biaya layanan.</p>
+                            </div>
+                        </div>
+                        {showFeeInput && (
+                            <FormField control={form.control} name="adminFee" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="sr-only">Jumlah Biaya Admin</FormLabel>
+                                    <FormControl>
+                                        <Input type="text" inputMode="numeric" placeholder="Contoh: Rp 2.500" value={field.value && field.value > 0 ? formatCurrency(field.value) : ""}
+                                            onChange={(e) => {
+                                                const numericValue = Number(e.target.value.replace(/[^0-9]/g, ''));
+                                                field.onChange(numericValue);
+                                            }}/>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                        )}
+                         <div className="flex justify-between items-center bg-secondary p-2 rounded-md">
+                            <span className="text-sm font-semibold">Total Transaksi</span>
+                            <span className="text-sm font-bold">{formatCurrency(totalTransactionAmount)}</span>
+                        </div>
                     </div>
-                     {/* ... Wallet, Date, Notes Fields ... */}
                     <FormField control={form.control} name="walletId" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Bayar dari Dompet</FormLabel>
@@ -474,6 +544,11 @@ export function AddExpenseForm({
                           <FormControl><SelectTrigger><SelectValue placeholder="Pilih sumber dana" /></SelectTrigger></FormControl>
                           <SelectContent position="popper">{wallets.map((wallet) => (<SelectItem key={wallet.id} value={wallet.id}>{wallet.name}</SelectItem>))}</SelectContent>
                         </Select>
+                        {selectedWalletBalance !== null && (
+                            <FormDescription>
+                                Saldo Saat Ini: {formatCurrency(selectedWalletBalance)}
+                            </FormDescription>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}/>
@@ -518,7 +593,7 @@ export function AddExpenseForm({
                     {watchIsSplit ? (
                       <div className="space-y-3">
                           {fields.map((item, index) => (
-                            <div key={item.id} className="grid grid-cols-[1fr,auto,auto] gap-2 items-end p-2 border rounded-md">
+                            <div key={item.id} className="grid grid-cols-[1fr,auto] gap-2 items-end p-2 border rounded-md">
                                <div className="space-y-2">
                                   <FormField control={form.control} name={`splits.${index}.categoryId`} render={({ field }) => (
                                     <FormItem><FormLabel className="sr-only">Kategori</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger></FormControl><SelectContent>{categories.filter(c => !c.isEssential).map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
@@ -530,12 +605,12 @@ export function AddExpenseForm({
                                <div><Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button></div>
                             </div>
                           ))}
-                          <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => append({ id: `split-${Date.now()}`, categoryId: '', amount: 0 })}><PlusCircle className="mr-2 h-4 w-4"/>Tambah Rincian</Button>
+                          <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => append({ id: `split-${Date.now()}`, categoryId: '', amount: 0, notes: '' })}><PlusCircle className="mr-2 h-4 w-4"/>Tambah Rincian</Button>
                           <div className={cn("flex justify-between items-center bg-muted p-2 rounded-md text-sm", totalSplitAmount !== totalTransactionAmount && 'bg-destructive/20 text-destructive-foreground')}>
                               <span className="font-semibold flex items-center gap-1">{totalSplitAmount !== totalTransactionAmount && <CircleHelp className="h-4 w-4"/>}Total Rincian</span>
                               <span className="font-bold">{formatCurrency(totalSplitAmount)}</span>
                           </div>
-                          <FormMessage>{form.formState.errors.splits?.message}</FormMessage>
+                          <FormMessage>{form.formState.errors.splits?.message || form.formState.errors.splits?.root?.message}</FormMessage>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -573,5 +648,3 @@ export function AddExpenseForm({
     </Dialog>
   )
 }
-
-    
