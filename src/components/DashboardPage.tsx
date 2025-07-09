@@ -207,7 +207,7 @@ export default function DashboardPage({
   const remainingBudget = income - totalFilteredExpenses;
 
   const expensesByCategory = React.useMemo(() => {
-      const dataMap = new Map(categories.map((cat) => ({ ...cat, spent: 0 })));
+      const dataMap = new Map((categories || []).filter(Boolean).map((cat) => [cat.id, { ...cat, spent: 0 }]));
       for (const expense of filteredExpenses) {
           if (expense.isSplit && expense.splits) {
               expense.splits.forEach(split => {

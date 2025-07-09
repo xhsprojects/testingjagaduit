@@ -159,7 +159,7 @@ export default function ReportsPage() {
     
     // TAB: Laporan Content
     const LaporanTab = () => {
-        const expenseByCategory = data.budget.categories.map((cat: Category) => {
+        const expenseByCategory = (data.budget.categories || []).filter(Boolean).map((cat: Category) => {
             const spent = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
                 if (e.isSplit) {
                     return sum + (e.splits || []).filter(s => s.categoryId === cat.id).reduce((splitSum, s) => splitSum + s.amount, 0);
@@ -240,7 +240,7 @@ export default function ReportsPage() {
                      <CardHeader><CardTitle className="font-headline">Pengeluaran Berdasarkan Kategori</CardTitle></CardHeader>
                      <CardContent>
                         <Accordion type="single" collapsible className="w-full">
-                            {data.budget.categories.map((cat: Category) => {
+                            {(data.budget.categories || []).filter(Boolean).map((cat: Category) => {
                                 const spent = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
                                     if (e.isSplit) {
                                         return sum + (e.splits || []).filter(s => s.categoryId === cat.id).reduce((splitSum, s) => splitSum + s.amount, 0);
@@ -318,6 +318,19 @@ export default function ReportsPage() {
             return weeks;
         }, [data.budget]);
         
+        const insightSpentByCategory = (data.budget.categories || []).filter(Boolean).map((c: Category) => {
+            const spent = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
+                if (e.isSplit) {
+                    return sum + (e.splits || []).filter(s => s.categoryId === c.id).reduce((splitSum, s) => splitSum + s.amount, 0);
+                }
+                if (e.categoryId === c.id) {
+                    return sum + e.amount;
+                }
+                return sum;
+            }, 0);
+            return { ...c, spent };
+        });
+
         return (
              <div className="space-y-6">
                  <FinancialReport
@@ -366,7 +379,7 @@ export default function ReportsPage() {
                  <Card>
                     <CardHeader><CardTitle className="font-headline">Pengeluaran vs Anggaran</CardTitle></CardHeader>
                     <CardContent>
-                        <BudgetVsSpendingChart data={data.budget.categories.map((c: Category) => ({ ...c, spent: (filteredData?.expenses || []).filter(e => e.categoryId === c.id).reduce((s,e) => s+e.amount, 0)}))} />
+                        <BudgetVsSpendingChart data={insightSpentByCategory} />
                     </CardContent>
                 </Card>
              </div>
