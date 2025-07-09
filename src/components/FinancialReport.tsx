@@ -104,12 +104,25 @@ export default function FinancialReport({ expenses, categories, baseBudget, addi
         }
     }
 
+    const GenerateButton = () => (
+      <div className="relative">
+        <Button onClick={handleGenerateReport} disabled={isLoading || !isPremium}>
+          {isLoading ? "Sedang Menganalisis..." : (report ? "Buat Ulang Laporan" : "Buat Laporan Analisis")}
+        </Button>
+        {!isPremium && (
+          <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">
+            <Gem className="h-3 w-3 mr-1"/> Premium
+          </Badge>
+        )}
+      </div>
+    );
+
     return (
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-2">
                     <BarChart3 className="h-6 w-6 text-primary" />
-                    <CardTitle className="font-headline">Laporan Analisis Keuangan</CardTitle>
+                    <CardTitle className="font-headline">Laporan Analisis Keuangan AI</CardTitle>
                 </div>
                 <CardDescription>Dapatkan analisis mendalam dan saran dari AI mengenai aktivitas keuangan Anda pada periode terpilih.</CardDescription>
             </CardHeader>
@@ -131,7 +144,7 @@ export default function FinancialReport({ expenses, categories, baseBudget, addi
                             </div>
                         </div>
 
-                        {audioUrl && (
+                        {audioUrl && isPremium && (
                             <div className="border-t border-border pt-4">
                                 <audio controls className="w-full">
                                     <source src={audioUrl} type="audio/wav" />
@@ -159,7 +172,17 @@ export default function FinancialReport({ expenses, categories, baseBudget, addi
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
 
+                {!isPremium && !report && !isLoading && (
+                    <div className="p-4 text-center bg-secondary rounded-lg border">
+                        <Gem className="mx-auto h-8 w-8 text-primary/50" />
+                        <h4 className="font-semibold mt-2">Fitur Premium</h4>
+                        <p className="text-sm text-muted-foreground mt-1">Upgrade ke Premium untuk mendapatkan laporan cerdas dari AI.</p>
+                        <Button asChild size="sm" className="mt-4">
+                            <Link href="/premium">Upgrade Sekarang</Link>
+                        </Button>
                     </div>
                 )}
             </CardContent>
@@ -168,39 +191,29 @@ export default function FinancialReport({ expenses, categories, baseBudget, addi
                     Laporan dibuat oleh AI berdasarkan data pada rentang tanggal yang dipilih.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
-                    {report && (
-                        isPremium ? (
-                            <Button variant="outline" onClick={handleListenToSummary} disabled={isAudioLoading || isLoading}>
-                                {isAudioLoading ? (
-                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses...</>
-                                ) : (
-                                    <><Volume2 className="mr-2 h-4 w-4" /> Dengarkan Ringkasan</>
-                                )}
-                            </Button>
-                        ) : (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Link href="/premium">
-                                             <Button variant="outline">
-                                                 <Volume2 className="mr-2 h-4 w-4" />
-                                                Dengarkan Ringkasan
-                                                <Badge variant="destructive" className="ml-2">
-                                                    <Gem className="h-3 w-3 mr-1"/> Premium
-                                                </Badge>
-                                            </Button>
-                                        </Link>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Upgrade ke Premium untuk menggunakan fitur ini.</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        )
+                    {report && isPremium && (
+                        <Button variant="outline" onClick={handleListenToSummary} disabled={isAudioLoading || isLoading}>
+                            {isAudioLoading ? (
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses...</>
+                            ) : (
+                                <><Volume2 className="mr-2 h-4 w-4" /> Dengarkan Ringkasan</>
+                            )}
+                        </Button>
                     )}
-                    <Button onClick={handleGenerateReport} disabled={isLoading}>
-                        {isLoading ? "Sedang Menganalisis..." : (report ? "Buat Ulang Laporan" : "Buat Laporan Analisis")}
-                    </Button>
+                    {isPremium ? (
+                        <GenerateButton />
+                    ) : (
+                      <TooltipProvider>
+                          <Tooltip>
+                              <TooltipTrigger>
+                                  <GenerateButton />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                  <p>Upgrade ke Premium untuk menggunakan fitur ini.</p>
+                              </TooltipContent>
+                          </Tooltip>
+                      </TooltipProvider>
+                    )}
                 </div>
             </CardFooter>
         </Card>
