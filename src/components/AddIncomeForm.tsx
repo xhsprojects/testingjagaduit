@@ -7,10 +7,10 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import { Calendar as CalendarIcon, PlusCircle, Mic, Loader2 } from "lucide-react"
+import { Calendar as CalendarIcon, PlusCircle, Mic, Loader2, Gem } from "lucide-react"
 import Link from 'next/link'
 
-import { cn, formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -24,6 +24,8 @@ import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Checkbox } from './ui/checkbox'
 import { useToast } from '@/hooks/use-toast'
 import { parseTransactionByVoice } from '@/ai/flows/parse-transaction-by-voice-flow'
+import { useAuth } from '@/context/AuthContext'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
 const formSchema = z.object({
   baseAmount: z.coerce.number({ required_error: "Jumlah harus diisi." }).positive("Jumlah harus angka positif."),
@@ -47,6 +49,7 @@ interface AddIncomeFormProps {
 }
 
 export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expenses, incomes, onSubmit, incomeToEdit }: AddIncomeFormProps) {
+  const { isPremium } = useAuth();
   const [showFeeInput, setShowFeeInput] = React.useState(false);
   const { toast } = useToast();
   const [isListening, setIsListening] = React.useState(false);
@@ -160,34 +163,49 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
 
     recognition.onresult = async (event) => {
       const transcript = event.results[0][0].transcript;
-      toast({
-        title: "Teks Dikenali",
-        description: `"${transcript}". Memproses dengan AI...`,
-      });
-
       setIsListening(true);
       
-      const categoriesJSON = JSON.stringify((categories || []).map(({id, name}) => ({id, name})));
-      const walletsJSON = JSON.stringify(wallets.map(({id, name}) => ({id, name})));
-      
-      const result = await parseTransactionByVoice({
-          query: transcript,
-          categoriesJSON,
-          walletsJSON,
-      });
+      if (isPremium) {
+        // --- PREMIUM AI LOGIC ---
+        toast({
+            title: "Teks Dikenali",
+            description: `"${transcript}". Memproses dengan AI cerdas...`,
+        });
+        const categoriesJSON = JSON.stringify((categories || []).map(({id, name}) => ({id, name})));
+        const walletsJSON = JSON.stringify(wallets.map(({id, name}) => ({id, name})));
+        
+        const result = await parseTransactionByVoice({
+            query: transcript,
+            categoriesJSON,
+            walletsJSON,
+        });
 
-      if ('error' in result) {
-          toast({ title: "Gagal Memproses", description: result.error, variant: 'destructive' });
+        if ('error' in result) {
+            toast({ title: "Gagal Memproses", description: result.error, variant: 'destructive' });
+        } else {
+            if (!result.isIncome) {
+                toast({ title: "Transaksi Pengeluaran Terdeteksi", description: "Silakan gunakan form tambah pengeluaran untuk ini.", variant: "destructive" });
+            } else {
+                if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
+                if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
+                if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
+                toast({ title: "Sukses! (Premium)", description: "Form telah diisi otomatis. Silakan periksa kembali." });
+            }
+        }
       } else {
-          if (!result.isIncome) {
-              toast({ title: "Transaksi Pengeluaran Terdeteksi", description: "Silakan gunakan form tambah pengeluaran untuk ini.", variant: "destructive" });
-          } else {
-              if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
-              if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
-              if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
-              toast({ title: "Sukses!", description: "Form telah diisi otomatis. Silakan periksa kembali." });
-          }
+        // --- FREE BASIC LOGIC ---
+        toast({
+            title: "Teks Dikenali",
+            description: `"${transcript}". Memproses...`,
+        });
+        const { amount, description } = parseSpokenAmount(transcript);
+        if (amount > 0) {
+            form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
+        }
+        form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
+        toast({ title: "Sukses!", description: "Jumlah dan catatan telah diisi. Silakan lengkapi sisanya." });
       }
+
       setIsListening(false);
     };
 
@@ -231,21 +249,35 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
                         <FormLabel className="flex items-center gap-2">
                           Jumlah Pemasukan
                            {isSpeechRecognitionSupported && (
-                                <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10"
-                                onClick={handleVoiceInput}
-                                disabled={isListening}
-                                title="Isi dengan suara"
-                                >
-                                {isListening ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Mic className="h-4 w-4" />
-                                )}
-                                </Button>
+                               <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative"
+                                                onClick={handleVoiceInput}
+                                                disabled={isListening}
+                                            >
+                                                {isListening ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                ) : (
+                                                    <Mic className="h-4 w-4" />
+                                                )}
+                                                {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="font-semibold">Isi dengan Suara</p>
+                                            {isPremium ? (
+                                                <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
+                                            ) : (
+                                                <p className="text-xs">Upgrade ke Premium untuk tebak dompet otomatis.</p>
+                                            )}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             )}
                         </FormLabel>
                         <FormControl>
