@@ -112,13 +112,12 @@ export default function NotesClientPage() {
                 </header>
                 <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-6">
                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        <Card
-                            onClick={() => handleOpenForm()}
-                            className="flex flex-col items-center justify-center min-h-[200px] border-2 border-dashed bg-secondary/50 hover:border-primary hover:bg-secondary transition-all cursor-pointer"
-                        >
-                            <PlusCircle className="h-10 w-10 text-muted-foreground mb-2" />
-                            <p className="text-muted-foreground font-semibold">Tambah Catatan Baru</p>
-                        </Card>
+                        {notes.length === 0 && (
+                             <div className="col-span-full text-center text-muted-foreground py-16">
+                                <p className="text-lg font-semibold">Belum ada catatan.</p>
+                                <p>Gunakan tombol (+) di pojok kiri bawah untuk membuat catatan pertama Anda.</p>
+                            </div>
+                        )}
                         {notes.map(note => (
                             <Card key={note.id} className="flex flex-col group">
                                 <CardHeader onClick={() => handleOpenForm(note)} className="cursor-pointer">
@@ -143,6 +142,15 @@ export default function NotesClientPage() {
                    </div>
                 </main>
             </div>
+            
+            <Button
+                onClick={() => handleOpenForm()}
+                className="fixed bottom-20 left-6 h-14 w-14 rounded-full shadow-lg z-40 md:bottom-6"
+                size="icon"
+                aria-label="Tambah Catatan Baru"
+            >
+                <PlusCircle className="h-6 w-6" />
+            </Button>
             
             <NoteForm 
                 isOpen={isFormOpen}
