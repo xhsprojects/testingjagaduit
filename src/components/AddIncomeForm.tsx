@@ -7,10 +7,10 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import { Calendar as CalendarIcon, PlusCircle } from "lucide-react"
+import { Calendar as CalendarIcon, PlusCircle, Mic, Loader2 } from "lucide-react"
 import Link from 'next/link'
 
-import { cn, formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import type { Income, Wallet, Expense } from '@/lib/types'
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Checkbox } from './ui/checkbox'
+import { useToast } from '@/hooks/use-toast'
 
 const formSchema = z.object({
   baseAmount: z.coerce.number({ required_error: "Jumlah harus diisi." }).positive("Jumlah harus angka positif."),
@@ -45,6 +46,15 @@ interface AddIncomeFormProps {
 
 export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes, onSubmit, incomeToEdit }: AddIncomeFormProps) {
   const [showFeeInput, setShowFeeInput] = React.useState(false);
+  const { toast } = useToast();
+  const [isListening, setIsListening] = React.useState(false);
+  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+        setIsSpeechRecognitionSupported(true);
+    }
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -111,6 +121,73 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
     onSubmit(incomeData);
   }
   
+  const handleVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({
+        title: "Browser Tidak Mendukung",
+        description: "Fitur input suara tidak didukung di browser Anda.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      toast({ title: "Mendengarkan...", description: "Ucapkan jumlah dan sumber pemasukan Anda." });
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      toast({
+        title: "Error Pengenalan Suara",
+        description: `Terjadi kesalahan: ${event.error}`,
+        variant: "destructive",
+      });
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      toast({
+        title: "Teks Dikenali",
+        description: `"${transcript}"`,
+      });
+
+      const { amount, description } = parseSpokenAmount(transcript);
+      
+      let hasData = false;
+      if (amount > 0) {
+        form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
+        hasData = true;
+      }
+      if (description) {
+        form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
+        hasData = true;
+      }
+      
+      if (!hasData) {
+           toast({
+            title: "Tidak ada data dikenali",
+            description: "Tidak dapat mengekstrak jumlah atau catatan dari suara Anda.",
+            variant: "destructive",
+          });
+      }
+    };
+
+    recognition.start();
+  };
+
+
   const isEditing = !!incomeToEdit;
   const hasNoWallets = wallets.length === 0;
   const totalTransactionAmount = (watchedBaseAmount || 0) - (showFeeInput ? (watchedAdminFee || 0) : 0);
@@ -144,7 +221,26 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, expenses, incomes
                     name="baseAmount"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Jumlah Pemasukan</FormLabel>
+                        <FormLabel className="flex items-center gap-2">
+                          Jumlah Pemasukan
+                           {isSpeechRecognitionSupported && (
+                                <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={handleVoiceInput}
+                                disabled={isListening}
+                                title="Isi dengan suara"
+                                >
+                                {isListening ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Mic className="h-4 w-4" />
+                                )}
+                                </Button>
+                            )}
+                        </FormLabel>
                         <FormControl>
                             <Input 
                             type="text"

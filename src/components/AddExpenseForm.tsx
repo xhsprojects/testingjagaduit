@@ -7,10 +7,10 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
-import { Calendar as CalendarIcon, Camera, Loader2, Gem, PlusCircle, Info } from "lucide-react"
+import { Calendar as CalendarIcon, Camera, Loader2, Gem, PlusCircle, Info, Mic } from "lucide-react"
 import Link from 'next/link'
 
-import { cn, formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -73,6 +73,14 @@ export function AddExpenseForm({
   const [isScanning, setIsScanning] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [showFeeInput, setShowFeeInput] = React.useState(false);
+  const [isListening, setIsListening] = React.useState(false);
+  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = React.useState(false);
+
+  React.useEffect(() => {
+      if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+          setIsSpeechRecognitionSupported(true);
+      }
+  }, []);
   
   const savingsCategoryId = React.useMemo(() => categories.find(c => c.name === "Tabungan & Investasi")?.id, [categories]);
   const debtPaymentCategory = React.useMemo(() => categories.find(c => c.isDebtCategory), [categories]);
@@ -278,6 +286,72 @@ export function AddExpenseForm({
       }
   };
 
+  const handleVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({
+        title: "Browser Tidak Mendukung",
+        description: "Fitur input suara tidak didukung di browser Anda.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      toast({ title: "Mendengarkan...", description: "Ucapkan jumlah dan catatan transaksi Anda." });
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      toast({
+        title: "Error Pengenalan Suara",
+        description: `Terjadi kesalahan: ${event.error}`,
+        variant: "destructive",
+      });
+      setIsListening(false);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      toast({
+        title: "Teks Dikenali",
+        description: `"${transcript}"`,
+      });
+
+      const { amount, description } = parseSpokenAmount(transcript);
+      
+      let hasData = false;
+      if (amount > 0) {
+        form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
+        hasData = true;
+      }
+      if (description) {
+        form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
+        hasData = true;
+      }
+      
+      if (!hasData) {
+           toast({
+            title: "Tidak ada data dikenali",
+            description: "Tidak dapat mengekstrak jumlah atau catatan dari suara Anda.",
+            variant: "destructive",
+          });
+      }
+    };
+
+    recognition.start();
+  };
+
   const isEditing = !!expenseToEdit && !isDebtPaymentMode;
   
   const formTitle = isDebtPaymentMode ? 'Catat Pembayaran Utang' : isEditing ? 'Ubah Transaksi' : 'Tambah Transaksi Baru';
@@ -285,7 +359,7 @@ export function AddExpenseForm({
     ? 'Lengkapi detail pembayaran utang di bawah ini.'
     : isEditing
     ? 'Ubah detail transaksi Anda di bawah ini.'
-    : 'Pindai struk atau masukkan detail transaksi secara manual. Klik simpan jika sudah selesai.';
+    : 'Pindai struk, gunakan suara, atau isi manual. Klik simpan jika sudah selesai.';
   const buttonText = isDebtPaymentMode ? 'Catat Pembayaran Utang' : isEditing ? 'Simpan Perubahan' : 'Simpan Transaksi';
 
   const ScanButton = () => (
@@ -391,7 +465,26 @@ export function AddExpenseForm({
                       name="baseAmount"
                       render={({ field }) => (
                           <FormItem>
-                          <FormLabel>Jumlah Pokok</FormLabel>
+                            <FormLabel className="flex items-center gap-2">
+                                Jumlah Pokok
+                                {isSpeechRecognitionSupported && (
+                                    <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10"
+                                    onClick={handleVoiceInput}
+                                    disabled={isListening}
+                                    title="Isi dengan suara"
+                                    >
+                                    {isListening ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Mic className="h-4 w-4" />
+                                    )}
+                                    </Button>
+                                )}
+                            </FormLabel>
                           <FormControl>
                               <Input 
                               type="text" 
