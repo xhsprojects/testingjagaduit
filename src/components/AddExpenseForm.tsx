@@ -10,7 +10,7 @@ import { id as idLocale } from "date-fns/locale"
 import { Calendar as CalendarIcon, Camera, Loader2, Gem, PlusCircle, Info, Mic } from "lucide-react"
 import Link from 'next/link'
 
-import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Checkbox } from './ui/checkbox'
+import { parseTransactionByVoice } from '@/ai/flows/parse-transaction-by-voice-flow'
 
 const baseFormSchema = z.object({
   baseAmount: z.coerce.number({ required_error: "Jumlah harus diisi." }).positive("Jumlah harus angka positif."),
@@ -321,32 +322,39 @@ export function AddExpenseForm({
       setIsListening(false);
     };
 
-    recognition.onresult = (event) => {
+    recognition.onresult = async (event) => {
       const transcript = event.results[0][0].transcript;
       toast({
         title: "Teks Dikenali",
-        description: `"${transcript}"`,
+        description: `"${transcript}". Memproses dengan AI...`,
       });
 
-      const { amount, description } = parseSpokenAmount(transcript);
+      setIsListening(true); // Re-use loading state for AI processing
       
-      let hasData = false;
-      if (amount > 0) {
-        form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
-        hasData = true;
-      }
-      if (description) {
-        form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
-        hasData = true;
-      }
+      const categoriesJSON = JSON.stringify(categories.map(({id, name}) => ({id, name})));
+      const walletsJSON = JSON.stringify(wallets.map(({id, name}) => ({id, name})));
       
-      if (!hasData) {
-           toast({
-            title: "Tidak ada data dikenali",
-            description: "Tidak dapat mengekstrak jumlah atau catatan dari suara Anda.",
-            variant: "destructive",
-          });
+      const result = await parseTransactionByVoice({
+          query: transcript,
+          categoriesJSON,
+          walletsJSON,
+      });
+
+      if ('error' in result) {
+          toast({ title: "Gagal Memproses", description: result.error, variant: 'destructive' });
+      } else {
+          if (result.isIncome) {
+              toast({ title: "Transaksi Pemasukan Terdeteksi", description: "Silakan gunakan form tambah pemasukan untuk ini.", variant: "destructive" });
+          } else {
+              if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
+              if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
+              if (result.suggestedCategoryId) form.setValue('categoryId', result.suggestedCategoryId, { shouldValidate: true, shouldTouch: true });
+              if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
+              toast({ title: "Sukses!", description: "Form telah diisi otomatis. Silakan periksa kembali." });
+          }
       }
+
+      setIsListening(false);
     };
 
     recognition.start();

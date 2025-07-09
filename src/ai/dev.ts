@@ -6,3 +6,4 @@ import '@/ai/flows/financial-chatbot-flow.ts';
 import '@/ai/flows/import-transactions-flow.ts';
 import '@/ai/flows/send-reminders-flow.ts';
 import '@/ai/flows/broadcast-notification-flow.ts';
+import '@/ai/flows/parse-transaction-by-voice-flow.ts';
