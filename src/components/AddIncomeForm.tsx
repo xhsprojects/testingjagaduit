@@ -258,9 +258,9 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
                     name="baseAmount"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          Jumlah Pemasukan
-                           {isSpeechRecognitionSupported && (
+                        <div className="flex justify-between items-center">
+                            <FormLabel>Jumlah Pemasukan</FormLabel>
+                             {isSpeechRecognitionSupported && (
                                <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -291,7 +291,7 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
                                     </Tooltip>
                                 </TooltipProvider>
                             )}
-                        </FormLabel>
+                        </div>
                         <FormControl>
                             <Input 
                             type="text"
