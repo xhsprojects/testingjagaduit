@@ -57,14 +57,15 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
   const [showFeeInput, setShowFeeInput] = React.useState(false);
   const { toast } = useToast();
   const [isListening, setIsListening] = React.useState(false);
-  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = React.useState(false);
   const recognitionRef = React.useRef<any>(null); // To hold the recognition instance
 
   React.useEffect(() => {
-    const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognitionAPI) {
-        setIsSpeechRecognitionSupported(true);
-        recognitionRef.current = new SpeechRecognitionAPI();
+    // Check for API availability on component mount
+    if (typeof window !== 'undefined') {
+        const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognitionAPI) {
+            recognitionRef.current = new SpeechRecognitionAPI();
+        }
     }
   }, []);
 
@@ -148,25 +149,24 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => setIsListening(true);
+    
+    // Always reset listening state on end or error
     recognition.onend = () => setIsListening(false);
     recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
+        console.error("Speech recognition error:", event.error, event.message);
         toast({
             title: "Error Pengenalan Suara",
-            description: `Terjadi kesalahan: ${event.error}`,
+            description: `Terjadi kesalahan: ${event.error}. Silakan coba lagi.`,
             variant: "destructive",
         });
         setIsListening(false);
     };
-    recognition.onnomatch = () => {
-        toast({ title: "Tidak ada suara terdeteksi." });
-    }
 
     recognition.onresult = async (event: any) => {
       const transcript = event.results[0][0].transcript;
       toast({
           title: "Teks Dikenali",
-          description: `"${transcript}". Memproses...`,
+          description: `Anda mengucapkan: "${transcript}".`,
       });
       
       if (isPremium) {
@@ -238,7 +238,7 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
                     )}
                     <div className="flex justify-between items-center">
                         <FormLabel>Jumlah Pemasukan</FormLabel>
-                            {isSpeechRecognitionSupported && (
+                        {recognitionRef.current && (
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>

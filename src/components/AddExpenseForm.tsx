@@ -90,14 +90,15 @@ export function AddExpenseForm({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [showFeeInput, setShowFeeInput] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
-  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = React.useState(false);
   const recognitionRef = React.useRef<any>(null); // To hold the recognition instance
 
   React.useEffect(() => {
-    const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (SpeechRecognitionAPI) {
-        setIsSpeechRecognitionSupported(true);
-        recognitionRef.current = new SpeechRecognitionAPI();
+    // Check for API availability on component mount
+    if (typeof window !== 'undefined') {
+        const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognitionAPI) {
+            recognitionRef.current = new SpeechRecognitionAPI();
+        }
     }
   }, []);
   
@@ -222,29 +223,29 @@ export function AddExpenseForm({
       isSplit: isSplit,
     };
 
-    if (isSplit) {
-        expenseData.splits = (data.splits || []).map(s => ({
+    if (isSplit && data.splits) {
+        expenseData.splits = data.splits.map(s => ({
             ...s,
             id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}` : s.id,
         }));
+        // Remove fields that are not applicable for split transactions
+        delete expenseData.categoryId;
+        delete expenseData.savingGoalId;
+        delete expenseData.debtId;
     } else {
         expenseData.categoryId = data.categoryId;
         if (data.categoryId === savingsCategoryId) {
             expenseData.savingGoalId = data.savingGoalId;
-        } else {
-            expenseData.savingGoalId = undefined;
         }
         if (data.categoryId === debtPaymentCategory?.id) {
             expenseData.debtId = data.debtId;
-        } else {
-            expenseData.debtId = undefined;
         }
     }
 
     onSubmit(expenseData as Expense);
   }
 
-  // Other functions (compressImage, handleFileChange, handleVoiceInput) remain the same
+  // Other functions (compressImage, handleFileChange) remain the same
    const compressImage = (file: File, maxWidth = 1024, quality = 0.8): Promise<string> => {
       return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -361,25 +362,24 @@ export function AddExpenseForm({
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => setIsListening(true);
+    
+    // Always reset listening state on end or error
     recognition.onend = () => setIsListening(false);
     recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
+        console.error("Speech recognition error:", event.error, event.message);
         toast({
             title: "Error Pengenalan Suara",
-            description: `Terjadi kesalahan: ${event.error}`,
+            description: `Terjadi kesalahan: ${event.error}. Silakan coba lagi.`,
             variant: "destructive",
         });
         setIsListening(false);
     };
-    recognition.onnomatch = () => {
-        toast({ title: "Tidak ada suara terdeteksi." });
-    }
 
     recognition.onresult = async (event: any) => {
         const transcript = event.results[0][0].transcript;
         toast({
             title: "Teks Dikenali",
-            description: `"${transcript}". Memproses...`,
+            description: `Anda mengucapkan: "${transcript}".`,
         });
         
         if (isPremium) {
@@ -452,9 +452,9 @@ export function AddExpenseForm({
                         <span className="text-xs text-muted-foreground">ATAU</span>
                         <div className="flex-grow border-t"></div>
                     </div>
-                     <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center">
                         <FormLabel>Isi Manual Jumlah</FormLabel>
-                        {isSpeechRecognitionSupported && (
+                        {recognitionRef.current && (
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
