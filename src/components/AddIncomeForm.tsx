@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from 'react'
@@ -130,7 +131,7 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
   }
   
   const handleVoiceInput = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast({
         title: "Browser Tidak Mendukung",
@@ -374,9 +375,9 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
                       )}
                     />
                      {selectedWalletBalance !== null && (
-                      <div className="text-xs text-muted-foreground text-right -mt-1 pr-1">
+                      <p className="text-xs text-muted-foreground text-right -mt-1 pr-1">
                           Saldo Saat Ini: {formatCurrency(selectedWalletBalance)}
-                      </div>
+                      </p>
                     )}
                     <FormField
                         control={form.control}

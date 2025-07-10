@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from 'react'
@@ -224,12 +225,11 @@ export function AddExpenseForm({
         id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}` : s.id,
       }));
     } else {
-      // Add non-split specific fields only if they are relevant
       expenseData.categoryId = data.categoryId;
-      if (data.categoryId === savingsCategoryId && data.savingGoalId) {
+      if (data.categoryId === savingsCategoryId) {
         expenseData.savingGoalId = data.savingGoalId;
       }
-      if (data.categoryId === debtPaymentCategory?.id && data.debtId) {
+      if (data.categoryId === debtPaymentCategory?.id) {
         expenseData.debtId = data.debtId;
       }
     }
@@ -340,7 +340,7 @@ export function AddExpenseForm({
   };
 
   const handleVoiceInput = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast({
         title: "Browser Tidak Mendukung",
@@ -376,7 +376,7 @@ export function AddExpenseForm({
 
     recognition.onresult = async (event) => {
         const transcript = event.results[0][0].transcript;
-        setIsListening(true);
+        setIsListening(true); // Keep it in listening state while processing
 
         if (isPremium) {
             // --- PREMIUM AI LOGIC ---
@@ -553,9 +553,9 @@ export function AddExpenseForm({
                           <SelectContent position="popper">{wallets.map((wallet) => (<SelectItem key={wallet.id} value={wallet.id}>{wallet.name}</SelectItem>))}</SelectContent>
                         </Select>
                         {selectedWalletBalance !== null && (
-                            <FormDescription>
+                            <p className="text-xs text-muted-foreground text-right -mt-1 pr-1">
                                 Saldo Saat Ini: {formatCurrency(selectedWalletBalance)}
-                            </FormDescription>
+                            </p>
                         )}
                         <FormMessage />
                       </FormItem>
@@ -586,7 +586,7 @@ export function AddExpenseForm({
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/50">
                                 <div className="space-y-0.5">
                                     <FormLabel className="flex items-center gap-2"><GitCommitHorizontal/>Split Transaksi</FormLabel>
-                                    <FormDescription className="text-xs">Bagi satu transaksi ke beberapa kategori.</FormDescription>
+                                    <p className="text-xs text-muted-foreground">Bagi satu transaksi ke beberapa kategori.</p>
                                 </div>
                                 <FormControl>
                                     <div className="relative">
