@@ -215,7 +215,7 @@ export function AddExpenseForm({
     }
 
     const expenseData: Expense = {
-      id: expenseToEdit?.id && !isDebtPaymentMode ? expenseToEdit.id : `exp-debt-${Date.now()}`,
+      id: expenseToEdit?.id || `exp-${Date.now()}`,
       amount: totalAmount,
       baseAmount: data.baseAmount,
       adminFee: data.adminFee || 0,
@@ -429,7 +429,7 @@ export function AddExpenseForm({
     recognition.start();
   };
 
-  const isEditing = !!expenseToEdit && !isDebtPaymentMode;
+  const isEditing = !!expenseToEdit;
   
   const formTitle = isDebtPaymentMode ? 'Catat Pembayaran Utang' : isEditing ? 'Ubah Transaksi' : 'Tambah Transaksi Baru';
   const formDescription = isDebtPaymentMode ? 'Lengkapi detail pembayaran utang di bawah ini.' : isEditing ? 'Ubah detail transaksi Anda di bawah ini.' : 'Pindai struk, gunakan suara, atau isi manual. Klik simpan jika sudah selesai.';
