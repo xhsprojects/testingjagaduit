@@ -207,7 +207,7 @@ export function AddExpenseForm({
     const isSplit = data.isSplit || false;
 
     // Base object with common fields
-    const expenseData: Expense = {
+    const expenseData: Partial<Expense> = {
       id: expenseToEdit?.id || `exp-${Date.now()}-${Math.random()}`,
       amount: totalAmount,
       baseAmount: data.baseAmount,
@@ -225,9 +225,7 @@ export function AddExpenseForm({
       }));
     } else {
       // Add non-split specific fields only if they are relevant
-      if (data.categoryId) {
-        expenseData.categoryId = data.categoryId;
-      }
+      expenseData.categoryId = data.categoryId;
       if (data.categoryId === savingsCategoryId && data.savingGoalId) {
         expenseData.savingGoalId = data.savingGoalId;
       }
@@ -236,7 +234,7 @@ export function AddExpenseForm({
       }
     }
 
-    onSubmit(expenseData);
+    onSubmit(expenseData as Expense);
   }
 
   // Other functions (compressImage, handleFileChange, handleVoiceInput) remain the same
@@ -631,6 +629,14 @@ export function AddExpenseForm({
                             <FormMessage />
                           </FormItem>
                         )}/>
+                        <div className="flex justify-end -mt-2">
+                            <Button variant="link" size="sm" className="p-0 h-auto text-xs" asChild>
+                                <Link href="/budget">
+                                    <PlusCircle className="mr-1 h-3 w-3" />
+                                    Tambah Kategori Baru
+                                </Link>
+                            </Button>
+                        </div>
                         {showSavingGoals && (<FormField control={form.control} name="savingGoalId" render={({ field }) => (
                           <FormItem>
                               <FormLabel>Alokasikan ke Tujuan (Wajib)</FormLabel>
