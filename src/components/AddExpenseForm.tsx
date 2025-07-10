@@ -15,7 +15,7 @@ import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -115,7 +115,7 @@ export function AddExpenseForm({
                 if (Math.abs(totalSplitAmount - totalTransactionAmount) > 0.01) {
                      ctx.addIssue({
                         code: z.ZodIssueCode.custom,
-                        message: `Total rincian (Rp ${totalSplitAmount.toLocaleString()}) tidak cocok dengan Total Transaksi (Rp ${totalTransactionAmount.toLocaleString()}).`,
+                        message: `Total rincian (${formatCurrency(totalSplitAmount)}) tidak cocok dengan Total Transaksi (${formatCurrency(totalTransactionAmount)}).`,
                         path: ["splits"],
                     });
                 }
@@ -205,15 +205,8 @@ export function AddExpenseForm({
     const totalAmount = data.baseAmount + (data.adminFee || 0);
     
     // Clear irrelevant fields based on split status
-    let finalSplits: SplitItem[] | undefined = undefined;
-    let finalCategoryId: string | undefined = undefined;
-
-    if(data.isSplit) {
-        finalSplits = data.splits;
-    } else {
-        finalCategoryId = data.categoryId;
-    }
-
+    const isSplit = data.isSplit || false;
+    
     const expenseData: Expense = {
       id: expenseToEdit?.id || `exp-${Date.now()}`,
       amount: totalAmount,
@@ -222,11 +215,11 @@ export function AddExpenseForm({
       date: data.date,
       notes: data.notes || "",
       walletId: data.walletId,
-      isSplit: data.isSplit || false,
-      splits: finalSplits,
-      categoryId: finalCategoryId,
-      savingGoalId: data.savingGoalId || "",
-      debtId: data.debtId || "",
+      isSplit: isSplit,
+      splits: isSplit ? (data.splits || []).map(s => ({...s, id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}`: s.id })) : [],
+      categoryId: !isSplit ? data.categoryId : undefined,
+      savingGoalId: !isSplit ? data.savingGoalId : undefined,
+      debtId: !isSplit ? data.debtId : undefined,
     };
     onSubmit(expenseData);
   }
@@ -467,35 +460,34 @@ export function AddExpenseForm({
                         <span className="text-xs text-muted-foreground">ATAU</span>
                         <div className="flex-grow border-t"></div>
                     </div>
-
+                     <div className="flex justify-between items-center">
+                        <FormLabel>Isi Manual Jumlah</FormLabel>
+                        {isSpeechRecognitionSupported && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative" onClick={handleVoiceInput} disabled={isListening}>
+                                            {isListening ? (<Loader2 className="h-4 w-4 animate-spin" />) : (<Mic className="h-4 w-4" />)}
+                                            {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="font-semibold">Isi dengan Suara</p>
+                                        {isPremium ? (
+                                            <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
+                                        ) : (
+                                            <p className="text-xs">Upgrade untuk tebak kategori & dompet otomatis.</p>
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                    </div>
                     <FormField
                       control={form.control}
                       name="baseAmount"
                       render={({ field }) => (
                         <FormItem>
-                           <div className="flex justify-between items-center">
-                               <FormLabel>Isi Manual Jumlah</FormLabel>
-                                {isSpeechRecognitionSupported && (
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative" onClick={handleVoiceInput} disabled={isListening}>
-                                                    {isListening ? (<Loader2 className="h-4 w-4 animate-spin" />) : (<Mic className="h-4 w-4" />)}
-                                                    {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
-                                                </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="font-semibold">Isi dengan Suara</p>
-                                                {isPremium ? (
-                                                    <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
-                                                ) : (
-                                                    <p className="text-xs">Upgrade untuk tebak kategori & dompet otomatis.</p>
-                                                )}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                )}
-                           </div>
                           <FormControl>
                             <Input
                               type="text"
@@ -608,7 +600,7 @@ export function AddExpenseForm({
                                <div><Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => remove(index)}><Trash2 className="h-4 w-4"/></Button></div>
                             </div>
                           ))}
-                          <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => append({ id: `split-${Date.now()}`, categoryId: '', amount: 0, notes: '' })}><PlusCircle className="mr-2 h-4 w-4"/>Tambah Rincian</Button>
+                          <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => append({ id: `split-new-${Date.now()}`, categoryId: '', amount: 0, notes: '' })}><PlusCircle className="mr-2 h-4 w-4"/>Tambah Rincian</Button>
                           <div className={cn("flex justify-between items-center bg-muted p-2 rounded-md text-sm", totalSplitAmount !== totalTransactionAmount && 'bg-destructive/20 text-destructive-foreground')}>
                               <span className="font-semibold flex items-center gap-1">{totalSplitAmount !== totalTransactionAmount && <CircleHelp className="h-4 w-4"/>}Total Rincian</span>
                               <span className="font-bold">{formatCurrency(totalSplitAmount)}</span>
