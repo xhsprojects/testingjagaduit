@@ -204,10 +204,9 @@ export function AddExpenseForm({
 
   const handleSubmit = (data: FormValues) => {
     const totalAmount = data.baseAmount + (data.adminFee || 0);
-    
-    // Clear irrelevant fields based on split status
     const isSplit = data.isSplit || false;
-    
+
+    // Base object with common fields
     const expenseData: Expense = {
       id: expenseToEdit?.id || `exp-${Date.now()}-${Math.random()}`,
       amount: totalAmount,
@@ -217,11 +216,26 @@ export function AddExpenseForm({
       notes: data.notes || "",
       walletId: data.walletId,
       isSplit: isSplit,
-      splits: isSplit ? (data.splits || []).map(s => ({...s, id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}`: s.id })) : [],
-      categoryId: !isSplit ? data.categoryId : undefined,
-      savingGoalId: !isSplit && data.categoryId === savingsCategoryId ? data.savingGoalId : undefined,
-      debtId: !isSplit && data.categoryId === debtPaymentCategory?.id ? data.debtId : undefined,
     };
+
+    if (isSplit) {
+      expenseData.splits = (data.splits || []).map(s => ({
+        ...s,
+        id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}` : s.id,
+      }));
+    } else {
+      // Add non-split specific fields only if they are relevant
+      if (data.categoryId) {
+        expenseData.categoryId = data.categoryId;
+      }
+      if (data.categoryId === savingsCategoryId && data.savingGoalId) {
+        expenseData.savingGoalId = data.savingGoalId;
+      }
+      if (data.categoryId === debtPaymentCategory?.id && data.debtId) {
+        expenseData.debtId = data.debtId;
+      }
+    }
+
     onSubmit(expenseData);
   }
 
