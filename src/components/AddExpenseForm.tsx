@@ -15,7 +15,7 @@ import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -99,6 +99,7 @@ export function AddExpenseForm({
   
   const savingsCategoryId = React.useMemo(() => categories.find(c => c.name === "Tabungan & Investasi")?.id, [categories]);
   const debtPaymentCategory = React.useMemo(() => categories.find(c => c.isDebtCategory), [categories]);
+  const essentialCategoryIds = React.useMemo(() => new Set(categories.filter(c => c.isEssential).map(c => c.id)), [categories]);
 
   const formSchema = React.useMemo(() => {
     return baseFormSchema.superRefine((data, ctx) => {
@@ -208,7 +209,7 @@ export function AddExpenseForm({
     const isSplit = data.isSplit || false;
     
     const expenseData: Expense = {
-      id: expenseToEdit?.id || `exp-${Date.now()}`,
+      id: expenseToEdit?.id || `exp-${Date.now()}-${Math.random()}`,
       amount: totalAmount,
       baseAmount: data.baseAmount,
       adminFee: data.adminFee || 0,
@@ -218,8 +219,8 @@ export function AddExpenseForm({
       isSplit: isSplit,
       splits: isSplit ? (data.splits || []).map(s => ({...s, id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}`: s.id })) : [],
       categoryId: !isSplit ? data.categoryId : undefined,
-      savingGoalId: !isSplit ? data.savingGoalId : undefined,
-      debtId: !isSplit ? data.debtId : undefined,
+      savingGoalId: !isSplit && data.categoryId === savingsCategoryId ? data.savingGoalId : undefined,
+      debtId: !isSplit && data.categoryId === debtPaymentCategory?.id ? data.debtId : undefined,
     };
     onSubmit(expenseData);
   }
@@ -591,7 +592,7 @@ export function AddExpenseForm({
                             <div key={item.id} className="grid grid-cols-[1fr,auto] gap-2 items-end p-2 border rounded-md">
                                <div className="space-y-2">
                                   <FormField control={form.control} name={`splits.${index}.categoryId`} render={({ field }) => (
-                                    <FormItem><FormLabel className="sr-only">Kategori</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger></FormControl><SelectContent>{categories.filter(c => !c.isEssential).map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
+                                    <FormItem><FormLabel className="sr-only">Kategori</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Pilih kategori..." /></SelectTrigger></FormControl><SelectContent>{categories.filter(c => !essentialCategoryIds.has(c.id)).map((cat) => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem>
                                   )}/>
                                   <FormField control={form.control} name={`splits.${index}.amount`} render={({ field }) => (
                                     <FormItem><FormLabel className="sr-only">Jumlah</FormLabel><FormControl><Input type="text" inputMode="numeric" placeholder="Jumlah" value={field.value > 0 ? formatCurrency(field.value) : ""} onChange={(e) => { const val = Number(e.target.value.replace(/[^0-9]/g, '')); field.onChange(val); }}/></FormControl><FormMessage/></FormItem>
@@ -612,7 +613,7 @@ export function AddExpenseForm({
                         <FormField control={form.control} name="categoryId" render={({ field }) => (
                           <FormItem>
                             <FormLabel>Kategori</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isDebtPaymentMode || expenseToEdit?.categoryId === savingsCategoryId}><FormControl><SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger></FormControl><SelectContent position="popper">{categories.map((category) => (<SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>))}</SelectContent></Select>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isDebtPaymentMode && !!expenseToEdit?.debtId}><FormControl><SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger></FormControl><SelectContent position="popper">{categories.map((category) => (<SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>))}</SelectContent></Select>
                             <FormMessage />
                           </FormItem>
                         )}/>
