@@ -58,10 +58,13 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
   const { toast } = useToast();
   const [isListening, setIsListening] = React.useState(false);
   const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = React.useState(false);
+  const recognitionRef = React.useRef<any>(null); // To hold the recognition instance
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+    const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
         setIsSpeechRecognitionSupported(true);
+        recognitionRef.current = new SpeechRecognitionAPI();
     }
   }, []);
 
@@ -131,50 +134,43 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
   }
   
   const handleVoiceInput = () => {
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast({
-        title: "Browser Tidak Mendukung",
-        description: "Fitur input suara tidak didukung di browser Anda.",
-        variant: "destructive",
-      });
-      return;
+    if (!recognitionRef.current) {
+        toast({
+            title: "Fitur Tidak Tersedia",
+            description: "Pengenalan suara tidak didukung di browser Anda.",
+            variant: "destructive",
+        });
+        return;
     }
-
-    const recognition = new SpeechRecognition();
+    const recognition = recognitionRef.current;
     recognition.lang = 'id-ID';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      toast({ title: "Mendengarkan...", description: "Ucapkan jumlah dan sumber pemasukan Anda." });
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        toast({
+            title: "Error Pengenalan Suara",
+            description: `Terjadi kesalahan: ${event.error}`,
+            variant: "destructive",
+        });
+        setIsListening(false);
     };
+    recognition.onnomatch = () => {
+        toast({ title: "Tidak ada suara terdeteksi." });
+    }
 
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error", event.error);
-      toast({
-        title: "Error Pengenalan Suara",
-        description: `Terjadi kesalahan: ${event.error}`,
-        variant: "destructive",
-      });
-      setIsListening(false);
-    };
-
-    recognition.onresult = async (event) => {
+    recognition.onresult = async (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setIsListening(true);
+      toast({
+          title: "Teks Dikenali",
+          description: `"${transcript}". Memproses...`,
+      });
       
       if (isPremium) {
         // --- PREMIUM AI LOGIC ---
-        toast({
-            title: "Teks Dikenali",
-            description: `"${transcript}". Memproses dengan AI cerdas...`,
-        });
         const categoriesJSON = JSON.stringify((categories || []).map(({id, name}) => ({id, name})));
         const walletsJSON = JSON.stringify(wallets.map(({id, name}) => ({id, name})));
         
@@ -186,40 +182,26 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
 
         if ('error' in result) {
             toast({ title: "Gagal Memproses", description: result.error, variant: 'destructive' });
+        } else if (!result.isIncome) {
+            toast({ title: "Pengeluaran Terdeteksi", description: "Silakan gunakan form tambah pengeluaran.", variant: "destructive" });
         } else {
-            if (!result.isIncome) {
-                toast({ title: "Transaksi Pengeluaran Terdeteksi", description: "Silakan gunakan form tambah pengeluaran untuk ini.", variant: "destructive" });
-            } else {
-                if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
-                if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
-                if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
-                toast({ title: "Sukses! (Premium)", description: "Form telah diisi otomatis. Silakan periksa kembali." });
-            }
+            if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
+            if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
+            if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
+            toast({ title: "Sukses! (Premium)", description: "Form telah diisi otomatis." });
         }
       } else {
         // --- FREE BASIC LOGIC ---
-        toast({
-            title: "Teks Dikenali",
-            description: `"${transcript}".`,
-        });
         const { amount, description } = parseSpokenAmount(transcript);
-        if (amount > 0) {
-            form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
-        }
+        if (amount > 0) form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
         form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
         
         toast({ 
-            title: "Tips: Upgrade untuk AI Lebih Cerdas!", 
-            description: "AI bisa otomatis menebak dompet tujuan untuk Anda.",
-            action: (
-                <ToastAction altText="Upgrade" onClick={() => router.push('/premium')}>
-                    Upgrade
-                </ToastAction>
-            ),
+            title: "Tips: Upgrade untuk AI Cerdas!", 
+            description: "AI bisa otomatis menebak dompet tujuan.",
+            action: (<ToastAction altText="Upgrade" onClick={() => router.push('/premium')}>Upgrade</ToastAction>),
         });
       }
-
-      setIsListening(false);
     };
 
     recognition.start();
@@ -254,45 +236,45 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
                             </AlertDescription>
                         </Alert>
                     )}
+                    <div className="flex justify-between items-center">
+                        <FormLabel>Jumlah Pemasukan</FormLabel>
+                            {isSpeechRecognitionSupported && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative"
+                                            onClick={handleVoiceInput}
+                                            disabled={isListening}
+                                        >
+                                            {isListening ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Mic className="h-4 w-4" />
+                                            )}
+                                            {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="font-semibold">Isi dengan Suara</p>
+                                        {isPremium ? (
+                                            <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
+                                        ) : (
+                                            <p className="text-xs">Upgrade ke Premium untuk tebak dompet otomatis.</p>
+                                        )}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                    </div>
                     <FormField
                     control={form.control}
                     name="baseAmount"
                     render={({ field }) => (
                         <FormItem>
-                        <div className="flex justify-between items-center">
-                            <FormLabel>Jumlah Pemasukan</FormLabel>
-                             {isSpeechRecognitionSupported && (
-                               <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative"
-                                                onClick={handleVoiceInput}
-                                                disabled={isListening}
-                                            >
-                                                {isListening ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                ) : (
-                                                    <Mic className="h-4 w-4" />
-                                                )}
-                                                {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p className="font-semibold">Isi dengan Suara</p>
-                                            {isPremium ? (
-                                                <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
-                                            ) : (
-                                                <p className="text-xs">Upgrade ke Premium untuk tebak dompet otomatis.</p>
-                                            )}
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
-                        </div>
                         <FormControl>
                             <Input 
                             type="text"

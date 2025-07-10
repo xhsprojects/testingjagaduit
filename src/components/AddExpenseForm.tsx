@@ -16,7 +16,7 @@ import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -91,11 +91,14 @@ export function AddExpenseForm({
   const [showFeeInput, setShowFeeInput] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
   const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = React.useState(false);
+  const recognitionRef = React.useRef<any>(null); // To hold the recognition instance
 
   React.useEffect(() => {
-      if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-          setIsSpeechRecognitionSupported(true);
-      }
+    const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognitionAPI) {
+        setIsSpeechRecognitionSupported(true);
+        recognitionRef.current = new SpeechRecognitionAPI();
+    }
   }, []);
   
   const savingsCategoryId = React.useMemo(() => categories.find(c => c.name === "Tabungan & Investasi")?.id, [categories]);
@@ -220,18 +223,22 @@ export function AddExpenseForm({
     };
 
     if (isSplit) {
-      expenseData.splits = (data.splits || []).map(s => ({
-        ...s,
-        id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}` : s.id,
-      }));
+        expenseData.splits = (data.splits || []).map(s => ({
+            ...s,
+            id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}` : s.id,
+        }));
     } else {
-      expenseData.categoryId = data.categoryId;
-      if (data.categoryId === savingsCategoryId) {
-        expenseData.savingGoalId = data.savingGoalId;
-      }
-      if (data.categoryId === debtPaymentCategory?.id) {
-        expenseData.debtId = data.debtId;
-      }
+        expenseData.categoryId = data.categoryId;
+        if (data.categoryId === savingsCategoryId) {
+            expenseData.savingGoalId = data.savingGoalId;
+        } else {
+            expenseData.savingGoalId = undefined;
+        }
+        if (data.categoryId === debtPaymentCategory?.id) {
+            expenseData.debtId = data.debtId;
+        } else {
+            expenseData.debtId = undefined;
+        }
     }
 
     onSubmit(expenseData as Expense);
@@ -340,96 +347,68 @@ export function AddExpenseForm({
   };
 
   const handleVoiceInput = () => {
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast({
-        title: "Browser Tidak Mendukung",
-        description: "Fitur input suara tidak didukung di browser Anda.",
-        variant: "destructive",
-      });
-      return;
+    if (!recognitionRef.current) {
+        toast({
+            title: "Fitur Tidak Tersedia",
+            description: "Pengenalan suara tidak didukung di browser Anda.",
+            variant: "destructive",
+        });
+        return;
     }
-
-    const recognition = new SpeechRecognition();
+    const recognition = recognitionRef.current;
     recognition.lang = 'id-ID';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-      toast({ title: "Mendengarkan...", description: "Ucapkan jumlah dan catatan transaksi Anda." });
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        toast({
+            title: "Error Pengenalan Suara",
+            description: `Terjadi kesalahan: ${event.error}`,
+            variant: "destructive",
+        });
+        setIsListening(false);
     };
+    recognition.onnomatch = () => {
+        toast({ title: "Tidak ada suara terdeteksi." });
+    }
 
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error", event.error);
-      toast({
-        title: "Error Pengenalan Suara",
-        description: `Terjadi kesalahan: ${event.error}`,
-        variant: "destructive",
-      });
-      setIsListening(false);
-    };
-
-    recognition.onresult = async (event) => {
+    recognition.onresult = async (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setIsListening(true); // Keep it in listening state while processing
-
-        if (isPremium) {
-            // --- PREMIUM AI LOGIC ---
-            toast({
+        toast({
             title: "Teks Dikenali",
-            description: `"${transcript}". Memproses dengan AI cerdas...`,
-            });
+            description: `"${transcript}". Memproses...`,
+        });
+        
+        if (isPremium) {
             const categoriesJSON = JSON.stringify(categories.map(({id, name}) => ({id, name})));
             const walletsJSON = JSON.stringify(wallets.map(({id, name}) => ({id, name})));
             
-            const result = await parseTransactionByVoice({
-                query: transcript,
-                categoriesJSON,
-                walletsJSON,
-            });
+            const result = await parseTransactionByVoice({ query: transcript, categoriesJSON, walletsJSON });
 
             if ('error' in result) {
                 toast({ title: "Gagal Memproses", description: result.error, variant: 'destructive' });
+            } else if (result.isIncome) {
+                toast({ title: "Pemasukan Terdeteksi", description: "Silakan gunakan form tambah pemasukan.", variant: "destructive" });
             } else {
-                if (result.isIncome) {
-                    toast({ title: "Transaksi Pemasukan Terdeteksi", description: "Silakan gunakan form tambah pemasukan untuk ini.", variant: "destructive" });
-                } else {
-                    if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
-                    if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
-                    if (result.suggestedCategoryId) form.setValue('categoryId', result.suggestedCategoryId, { shouldValidate: true, shouldTouch: true });
-                    if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
-                    toast({ title: "Sukses! (Premium)", description: "Form telah diisi otomatis. Silakan periksa kembali." });
-                }
+                if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
+                if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
+                if (result.suggestedCategoryId) form.setValue('categoryId', result.suggestedCategoryId, { shouldValidate: true, shouldTouch: true });
+                if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
+                toast({ title: "Sukses! (Premium)", description: "Form telah diisi otomatis." });
             }
         } else {
-            // --- FREE BASIC LOGIC ---
-            toast({
-                title: "Teks Dikenali",
-                description: `"${transcript}".`,
-            });
             const { amount, description } = parseSpokenAmount(transcript);
-            if (amount > 0) {
-                form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
-            }
+            if (amount > 0) form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
             form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
-            
             toast({ 
-                title: "Tips: Upgrade untuk AI Lebih Cerdas!", 
-                description: "AI bisa otomatis menebak kategori & dompet untuk Anda.",
-                action: (
-                    <ToastAction altText="Upgrade" onClick={() => router.push('/premium')}>
-                        Upgrade
-                    </ToastAction>
-                ),
+                title: "Tips: Upgrade untuk AI Cerdas!", 
+                description: "AI bisa otomatis menebak kategori & dompet.",
+                action: (<ToastAction altText="Upgrade" onClick={() => router.push('/premium')}>Upgrade</ToastAction>),
             });
         }
-
-      setIsListening(false);
     };
 
     recognition.start();
