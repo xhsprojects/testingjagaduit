@@ -148,17 +148,29 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => setIsListening(true);
-    
-    // Always reset listening state on end or error
-    recognition.onend = () => setIsListening(false);
+    recognition.onstart = () => {
+        setIsListening(true);
+    };
+
     recognition.onerror = (event: any) => {
+        let errorMessage = `Terjadi kesalahan: ${event.error}`;
+        if (event.error === 'audio-capture') {
+            errorMessage = "Gagal merekam audio. Pastikan microphone Anda berfungsi dan diizinkan.";
+        } else if (event.error === 'not-allowed') {
+            errorMessage = "Akses ke microphone ditolak. Izinkan di pengaturan browser Anda.";
+        } else if (event.error === 'no-speech') {
+            errorMessage = "Tidak ada suara terdeteksi. Silakan coba lagi.";
+        }
         console.error("Speech recognition error:", event.error, event.message);
         toast({
             title: "Error Pengenalan Suara",
-            description: `Terjadi kesalahan: ${event.error}. Silakan coba lagi.`,
+            description: errorMessage,
             variant: "destructive",
         });
+        setIsListening(false);
+    };
+
+    recognition.onend = () => {
         setIsListening(false);
     };
 

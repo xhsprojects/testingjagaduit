@@ -90,10 +90,9 @@ export function AddExpenseForm({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [showFeeInput, setShowFeeInput] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
-  const recognitionRef = React.useRef<any>(null); // To hold the recognition instance
+  const recognitionRef = React.useRef<any>(null);
 
   React.useEffect(() => {
-    // Check for API availability on component mount
     if (typeof window !== 'undefined') {
         const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (SpeechRecognitionAPI) {
@@ -213,7 +212,7 @@ export function AddExpenseForm({
 
     // Base object with common fields
     const expenseData: Partial<Expense> = {
-      id: expenseToEdit?.id || `exp-${Date.now()}-${Math.random()}`,
+      id: expenseToEdit?.id || `exp-debt-${Date.now()}`,
       amount: totalAmount,
       baseAmount: data.baseAmount,
       adminFee: data.adminFee || 0,
@@ -228,10 +227,6 @@ export function AddExpenseForm({
             ...s,
             id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}` : s.id,
         }));
-        // Remove fields that are not applicable for split transactions
-        delete expenseData.categoryId;
-        delete expenseData.savingGoalId;
-        delete expenseData.debtId;
     } else {
         expenseData.categoryId = data.categoryId;
         if (data.categoryId === savingsCategoryId) {
@@ -361,17 +356,29 @@ export function AddExpenseForm({
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => setIsListening(true);
-    
-    // Always reset listening state on end or error
-    recognition.onend = () => setIsListening(false);
+    recognition.onstart = () => {
+        setIsListening(true);
+    };
+
     recognition.onerror = (event: any) => {
+        let errorMessage = `Terjadi kesalahan: ${event.error}`;
+        if (event.error === 'audio-capture') {
+            errorMessage = "Gagal merekam audio. Pastikan microphone Anda berfungsi dan diizinkan.";
+        } else if (event.error === 'not-allowed') {
+            errorMessage = "Akses ke microphone ditolak. Izinkan di pengaturan browser Anda.";
+        } else if (event.error === 'no-speech') {
+            errorMessage = "Tidak ada suara terdeteksi. Silakan coba lagi.";
+        }
         console.error("Speech recognition error:", event.error, event.message);
         toast({
             title: "Error Pengenalan Suara",
-            description: `Terjadi kesalahan: ${event.error}. Silakan coba lagi.`,
+            description: errorMessage,
             variant: "destructive",
         });
+        setIsListening(false);
+    };
+
+    recognition.onend = () => {
         setIsListening(false);
     };
 
@@ -410,7 +417,7 @@ export function AddExpenseForm({
             });
         }
     };
-
+    
     recognition.start();
   };
 
