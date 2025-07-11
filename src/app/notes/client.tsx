@@ -125,8 +125,8 @@ export default function NotesClientPage() {
                                 <CardHeader onClick={() => handleOpenForm(note)} className="cursor-pointer">
                                     <CardTitle className="font-headline truncate">{note.title || 'Tanpa Judul'}</CardTitle>
                                 </CardHeader>
-                                <CardContent onClick={() => handleOpenForm(note)} className="flex-grow cursor-pointer">
-                                    <div className="prose prose-sm dark:prose-invert text-muted-foreground whitespace-pre-wrap max-w-none">
+                                <CardContent onClick={() => handleOpenForm(note)} className="flex-grow cursor-pointer overflow-hidden">
+                                    <div className="prose prose-sm dark:prose-invert text-muted-foreground whitespace-pre-wrap max-w-none line-clamp-4">
                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                             {note.content}
                                         </ReactMarkdown>
