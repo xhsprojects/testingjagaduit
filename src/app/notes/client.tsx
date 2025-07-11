@@ -10,6 +10,8 @@ import type { PersonalNote } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { id as idLocale } from 'date-fns/locale'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
@@ -124,7 +126,11 @@ export default function NotesClientPage() {
                                     <CardTitle className="font-headline truncate">{note.title || 'Tanpa Judul'}</CardTitle>
                                 </CardHeader>
                                 <CardContent onClick={() => handleOpenForm(note)} className="flex-grow cursor-pointer">
-                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{note.content}</p>
+                                    <div className="prose prose-sm dark:prose-invert text-muted-foreground whitespace-pre-wrap max-w-none">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {note.content}
+                                        </ReactMarkdown>
+                                    </div>
                                 </CardContent>
                                 <CardFooter className="text-xs text-muted-foreground flex justify-between items-center">
                                     <span>Diperbarui: {format(note.updatedAt, "d MMM, HH:mm", { locale: idLocale })}</span>

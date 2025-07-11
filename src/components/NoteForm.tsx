@@ -114,9 +114,10 @@ export function NoteForm({ isOpen, onOpenChange, noteToEdit }: NoteFormProps) {
                 name="content"
                 render={({ field }) => (
                     <FormItem>
+                     <FormLabel className="sr-only">Isi Catatan</FormLabel>
                     <FormControl>
                         <Textarea
-                            placeholder="Tulis apa saja..."
+                            placeholder="Tulis apa saja... Anda bisa menggunakan Markdown untuk format teks, contoh: **teks tebal** atau *teks miring*."
                             className="min-h-[40vh] border-none shadow-none px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                             {...field}
                         />
