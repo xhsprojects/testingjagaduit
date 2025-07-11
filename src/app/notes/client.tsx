@@ -124,7 +124,7 @@ export default function NotesClientPage() {
                                     <CardTitle className="font-headline truncate">{note.title || 'Tanpa Judul'}</CardTitle>
                                 </CardHeader>
                                 <CardContent onClick={() => handleOpenForm(note)} className="flex-grow cursor-pointer">
-                                    <p className="text-sm text-muted-foreground line-clamp-4">{note.content}</p>
+                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{note.content}</p>
                                 </CardContent>
                                 <CardFooter className="text-xs text-muted-foreground flex justify-between items-center">
                                     <span>Diperbarui: {format(note.updatedAt, "d MMM, HH:mm", { locale: idLocale })}</span>
