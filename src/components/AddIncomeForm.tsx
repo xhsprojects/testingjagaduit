@@ -44,7 +44,7 @@ interface AddIncomeFormProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   wallets: Wallet[]
-  categories?: Category[] // Add categories for the voice parser
+  categories?: Category[]
   expenses?: Expense[]
   incomes?: Income[]
   onSubmit: (data: Income) => void
@@ -57,39 +57,42 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
   const [showFeeInput, setShowFeeInput] = React.useState(false);
   const { toast } = useToast();
   const [isListening, setIsListening] = React.useState(false);
-  const recognitionRef = React.useRef<any>(null); // To hold the recognition instance
+  const recognitionRef = React.useRef<any>(null);
 
-  React.useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      baseAmount: 0,
+      adminFee: 0,
+      date: new Date(),
+      notes: "",
+      walletId: "",
+    },
+  });
+
+  const setupSpeechRecognition = React.useCallback(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
       console.warn("Speech recognition not supported in this browser.");
-      return;
+      return null;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = false;
     recognition.lang = 'id-ID';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    
     recognition.onerror = (event: any) => {
       let errorMessage = "Terjadi kesalahan saat pengenalan suara.";
-      if (event.error === 'no-speech') {
-        errorMessage = "Tidak ada suara terdeteksi. Silakan coba lagi.";
-      } else if (event.error === 'audio-capture') {
-        errorMessage = "Mikrofon tidak ditemukan atau tidak berfungsi.";
-      } else if (event.error === 'not-allowed') {
-        errorMessage = "Izin akses mikrofon ditolak. Aktifkan di pengaturan browser Anda.";
-      }
+      if (event.error === 'no-speech') errorMessage = "Tidak ada suara terdeteksi. Silakan coba lagi.";
+      else if (event.error === 'audio-capture') errorMessage = "Mikrofon tidak ditemukan atau tidak berfungsi.";
+      else if (event.error === 'not-allowed') errorMessage = "Izin akses mikrofon ditolak.";
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
-      setIsListening(false);
+      console.error("Speech recognition error:", event.error);
     };
 
     recognition.onresult = async (event: any) => {
@@ -125,20 +128,26 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
       }
     };
     
-    recognitionRef.current = recognition;
-
+    return recognition;
   }, [isPremium, categories, wallets, form, toast, router]);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      baseAmount: 0,
-      adminFee: 0,
-      date: new Date(),
-      notes: "",
-      walletId: "",
-    },
-  })
+  React.useEffect(() => {
+    recognitionRef.current = setupSpeechRecognition();
+  }, [setupSpeechRecognition]);
+  
+  const handleVoiceInput = () => {
+    if (recognitionRef.current && !isListening) {
+      recognitionRef.current.start();
+    } else if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+       toast({
+        title: "Fitur Tidak Tersedia",
+        description: "Pengenalan suara tidak didukung di browser ini.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const watchedWalletId = form.watch('walletId');
   const watchedBaseAmount = form.watch('baseAmount');
@@ -194,23 +203,6 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
     onSubmit(incomeData);
   }
   
-  const handleVoiceInput = () => {
-    if (!recognitionRef.current) {
-      toast({
-        title: "Fitur Tidak Tersedia",
-        description: "Pengenalan suara tidak didukung di browser ini.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isListening) {
-      recognitionRef.current.stop();
-    } else {
-      recognitionRef.current.start();
-    }
-  };
-
-
   const isEditing = !!incomeToEdit;
   const hasNoWallets = wallets.length === 0;
   const totalTransactionAmount = (watchedBaseAmount || 0) - (showFeeInput ? (watchedAdminFee || 0) : 0);

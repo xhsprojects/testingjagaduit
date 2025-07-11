@@ -16,7 +16,7 @@ import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -50,7 +50,6 @@ const baseFormSchema = z.object({
   walletId: z.string().min(1, "Silakan pilih sumber dana/dompet."),
   isSplit: z.boolean().optional(),
   splits: z.array(splitItemSchema).optional(),
-  // categoryId is now optional, handled by superRefine
   categoryId: z.string().optional(),
 });
 
@@ -91,75 +90,6 @@ export function AddExpenseForm({
   const [showFeeInput, setShowFeeInput] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
   const recognitionRef = React.useRef<any>(null);
-
-  React.useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      console.warn("Speech recognition not supported in this browser.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'id-ID';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.onerror = (event: any) => {
-      let errorMessage = "Terjadi kesalahan saat pengenalan suara.";
-      if (event.error === 'no-speech') {
-        errorMessage = "Tidak ada suara terdeteksi. Silakan coba lagi.";
-      } else if (event.error === 'audio-capture') {
-        errorMessage = "Mikrofon tidak ditemukan atau tidak berfungsi.";
-      } else if (event.error === 'not-allowed') {
-        errorMessage = "Izin akses mikrofon ditolak. Aktifkan di pengaturan browser Anda.";
-      }
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
-      setIsListening(false);
-    };
-
-    recognition.onresult = async (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      toast({ title: "Teks Dikenali", description: `Anda mengucapkan: "${transcript}".` });
-
-      if (isPremium) {
-        const categoriesJSON = JSON.stringify(categories.map(({ id, name }) => ({ id, name })));
-        const walletsJSON = JSON.stringify(wallets.map(({ id, name }) => ({ id, name })));
-        const result = await parseTransactionByVoice({ query: transcript, categoriesJSON, walletsJSON });
-
-        if ('error' in result) {
-          toast({ title: "Gagal Memproses", description: result.error, variant: 'destructive' });
-        } else if (result.isIncome) {
-          toast({ title: "Pemasukan Terdeteksi", description: "Silakan gunakan form tambah pemasukan.", variant: "destructive" });
-        } else {
-          if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
-          if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
-          if (result.suggestedCategoryId) form.setValue('categoryId', result.suggestedCategoryId, { shouldValidate: true, shouldTouch: true });
-          if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
-          toast({ title: "Sukses! (Premium)", description: "Form telah diisi otomatis." });
-        }
-      } else {
-        const { amount, description } = parseSpokenAmount(transcript);
-        if (amount > 0) form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
-        form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
-        toast({
-          title: "Tips: Upgrade untuk AI Cerdas!",
-          description: "AI bisa otomatis menebak kategori & dompet.",
-          action: (<ToastAction altText="Upgrade" onClick={() => router.push('/premium')}>Upgrade</ToastAction>),
-        });
-      }
-    };
-
-    recognitionRef.current = recognition;
-
-  }, [isPremium, categories, wallets, form, toast, router]);
 
   const savingsCategoryId = React.useMemo(() => categories.find(c => c.name === "Tabungan & Investasi")?.id, [categories]);
   const debtPaymentCategory = React.useMemo(() => categories.find(c => c.isDebtCategory), [categories]);
@@ -216,6 +146,84 @@ export function AddExpenseForm({
     },
   })
   
+  const setupSpeechRecognition = React.useCallback(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      console.warn("Speech recognition not supported in this browser.");
+      return null;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = false;
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    
+    recognition.onerror = (event: any) => {
+      let errorMessage = "Terjadi kesalahan saat pengenalan suara.";
+      if (event.error === 'no-speech') errorMessage = "Tidak ada suara terdeteksi. Silakan coba lagi.";
+      else if (event.error === 'audio-capture') errorMessage = "Mikrofon tidak ditemukan atau tidak berfungsi.";
+      else if (event.error === 'not-allowed') errorMessage = "Izin akses mikrofon ditolak.";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      console.error("Speech recognition error:", event.error);
+    };
+    
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      toast({ title: "Teks Dikenali", description: `Anda mengucapkan: "${transcript}".` });
+
+      if (isPremium) {
+        const categoriesJSON = JSON.stringify(categories.map(({ id, name }) => ({ id, name })));
+        const walletsJSON = JSON.stringify(wallets.map(({ id, name }) => ({ id, name })));
+        const result = await parseTransactionByVoice({ query: transcript, categoriesJSON, walletsJSON });
+
+        if ('error' in result) {
+          toast({ title: "Gagal Memproses", description: result.error, variant: 'destructive' });
+        } else if (result.isIncome) {
+          toast({ title: "Pemasukan Terdeteksi", description: "Silakan gunakan form tambah pemasukan.", variant: "destructive" });
+        } else {
+          if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
+          if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
+          if (result.suggestedCategoryId) form.setValue('categoryId', result.suggestedCategoryId, { shouldValidate: true, shouldTouch: true });
+          if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
+          toast({ title: "Sukses! (Premium)", description: "Form telah diisi otomatis." });
+        }
+      } else {
+        const { amount, description } = parseSpokenAmount(transcript);
+        if (amount > 0) form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
+        form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
+        toast({
+          title: "Tips: Upgrade untuk AI Cerdas!",
+          description: "AI bisa otomatis menebak kategori & dompet.",
+          action: (<ToastAction altText="Upgrade" onClick={() => router.push('/premium')}>Upgrade</ToastAction>),
+        });
+      }
+    };
+
+    return recognition;
+  }, [isPremium, categories, wallets, form, toast, router]);
+
+  React.useEffect(() => {
+    recognitionRef.current = setupSpeechRecognition();
+  }, [setupSpeechRecognition]);
+  
+  const handleVoiceInput = () => {
+    if (recognitionRef.current && !isListening) {
+      recognitionRef.current.start();
+    } else if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+       toast({
+        title: "Fitur Tidak Tersedia",
+        description: "Pengenalan suara tidak didukung di browser ini.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "splits",
@@ -252,7 +260,6 @@ export function AddExpenseForm({
           walletId: expenseToEdit.walletId,
           isSplit: expenseToEdit.isSplit || false,
           splits: expenseToEdit.splits || [],
-          // Simple transaction fields
           categoryId: expenseToEdit.categoryId,
           savingGoalId: expenseToEdit.savingGoalId,
           debtId: expenseToEdit.debtId,
@@ -285,28 +292,19 @@ export function AddExpenseForm({
             ...s,
             id: s.id.startsWith('split-new-') ? `split-${Date.now()}-${Math.random()}` : s.id,
         }));
-        // Remove individual category/goal/debt IDs for split transactions
-        delete expenseData.categoryId;
-        delete expenseData.savingGoalId;
-        delete expenseData.debtId;
     } else {
         expenseData.categoryId = data.categoryId;
         if (data.categoryId === savingsCategoryId) {
             expenseData.savingGoalId = data.savingGoalId;
-        } else {
-             delete expenseData.savingGoalId;
         }
         if (data.categoryId === debtPaymentCategory?.id) {
             expenseData.debtId = data.debtId;
-        } else {
-            delete expenseData.debtId;
         }
-        delete expenseData.splits;
     }
 
     const finalExpenseData = {
         ...expenseData,
-        id: expenseToEdit?.id || `exp-debt-${Date.now()}`,
+        id: expenseToEdit?.id || `exp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     };
 
     onSubmit(finalExpenseData as Expense);
@@ -412,22 +410,6 @@ export function AddExpenseForm({
               fileInputRef.current.value = '';
           }
       }
-  };
-
-  const handleVoiceInput = () => {
-    if (!recognitionRef.current) {
-      toast({
-        title: "Fitur Tidak Tersedia",
-        description: "Pengenalan suara tidak didukung di browser ini.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isListening) {
-      recognitionRef.current.stop();
-    } else {
-      recognitionRef.current.start();
-    }
   };
 
   const isEditing = !!expenseToEdit;
@@ -579,7 +561,7 @@ export function AddExpenseForm({
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/50">
                                 <div className="space-y-0.5">
                                     <FormLabel className="flex items-center gap-2"><GitCommitHorizontal/>Split Transaksi</FormLabel>
-                                    <p className="text-xs text-muted-foreground">Bagi satu transaksi ke beberapa kategori.</p>
+                                    <FormDescription>Bagi satu transaksi ke beberapa kategori.</FormDescription>
                                 </div>
                                 <FormControl>
                                     <div className="relative">
