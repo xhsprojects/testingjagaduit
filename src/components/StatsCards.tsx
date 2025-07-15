@@ -2,7 +2,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeftRight, Edit, PiggyBank, RefreshCw, Wallet, TrendingUp } from "lucide-react"
+import { ArrowLeftRight, Edit, PiggyBank, RefreshCw, Wallet, TrendingUp, Loader2 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { cn } from "@/lib/utils"

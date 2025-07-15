@@ -20,7 +20,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -37,7 +37,6 @@ import { Badge } from '@/components/ui/badge';
 import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
-import BudgetVsSpendingChart from '@/components/charts/BudgetVsSpendingChart';
 import { Separator } from './ui/separator';
 
 interface DashboardPageProps {
@@ -421,20 +420,8 @@ export default function DashboardPage({
             periodLabel={periodLabel}
             onReset={() => setIsResetConfirmOpen(true)}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-              <Card>
-                  <CardHeader>
-                      <CardTitle>Distribusi Pengeluaran</CardTitle>
-                      <CardDescription>Berdasarkan kategori pada periode terpilih.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <BudgetChart data={expensesByCategory} />
-                  </CardContent>
-              </Card>
-              <BudgetVsSpendingChart data={expensesByCategory} />
-          </div>
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
-              <div className="lg:col-span-4">
+              <div className="lg:col-span-4 space-y-4">
                   <Tabs defaultValue="expenses" className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="expenses">Pengeluaran</TabsTrigger>
@@ -528,74 +515,67 @@ export default function DashboardPage({
                       </TabsContent>
                   </Tabs>
               </div>
-              <div className="lg:col-span-3">
-                  <WalletsSummaryCard
+              <div className="lg:col-span-3 space-y-4">
+                    <WalletsSummaryCard
                       wallets={wallets}
                       expenses={expenses}
                       incomes={incomes}
-                  />
+                    />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Distribusi Pengeluaran</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <BudgetChart data={expensesByCategory} />
+                        </CardContent>
+                    </Card>
               </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               <Link href="/reports">
-                  <ActionCard>
-                      <BookMarked className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Laporan Keuangan</p>
-                  </ActionCard>
-              </Link>
-              <Link href="/import">
-                  <ActionCard>
-                      <Upload className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Impor Transaksi</p>
-                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
-                  </ActionCard>
-              </Link>
-              <Link href="/financial-calendar" className="relative">
-                  <ActionCard>
-                      <CalendarDays className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Kalender Finansial</p>
-                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
-                  </ActionCard>
-                  {dueEventsCount > 0 && (
-                      <Badge variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center">
-                          {dueEventsCount}
-                      </Badge>
-                  )}
-              </Link>
-               <Link href="/reminders">
-                  <ActionCard>
-                      <BellRing className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Pengingat Bayar</p>
-                  </ActionCard>
-              </Link>
-               <Link href="/achievements">
-                  <ActionCard>
-                      <Trophy className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Prestasi</p>
-                  </ActionCard>
-              </Link>
-              <Link href="/calculators">
-                  <ActionCard>
-                      <Calculator className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Kalkulator</p>
-                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
-                  </ActionCard>
-              </Link>
-              <Link href="/recurring">
-                  <ActionCard>
-                      <Repeat className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Transaksi Berulang</p>
-                  </ActionCard>
-              </Link>
-               <Link href="/net-worth">
-                  <ActionCard>
-                      <Scale className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Kekayaan Bersih</p>
-                       {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
-                  </ActionCard>
-              </Link>
-          </div>
+          <Separator />
+          
+           <div>
+                <h3 className="text-xl font-bold font-headline mb-4">Akses Cepat</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <Link href="/reports">
+                        <ActionCard>
+                            <BookMarked className="h-7 w-7 mb-2 text-primary" />
+                            <p className="font-semibold text-sm">Laporan</p>
+                        </ActionCard>
+                    </Link>
+                    <Link href="/financial-calendar" className="relative">
+                        <ActionCard>
+                            <CalendarDays className="h-7 w-7 mb-2 text-primary" />
+                            <p className="font-semibold text-sm">Kalender</p>
+                            {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                        </ActionCard>
+                        {dueEventsCount > 0 && (
+                            <Badge variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center">
+                                {dueEventsCount}
+                            </Badge>
+                        )}
+                    </Link>
+                    <Link href="/import">
+                        <ActionCard>
+                            <Upload className="h-7 w-7 mb-2 text-primary" />
+                            <p className="font-semibold text-sm">Impor CSV</p>
+                            {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                        </ActionCard>
+                    </Link>
+                    <Link href="/reminders">
+                        <ActionCard>
+                            <BellRing className="h-7 w-7 mb-2 text-primary" />
+                            <p className="font-semibold text-sm">Pengingat</p>
+                        </ActionCard>
+                    </Link>
+                    <Link href="/achievements">
+                        <ActionCard>
+                            <Trophy className="h-7 w-7 mb-2 text-primary" />
+                            <p className="font-semibold text-sm">Prestasi</p>
+                        </ActionCard>
+                    </Link>
+                </div>
+           </div>
 
           <PredictiveAnalysis
               expenses={filteredExpenses}
@@ -752,13 +732,13 @@ export default function DashboardPage({
               <AlertDialogHeader>
                   <AlertDialogTitle>Mulai Periode Anggaran Baru?</AlertDialogTitle>
                   <AlertDialogDescription>
-                      Tindakan ini akan mengarsipkan semua data dari periode saat ini (pemasukan, pengeluaran, dll.) dan mengatur ulang dasbor Anda. Anda dapat melihat data lama di halaman "Riwayat &amp; Arsip". Apakah Anda yakin?
+                      Tindakan ini akan mengarsipkan semua data dari periode saat ini (pemasukan, pengeluaran, dll.) dan mengatur ulang dasbor Anda. Anda dapat melihat data lama di halaman "Riwayat & Arsip". Apakah Anda yakin?
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                   <AlertDialogCancel>Batal</AlertDialogCancel>
                   <AlertDialogAction onClick={handleResetClick} disabled={isResetting}>
-                      {isResetting ? 'Mengarsipkan...' : 'Ya, Mulai Periode Baru'}
+                      {isResetting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengarsipkan...</> : 'Ya, Mulai Periode Baru'}
                   </AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
