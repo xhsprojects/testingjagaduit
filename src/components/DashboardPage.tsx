@@ -20,7 +20,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Activity, BarChart3, PieChart, Layers } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -33,7 +33,7 @@ import FinancialChatbot from './FinancialChatbot';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from './ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
@@ -64,50 +64,17 @@ const ActionCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       className={cn(
-        "group relative overflow-hidden rounded-xl border bg-card/50 backdrop-blur-sm text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 hover:bg-card/80 hover:border-primary/20",
-        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-[1.02]",
+        "hover:bg-accent hover:border-primary transition-colors text-center p-4 h-full flex flex-col justify-center items-center rounded-lg border bg-card text-card-foreground shadow-sm",
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
         className
       )}
       {...props}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-      <div className="relative p-6 h-full flex flex-col justify-center items-center text-center">
-        {children}
-      </div>
+      {children}
     </div>
   )
 );
 ActionCard.displayName = "ActionCard";
-
-const QuickStatCard = ({ title, value, change, icon: Icon, color = "primary" }: {
-  title: string;
-  value: string;
-  change?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color?: "primary" | "green" | "red" | "blue";
-}) => {
-  const colorClasses = {
-    primary: "text-primary bg-primary/10",
-    green: "text-green-600 bg-green-100",
-    red: "text-red-600 bg-red-100",
-    blue: "text-blue-600 bg-blue-100"
-  };
-
-  return (
-    <div className="flex items-center gap-4 p-4 rounded-lg border bg-card/50 backdrop-blur-sm">
-      <div className={cn("p-2 rounded-lg", colorClasses[color])}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <div className="flex-1">
-        <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <p className="text-lg font-bold">{value}</p>
-        {change && (
-          <p className="text-xs text-muted-foreground">{change}</p>
-        )}
-      </div>
-    </div>
-  );
-};
 
 export default function DashboardPage({ 
   categories, 
@@ -151,6 +118,7 @@ export default function DashboardPage({
     
     const dueReminders = (reminders || []).filter(r => !r.isPaid && new Date(r.dueDate) <= todayEnd).length;
     
+    // Only count recurring transactions if they haven't been added this month yet
     const dueRecurring = (recurringTxs || []).filter(tx => {
         const lastAdded = tx.lastAdded ? new Date(tx.lastAdded) : null;
         const alreadyAddedThisMonth = lastAdded && 
@@ -198,9 +166,9 @@ export default function DashboardPage({
       if (!date?.from) return true;
       const itemDate = new Date(item.date);
       const from = new Date(date.from);
-      from.setHours(0, 0, 0, 0);
+      from.setHours(0, 0, 0, 0); // Start of day
       const to = date.to ? new Date(date.to) : from;
-      to.setHours(23, 59, 59, 999);
+      to.setHours(23, 59, 59, 999); // End of day
       return itemDate >= from && itemDate <= to;
     });
   }
@@ -234,7 +202,7 @@ export default function DashboardPage({
   }, [date]);
 
   const totalFilteredExpenses = React.useMemo(() => filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0), [filteredExpenses]);
-  const totalFilteredIncomes = React.useMemo(() => filteredIncomes.reduce((sum, inc) => sum + inc.amount, 0), [filteredIncomes]);
+  const totalFilteredIncomes = React.useMemo(() => filteredIncomes.reduce((sum, inc) => sum + inc.amount, 0), [incomes, date]);
 
   const remainingBudget = income - totalFilteredExpenses;
 
@@ -345,8 +313,9 @@ export default function DashboardPage({
         head: [['Tanggal', 'Kategori', 'Catatan', 'Jumlah']],
         body: tableData,
         startY: 30,
-        headStyles: { fillColor: [41, 128, 185] },
+        headStyles: { fillColor: [41, 128, 185] }, // Primary color
         didDrawPage: (data) => {
+            // Footer
             const aT = doc as any;
             const startY = aT.lastAutoTable.finalY + 10;
             doc.setFontSize(10);
@@ -431,59 +400,18 @@ export default function DashboardPage({
   const detailSavingGoal = expenseDetail ? savingGoals.find(g => g.id === expenseDetail.savingGoalId) : null;
   const detailDebt = expenseDetail ? debts.find(d => d.id === expenseDetail.debtId) : null;
   const detailWallet = expenseDetail?.walletId ? wallets.find(w => w.id === expenseDetail.walletId) : null;
+  const DetailCategoryIcon = detailCategory?.icon ? iconMap[detailCategory.icon] : null;
 
   return (
     <>
-      <div className="flex min-h-screen w-full flex-col bg-gradient-to-br from-background via-background to-muted/20">
+      <div className="flex min-h-screen w-full flex-col">
         <Header />
-        <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8 pb-20">
-          {/* Header Section */}
-          <div className='flex justify-between items-center flex-wrap gap-4'>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+          <div className='flex justify-between items-center flex-wrap gap-2'>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Activity className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold">Dashboard Keuangan</h1>
-                    <p className="text-sm text-muted-foreground">Kelola keuangan Anda dengan mudah</p>
-                  </div>
-                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <DateRangePicker date={date} onDateChange={setDate} />
-              </div>
+              <DateRangePicker date={date} onDateChange={setDate} />
           </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <QuickStatCard
-              title="Total Pemasukan"
-              value={formatCurrency(totalFilteredIncomes)}
-              icon={TrendingUp}
-              color="green"
-            />
-            <QuickStatCard
-              title="Total Pengeluaran"
-              value={formatCurrency(totalFilteredExpenses)}
-              icon={TrendingDown}
-              color="red"
-            />
-            <QuickStatCard
-              title="Saldo Dompet"
-              value={formatCurrency(totalWalletBalance)}
-              icon={WalletIcon}
-              color="blue"
-            />
-            <QuickStatCard
-              title="Total Tabungan"
-              value={formatCurrency(totalSavings)}
-              icon={Landmark}
-              color="primary"
-            />
-          </div>
-
-          {/* Main Stats Cards */}
           <StatsCards
             totalIncome={totalFilteredIncomes}
             totalExpenses={totalFilteredExpenses}
@@ -493,16 +421,11 @@ export default function DashboardPage({
             periodLabel={periodLabel}
             onReset={() => setIsResetConfirmOpen(true)}
           />
-
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-card/50 backdrop-blur-sm border-primary/10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+              <Card>
                   <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <PieChart className="h-5 w-5 text-primary" />
-                        Distribusi Pengeluaran
-                      </CardTitle>
-                      <CardDescription>Berdasarkan kategori pada periode terpilih</CardDescription>
+                      <CardTitle>Distribusi Pengeluaran</CardTitle>
+                      <CardDescription>Berdasarkan kategori pada periode terpilih.</CardDescription>
                   </CardHeader>
                   <CardContent>
                       <BudgetChart data={expensesByCategory} />
@@ -510,53 +433,46 @@ export default function DashboardPage({
               </Card>
               <BudgetVsSpendingChart data={expensesByCategory} />
           </div>
-
-          {/* Data Tables Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
               <div className="lg:col-span-4">
-                  <Card className="bg-card/50 backdrop-blur-sm border-primary/10">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5 text-primary" />
-                        Riwayat Transaksi
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <Tabs defaultValue="expenses" className="w-full">
-                          <TabsList className="grid w-full grid-cols-2 m-6 mb-0">
-                              <TabsTrigger value="expenses">Pengeluaran</TabsTrigger>
-                              <TabsTrigger value="incomes">Pemasukan</TabsTrigger>
-                          </TabsList>
-                          <TabsContent value="expenses" className="mt-6 px-6 pb-6">
-                              <ExpenseTable 
-                                  expenses={filteredExpenses} 
-                                  categories={categories} 
-                                  onExportCSV={handleExportCSV}
-                                  onExportPDF={handleExportPDF}
-                                  onEdit={handleEdit}
-                                  onDelete={handleDeleteRequest}
-                                  onRowClick={handleViewDetails}
-                                  title="Riwayat Pengeluaran"
-                                  description="Daftar pengeluaran pada rentang tanggal yang dipilih"
-                                  headerAction={
-                                      <Button asChild variant="link" className="text-sm">
-                                          <Link href="/history/current">Lihat Semua</Link>
-                                      </Button>
-                                  }
-                              />
-                          </TabsContent>
-                          <TabsContent value="incomes" className="mt-6 px-6 pb-6">
-                              <div>
-                                  <div className="flex justify-between items-start mb-4">
+                  <Tabs defaultValue="expenses" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="expenses">Pengeluaran</TabsTrigger>
+                          <TabsTrigger value="incomes">Pemasukan</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="expenses" className="mt-4">
+                          <ExpenseTable 
+                              expenses={filteredExpenses} 
+                              categories={categories} 
+                              onExportCSV={handleExportCSV}
+                              onExportPDF={handleExportPDF}
+                              onEdit={handleEdit}
+                              onDelete={handleDeleteRequest}
+                              onRowClick={handleViewDetails}
+                              title="Riwayat Pengeluaran"
+                              description="Daftar pengeluaran pada rentang tanggal yang dipilih."
+                               headerAction={
+                                  <Button asChild variant="link" className="text-sm">
+                                      <Link href="/history/current">Lihat Semua</Link>
+                                  </Button>
+                              }
+                          />
+                      </TabsContent>
+                      <TabsContent value="incomes" className="mt-4">
+                          <Card>
+                               <CardHeader>
+                                  <div className="flex justify-between items-start">
                                       <div>
-                                          <h3 className="font-semibold text-lg">Riwayat Pemasukan</h3>
-                                          <p className="text-sm text-muted-foreground">Daftar pemasukan tambahan pada rentang tanggal yang dipilih</p>
+                                          <CardTitle className="font-headline">Riwayat Pemasukan</CardTitle>
+                                          <CardDescription>Daftar pemasukan tambahan pada rentang tanggal yang dipilih.</CardDescription>
                                       </div>
                                       <Button asChild variant="link" className="text-sm">
                                           <Link href="/history/current">Lihat Semua</Link>
                                       </Button>
                                   </div>
-                                  <div className="max-h-[360px] overflow-auto rounded-lg border">
+                              </CardHeader>
+                              <CardContent>
+                                 <div className="max-h-[360px] overflow-auto">
                                       <Table>
                                           <TableHeader className="sticky top-0 bg-card">
                                               <TableRow>
@@ -569,7 +485,7 @@ export default function DashboardPage({
                                           <TableBody>
                                               {filteredIncomes.length > 0 ? (
                                                   filteredIncomes.map(inc => (
-                                                      <TableRow key={inc.id} onClick={() => onViewIncome(inc)} className="cursor-pointer hover:bg-muted/50">
+                                                      <TableRow key={inc.id} onClick={() => onViewIncome(inc)} className="cursor-pointer">
                                                           <TableCell>{format(new Date(inc.date), "d MMM yyyy, HH:mm", { locale: idLocale })}</TableCell>
                                                           <TableCell>{inc.notes}</TableCell>
                                                           <TableCell className="text-right text-green-600 font-medium">{formatCurrency(inc.amount)}</TableCell>
@@ -596,22 +512,21 @@ export default function DashboardPage({
                                               )}
                                           </TableBody>
                                       </Table>
-                                  </div>
-                                  <div className="flex justify-end gap-2 mt-4">
-                                      <Button variant="outline" size="sm" onClick={handleExportIncomesCSV} disabled={filteredIncomes.length === 0}>
-                                          <FileDown className="mr-2 h-4 w-4" />
-                                          Ekspor CSV
-                                      </Button>
-                                      <Button variant="outline" size="sm" onClick={handleExportIncomesPDF} disabled={filteredIncomes.length === 0}>
-                                          <FileType2 className="mr-2 h-4 w-4" />
-                                          Ekspor PDF
-                                      </Button>
-                                  </div>
-                              </div>
-                          </TabsContent>
-                      </Tabs>
-                    </CardContent>
-                  </Card>
+                                 </div>
+                              </CardContent>
+                               <CardFooter className="justify-end gap-2">
+                                  <Button variant="outline" size="sm" onClick={handleExportIncomesCSV} disabled={filteredIncomes.length === 0}>
+                                      <FileDown className="mr-2 h-4 w-4" />
+                                      Ekspor CSV
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={handleExportIncomesPDF} disabled={filteredIncomes.length === 0}>
+                                      <FileType2 className="mr-2 h-4 w-4" />
+                                      Ekspor PDF
+                                  </Button>
+                              </CardFooter>
+                          </Card>
+                      </TabsContent>
+                  </Tabs>
               </div>
               <div className="lg:col-span-3">
                   <WalletsSummaryCard
@@ -621,88 +536,67 @@ export default function DashboardPage({
                   />
               </div>
           </div>
-    
-          {/* Quick Access Section */}
-          <Card className="bg-card/50 backdrop-blur-sm border-primary/10">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Layers className="h-5 w-5 text-primary" />
-                Akses Cepat & Fitur
-              </CardTitle>
-              <CardDescription>Jelajahi fitur lain untuk mengoptimalkan manajemen keuangan Anda.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
-                  <Link href="/reports">
-                      <ActionCard>
-                          <BookMarked className="h-8 w-8 mb-2 text-primary" />
-                          <p className="font-semibold text-sm">Laporan Keuangan</p>
-                          <p className="text-xs text-muted-foreground mt-1">Analisis mendalam</p>
-                      </ActionCard>
-                  </Link>
-                  <Link href="/import">
-                      <ActionCard disabled={!isPremium}>
-                          <Upload className="h-8 w-8 mb-2 text-primary" />
-                          <p className="font-semibold text-sm">Impor Transaksi</p>
-                           {!isPremium && <Badge variant="destructive" className="mt-1 text-xs absolute top-2 right-2">Premium</Badge>}
-                          <p className="text-xs text-muted-foreground mt-1">Dari file CSV</p>
-                      </ActionCard>
-                  </Link>
-                  <Link href="/financial-calendar" className="relative">
-                      <ActionCard disabled={!isPremium}>
-                          <CalendarDays className="h-8 w-8 mb-2 text-primary" />
-                          <p className="font-semibold text-sm">Kalender Finansial</p>
-                          {!isPremium && <Badge variant="destructive" className="mt-1 text-xs absolute top-2 right-2">Premium</Badge>}
-                          <p className="text-xs text-muted-foreground mt-1">Jadwal & tagihan</p>
-                          {dueEventsCount > 0 && (
-                              <Badge variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center">
-                                  {dueEventsCount}
-                              </Badge>
-                          )}
-                      </ActionCard>
-                  </Link>
-                  <Link href="/reminders">
-                      <ActionCard>
-                          <BellRing className="h-8 w-8 mb-2 text-primary" />
-                          <p className="font-semibold text-sm">Pengingat Bayar</p>
-                          <p className="text-xs text-muted-foreground mt-1">Jangan telat bayar</p>
-                      </ActionCard>
-                  </Link>
-                  <Link href="/achievements">
-                      <ActionCard>
-                          <Trophy className="h-8 w-8 mb-2 text-primary" />
-                          <p className="font-semibold text-sm">Prestasi</p>
-                          <p className="text-xs text-muted-foreground mt-1">Lencana & penghargaan</p>
-                      </ActionCard>
-                  </Link>
-                  <Link href="/calculators">
-                      <ActionCard disabled={!isPremium}>
-                          <Calculator className="h-8 w-8 mb-2 text-primary" />
-                          <p className="font-semibold text-sm">Kalkulator</p>
-                           {!isPremium && <Badge variant="destructive" className="mt-1 text-xs absolute top-2 right-2">Premium</Badge>}
-                          <p className="text-xs text-muted-foreground mt-1">Alat bantu hitung</p>
-                      </ActionCard>
-                  </Link>
-                  <Link href="/recurring">
-                      <ActionCard>
-                          <Repeat className="h-8 w-8 mb-2 text-primary" />
-                          <p className="font-semibold text-sm">Transaksi Berulang</p>
-                          <p className="text-xs text-muted-foreground mt-1">Otomatiskan entri</p>
-                      </ActionCard>
-                  </Link>
-                  <Link href="/net-worth">
-                      <ActionCard disabled={!isPremium}>
-                          <Scale className="h-8 w-8 mb-2 text-primary" />
-                          <p className="font-semibold text-sm">Kekayaan Bersih</p>
-                          {!isPremium && <Badge variant="destructive" className="mt-1 text-xs absolute top-2 right-2">Premium</Badge>}
-                          <p className="text-xs text-muted-foreground mt-1">Aset vs liabilitas</p>
-                      </ActionCard>
-                  </Link>
-              </div>
-            </CardContent>
-          </Card>
           
-          {/* AI & Predictive Section */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               <Link href="/reports">
+                  <ActionCard>
+                      <BookMarked className="h-7 w-7 mb-2 text-primary" />
+                      <p className="font-semibold text-sm">Laporan Keuangan</p>
+                  </ActionCard>
+              </Link>
+              <Link href="/import">
+                  <ActionCard>
+                      <Upload className="h-7 w-7 mb-2 text-primary" />
+                      <p className="font-semibold text-sm">Impor Transaksi</p>
+                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                  </ActionCard>
+              </Link>
+              <Link href="/financial-calendar" className="relative">
+                  <ActionCard>
+                      <CalendarDays className="h-7 w-7 mb-2 text-primary" />
+                      <p className="font-semibold text-sm">Kalender Finansial</p>
+                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                  </ActionCard>
+                  {dueEventsCount > 0 && (
+                      <Badge variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center">
+                          {dueEventsCount}
+                      </Badge>
+                  )}
+              </Link>
+               <Link href="/reminders">
+                  <ActionCard>
+                      <BellRing className="h-7 w-7 mb-2 text-primary" />
+                      <p className="font-semibold text-sm">Pengingat Bayar</p>
+                  </ActionCard>
+              </Link>
+               <Link href="/achievements">
+                  <ActionCard>
+                      <Trophy className="h-7 w-7 mb-2 text-primary" />
+                      <p className="font-semibold text-sm">Prestasi</p>
+                  </ActionCard>
+              </Link>
+              <Link href="/calculators">
+                  <ActionCard>
+                      <Calculator className="h-7 w-7 mb-2 text-primary" />
+                      <p className="font-semibold text-sm">Kalkulator</p>
+                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                  </ActionCard>
+              </Link>
+              <Link href="/recurring">
+                  <ActionCard>
+                      <Repeat className="h-7 w-7 mb-2 text-primary" />
+                      <p className="font-semibold text-sm">Transaksi Berulang</p>
+                  </ActionCard>
+              </Link>
+               <Link href="/net-worth">
+                  <ActionCard>
+                      <Scale className="h-7 w-7 mb-2 text-primary" />
+                      <p className="font-semibold text-sm">Kekayaan Bersih</p>
+                       {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                  </ActionCard>
+              </Link>
+          </div>
+
           <PredictiveAnalysis
               expenses={filteredExpenses}
               categories={categories}
@@ -710,8 +604,7 @@ export default function DashboardPage({
           />
           <AiAssistant />
         </main>
-    
-        {/* Floating Action Buttons */}
+
         <SpeedDial mainIcon={<MessageSquare className="h-6 w-6" />} position="bottom-left">
           <SpeedDialAction label="Chat Konsultasi" onClick={handleChatbotClick}>
             <Bot className="h-5 w-5" />
@@ -729,8 +622,7 @@ export default function DashboardPage({
             <TrendingDown className="h-5 w-5 text-red-500" />
           </SpeedDialAction>
         </SpeedDial>
-    
-        {/* Dialogs and Modals */}
+
         <SupportDialog
           isOpen={isSupportDialogOpen}
           onOpenChange={setIsSupportDialogOpen}
@@ -860,7 +752,7 @@ export default function DashboardPage({
               <AlertDialogHeader>
                   <AlertDialogTitle>Mulai Periode Anggaran Baru?</AlertDialogTitle>
                   <AlertDialogDescription>
-                      Tindakan ini akan mengarsipkan semua data dari periode saat ini dan mengatur ulang dasbor Anda. Anda dapat melihat data lama di halaman "Riwayat & Arsip". Apakah Anda yakin?
+                      Tindakan ini akan mengarsipkan semua data dari periode saat ini (pemasukan, pengeluaran, dll.) dan mengatur ulang dasbor Anda. Anda dapat melihat data lama di halaman "Riwayat &amp; Arsip". Apakah Anda yakin?
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -871,7 +763,8 @@ export default function DashboardPage({
               </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-    
+
+
         <AlertDialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -882,11 +775,11 @@ export default function DashboardPage({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setExpenseToDelete(null)}>Batal</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Hapus</AlertDialogAction>
+              <AlertDialogAction onClick={confirmDelete}>Hapus</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
     </>
-    );
+  );
 }
