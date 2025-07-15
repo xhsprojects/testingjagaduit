@@ -2,7 +2,7 @@
 'use server'
 
 import { getAuthAdmin, getDbAdmin } from '@/lib/firebase-server';
-import type { Wallet, Expense, Income } from '@/lib/types';
+import type { Wallet, Expense, Income, Category } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 interface ActionResult {
@@ -99,6 +99,7 @@ interface TransferFundsData {
     fromWalletId: string;
     toWalletId: string;
     amount: number;
+    adminFee?: number;
     notes?: string;
     date: Date;
 }
@@ -110,7 +111,7 @@ export async function transferFunds(token: string, data: TransferFundsData): Pro
     const db = getDbAdmin();
     if (!authAdmin || !db) return { success: false, message: 'Konfigurasi server bermasalah.' };
 
-    const { fromWalletId, toWalletId, amount, date, notes } = data;
+    const { fromWalletId, toWalletId, amount, adminFee = 0, date, notes } = data;
 
     if (fromWalletId === toWalletId) {
         return { success: false, message: 'Tidak dapat mentransfer ke dompet yang sama.' };
@@ -124,7 +125,6 @@ export async function transferFunds(token: string, data: TransferFundsData): Pro
         const uid = decodedToken.uid;
         
         await db.runTransaction(async (t) => {
-            // === 1. ALL READS FIRST ===
             const budgetDocRef = db.collection('users').doc(uid).collection('budgets').doc('current');
             const fromWalletDocRef = db.collection('users').doc(uid).collection('wallets').doc(fromWalletId);
             const toWalletDocRef = db.collection('users').doc(uid).collection('wallets').doc(toWalletId);
@@ -133,18 +133,12 @@ export async function transferFunds(token: string, data: TransferFundsData): Pro
             const fromWalletDoc = await t.get(fromWalletDocRef);
             const toWalletDoc = await t.get(toWalletDocRef);
 
-            // === 2. VALIDATIONS (after all reads) ===
-            if (!budgetDoc.exists) {
-                throw new Error("Dokumen anggaran saat ini tidak ditemukan.");
-            }
-            if (!fromWalletDoc.exists || !toWalletDoc.exists) {
-                throw new Error("Satu atau kedua dompet tidak ditemukan.");
-            }
+            if (!budgetDoc.exists) throw new Error("Dokumen anggaran saat ini tidak ditemukan.");
+            if (!fromWalletDoc.exists || !toWalletDoc.exists) throw new Error("Satu atau kedua dompet tidak ditemukan.");
             
-            // === 3. PREPARE DATA & LOGIC ===
             const budgetData = budgetDoc.data() || {};
-            const categories = budgetData.categories || [];
-            let transferCategory = categories.find((c: any) => c.name === 'Transfer Antar Dompet');
+            const categories = (budgetData.categories || []) as Category[];
+            let transferCategory = categories.find((c) => c.name === 'Transfer Antar Dompet');
             let categoriesNeedUpdate = false;
 
             if (!transferCategory) {
@@ -161,13 +155,16 @@ export async function transferFunds(token: string, data: TransferFundsData): Pro
 
             const fromWalletName = fromWalletDoc.data()?.name || 'Dompet Asal';
             const toWalletName = toWalletDoc.data()?.name || 'Dompet Tujuan';
-
             const expenseNotes = `Transfer ke ${toWalletName}. ${notes || ''}`.trim();
             const incomeNotes = `Transfer dari ${fromWalletName}. ${notes || ''}`.trim();
 
+            const totalAmountDeducted = amount + adminFee;
+
             const newExpense: Expense = {
                 id: `exp-trf-${Date.now()}`,
-                amount: amount,
+                amount: totalAmountDeducted,
+                baseAmount: amount,
+                adminFee: adminFee,
                 categoryId: transferCategory.id,
                 date: new Date(date),
                 notes: expenseNotes,
@@ -176,7 +173,9 @@ export async function transferFunds(token: string, data: TransferFundsData): Pro
 
             const newIncome: Income = {
                 id: `inc-trf-${Date.now()}`,
-                amount: amount,
+                amount: amount, // The received amount does not include the admin fee
+                baseAmount: amount,
+                adminFee: 0,
                 date: new Date(date),
                 notes: incomeNotes,
                 walletId: toWalletId,
@@ -187,7 +186,6 @@ export async function transferFunds(token: string, data: TransferFundsData): Pro
             const updatedExpenses = [...currentExpenses, newExpense];
             const updatedIncomes = [...currentIncomes, newIncome];
             
-            // === 4. ALL WRITES LAST ===
             const updatePayload: {[key: string]: any} = {
                 expenses: updatedExpenses,
                 incomes: updatedIncomes,

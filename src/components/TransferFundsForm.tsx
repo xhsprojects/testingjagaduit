@@ -15,16 +15,18 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from '@/components/ui/textarea'
 import type { Wallet, Expense, Income } from '@/lib/types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { transferFunds } from '@/app/wallets/actions'
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
+import { Checkbox } from './ui/checkbox'
 
 const formSchema = z.object({
   fromWalletId: z.string().min(1, "Dompet asal harus dipilih."),
   toWalletId: z.string().min(1, "Dompet tujuan harus dipilih."),
   amount: z.coerce.number().positive("Jumlah transfer harus lebih dari nol."),
+  adminFee: z.coerce.number().min(0).optional(),
   notes: z.string().optional(),
 }).refine(data => data.fromWalletId !== data.toWalletId, {
     message: "Dompet asal dan tujuan tidak boleh sama.",
@@ -45,6 +47,7 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
   const { idToken } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [showFeeInput, setShowFeeInput] = React.useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -52,11 +55,16 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
       fromWalletId: "",
       toWalletId: "",
       amount: 0,
+      adminFee: 0,
       notes: "",
     },
   });
 
   const fromWalletId = useWatch({ control: form.control, name: 'fromWalletId' });
+  const watchedAmount = useWatch({ control: form.control, name: 'amount' });
+  const watchedAdminFee = useWatch({ control: form.control, name: 'adminFee' });
+
+  const totalDeducted = (watchedAmount || 0) + (showFeeInput ? (watchedAdminFee || 0) : 0);
 
   const fromWalletBalance = React.useMemo(() => {
     if (!fromWalletId) return null;
@@ -66,6 +74,13 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
     const totalExpense = expenses.filter(e => e.walletId === fromWalletId).reduce((sum, e) => sum + e.amount, 0);
     return wallet.initialBalance + totalIncome - totalExpense;
   }, [fromWalletId, wallets, incomes, expenses]);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      form.reset();
+      setShowFeeInput(false);
+    }
+  }, [isOpen, form]);
 
 
   const handleSubmit = async (data: FormValues) => {
@@ -116,7 +131,7 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
                         name="amount"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Jumlah Transfer</FormLabel>
+                            <FormLabel>Jumlah yang Ditransfer</FormLabel>
                             <FormControl>
                                 <Input 
                                 type="text"
@@ -133,6 +148,38 @@ export function TransferFundsForm({ isOpen, onOpenChange, wallets, expenses, inc
                             </FormItem>
                         )}
                     />
+                    <div className="space-y-2">
+                        <div className="items-top flex space-x-2">
+                            <Checkbox id="includeFeeTransfer" checked={showFeeInput} onCheckedChange={(checked) => setShowFeeInput(!!checked)} />
+                            <div className="grid gap-1.5 leading-none">
+                                <label htmlFor="includeFeeTransfer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                Sertakan Biaya Admin
+                                </label>
+                                <p className="text-xs text-muted-foreground">
+                                Biaya ini akan mengurangi saldo dompet asal, tapi tidak menambah saldo dompet tujuan.
+                                </p>
+                            </div>
+                        </div>
+                        {showFeeInput && (
+                            <FormField control={form.control} name="adminFee" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel className="sr-only">Jumlah Biaya Admin</FormLabel>
+                                    <FormControl>
+                                        <Input type="text" inputMode="numeric" placeholder="Contoh: Rp 2.500" value={field.value && field.value > 0 ? formatCurrency(field.value) : ""}
+                                            onChange={(e) => {
+                                                const numericValue = Number(e.target.value.replace(/[^0-9]/g, ''));
+                                                field.onChange(numericValue);
+                                            }}/>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}/>
+                        )}
+                         <div className="flex justify-between items-center bg-secondary p-2 rounded-md">
+                            <span className="text-sm font-semibold">Total Terpotong dari Dompet Asal</span>
+                            <span className="text-sm font-bold">{formatCurrency(totalDeducted)}</span>
+                        </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                             control={form.control}

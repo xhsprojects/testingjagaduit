@@ -96,7 +96,7 @@ export function NoteForm({ isOpen, onOpenChange, noteToEdit }: NoteFormProps) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex-1 space-y-4 overflow-y-auto px-6">
+            <div className="flex-1 space-y-2 overflow-y-auto px-6">
                 <FormField
                 control={form.control}
                 name="title"
@@ -113,12 +113,12 @@ export function NoteForm({ isOpen, onOpenChange, noteToEdit }: NoteFormProps) {
                 control={form.control}
                 name="content"
                 render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="h-full">
                      <FormLabel className="sr-only">Isi Catatan</FormLabel>
                     <FormControl>
                         <Textarea
                             placeholder="Tulis apa saja... Anda bisa menggunakan Markdown untuk format teks, contoh: **teks tebal** atau *teks miring*."
-                            className="min-h-full h-full flex-1 border-none shadow-none px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="min-h-full h-full w-full resize-none border-none shadow-none px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                             {...field}
                         />
                     </FormControl>
