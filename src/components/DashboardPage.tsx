@@ -33,7 +33,7 @@ import FinancialChatbot from './FinancialChatbot';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from './ui/badge';
 import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
@@ -203,7 +203,7 @@ export default function DashboardPage({
   const totalFilteredExpenses = React.useMemo(() => filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0), [filteredExpenses]);
   const totalFilteredIncomes = React.useMemo(() => filteredIncomes.reduce((sum, inc) => sum + inc.amount, 0), [incomes, date]);
 
-  const remainingBudget = income - totalFilteredExpenses;
+  const remainingBudget = income + totalFilteredIncomes - totalFilteredExpenses;
 
   const expensesByCategory = React.useMemo(() => {
       const dataMap = new Map((categories || []).filter(Boolean).map((cat) => [cat.id, { ...cat, spent: 0 }]));
@@ -406,9 +406,7 @@ export default function DashboardPage({
       <div className="flex min-h-screen w-full flex-col">
         <Header />
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
-          <div className='flex justify-between items-center flex-wrap gap-2'>
-              <div className="flex items-center gap-2">
-              </div>
+          <div className='flex justify-end items-center flex-wrap gap-2'>
               <DateRangePicker date={date} onDateChange={setDate} />
           </div>
           <StatsCards
@@ -420,8 +418,8 @@ export default function DashboardPage({
             periodLabel={periodLabel}
             onReset={() => setIsResetConfirmOpen(true)}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
-              <div className="lg:col-span-4 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
                   <Tabs defaultValue="expenses" className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="expenses">Pengeluaran</TabsTrigger>
@@ -515,7 +513,7 @@ export default function DashboardPage({
                       </TabsContent>
                   </Tabs>
               </div>
-              <div className="lg:col-span-3 space-y-4">
+              <div className="lg:col-span-1 space-y-6">
                     <WalletsSummaryCard
                       wallets={wallets}
                       expenses={expenses}
