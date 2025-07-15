@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -32,7 +33,7 @@ import FinancialChatbot from './FinancialChatbot';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from './ui/badge';
 import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
@@ -615,9 +616,6 @@ export default function DashboardPage({
               <div className="lg:col-span-3">
                   <WalletsSummaryCard
                       wallets={wallets}
-                      expenses={expenses} 
-                      <WalletsSummaryCard
-                      wallets={wallets}
                       expenses={expenses}
                       incomes={incomes}
                   />
@@ -891,4 +889,4 @@ export default function DashboardPage({
       </div>
     </>
     );
-    }
+}
