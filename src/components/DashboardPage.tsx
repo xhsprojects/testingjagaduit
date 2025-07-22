@@ -20,7 +20,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -406,7 +406,7 @@ export default function DashboardPage({
     <>
       <div className="flex min-h-screen w-full flex-col">
         <Header />
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+        <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8 pb-20">
           <div className='flex justify-between items-center flex-wrap gap-2'>
               <div className="flex items-center gap-2">
               </div>
@@ -421,19 +421,7 @@ export default function DashboardPage({
             periodLabel={periodLabel}
             onReset={() => setIsResetConfirmOpen(true)}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-              <Card>
-                  <CardHeader>
-                      <CardTitle>Distribusi Pengeluaran</CardTitle>
-                      <CardDescription>Berdasarkan kategori pada periode terpilih.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <BudgetChart data={expensesByCategory} />
-                  </CardContent>
-              </Card>
-              <BudgetVsSpendingChart data={expensesByCategory} />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
               <div className="lg:col-span-4">
                   <Tabs defaultValue="expenses" className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
@@ -528,12 +516,21 @@ export default function DashboardPage({
                       </TabsContent>
                   </Tabs>
               </div>
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-3 space-y-6">
                   <WalletsSummaryCard
                       wallets={wallets}
                       expenses={expenses}
                       incomes={incomes}
                   />
+                  <Card>
+                      <CardHeader>
+                          <CardTitle>Distribusi Pengeluaran</CardTitle>
+                          <CardDescription>Berdasarkan kategori pada periode terpilih.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <BudgetChart data={expensesByCategory} />
+                      </CardContent>
+                  </Card>
               </div>
           </div>
           
@@ -608,6 +605,9 @@ export default function DashboardPage({
         <SpeedDial mainIcon={<MessageSquare className="h-6 w-6" />} position="bottom-left">
           <SpeedDialAction label="Chat Konsultasi" onClick={handleChatbotClick}>
             <Bot className="h-5 w-5" />
+          </SpeedDialAction>
+          <SpeedDialAction label="Bagi Tagihan" onClick={() => router.push('/split-bill')}>
+            <Users className="h-5 w-5" />
           </SpeedDialAction>
           <SpeedDialAction label="Dukungan Aplikasi" onClick={() => setIsSupportDialogOpen(true)}>
             <LifeBuoy className="h-5 w-5" />
@@ -752,7 +752,7 @@ export default function DashboardPage({
               <AlertDialogHeader>
                   <AlertDialogTitle>Mulai Periode Anggaran Baru?</AlertDialogTitle>
                   <AlertDialogDescription>
-                      Tindakan ini akan mengarsipkan semua data dari periode saat ini (pemasukan, pengeluaran, dll.) dan mengatur ulang dasbor Anda. Anda dapat melihat data lama di halaman "Riwayat &amp; Arsip". Apakah Anda yakin?
+                      Tindakan ini akan mengarsipkan semua data dari periode saat ini (pemasukan, pengeluaran, dll.) dan mengatur ulang dasbor Anda. Anda dapat melihat data lama di halaman "Riwayat & Arsip". Apakah Anda yakin?
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

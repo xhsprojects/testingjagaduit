@@ -40,6 +40,7 @@ import {
   Settings,
   User,
   BookText,
+  Users,
 } from 'lucide-react';
 
 export const iconMap = {
@@ -83,6 +84,7 @@ export const iconMap = {
   Settings,
   User,
   BookText,
+  Users,
 };
 
 export type IconName = keyof typeof iconMap;

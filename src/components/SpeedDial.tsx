@@ -17,19 +17,35 @@ const SpeedDialContext = React.createContext<{ position: 'bottom-right' | 'botto
 export function SpeedDial({ children, mainIcon, position = "bottom-right", className }: SpeedDialProps) {
   const [isOpen, setIsOpen] = React.useState(false)
 
+  // Close speed dial when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isOpen) {
+        // A simple check to see if the click was outside the component's main div
+        const target = event.target as HTMLElement;
+        if (!target.closest(`[data-speed-dial-wrapper="${position}"]`)) {
+          setIsOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, position]);
+
+
   return (
     <SpeedDialContext.Provider value={{ position }}>
-        <div className={cn(
-            "fixed z-40",
-            position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
-            className
-        )}>
-        {isOpen && (
-            <div
-            className="fixed inset-0 z-40 bg-black/40"
-            onClick={() => setIsOpen(false)}
-            />
-        )}
+        <div 
+            className={cn(
+                "fixed z-40",
+                position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
+                className
+            )}
+            data-speed-dial-wrapper={position}
+        >
         <div className={cn(
             "relative z-50 flex flex-col-reverse gap-3",
             position === 'bottom-right' ? 'items-end' : 'items-start'
@@ -52,7 +68,12 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
                 isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
             )}
             >
-             {children}
+             {React.Children.map(children, child => 
+                React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { onClick: () => {
+                    if (child.props.onClick) child.props.onClick();
+                    setIsOpen(false);
+                }}) : child
+             )}
             </div>
         </div>
         </div>
@@ -71,9 +92,6 @@ export function SpeedDialAction({ children, label, onClick }: SpeedDialActionPro
   return (
     <div className={cn(
         "flex items-center gap-4",
-        // When on the left, the button should be on the left visually.
-        // flex-row-reverse flips the visual order of DOM elements.
-        // DOM: [LABEL], [BUTTON] -> Visual with reverse: [BUTTON], [LABEL]
         position === 'bottom-left' && "flex-row-reverse"
     )}>
       {label && (
