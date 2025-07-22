@@ -526,6 +526,7 @@ export default function DashboardPage({
                   <Link href="/recurring"><ActionCard><Repeat className="h-7 w-7 mb-2 text-primary" /><p className="font-semibold text-sm">Transaksi Rutin</p></ActionCard></Link>
                   <Link href="/net-worth"><ActionCard><Scale className="h-7 w-7 mb-2 text-primary" /><p className="font-semibold text-sm">Kekayaan Bersih</p>{!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}</ActionCard></Link>
                 </div>
+                 <AiAssistant />
             </div>
 
             <div className="lg:col-span-3 space-y-6">
@@ -548,7 +549,6 @@ export default function DashboardPage({
                     categories={categories}
                     dateRange={date}
                 />
-                <AiAssistant />
             </div>
           </div>
         </main>

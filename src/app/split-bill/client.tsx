@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Loader2, UserPlus, FilePlus, Percent, Copy, Trash2, Users, ReceiptText, Share2, Info, Check } from 'lucide-react';
+import { ArrowLeft, Loader2, UserPlus, FilePlus, Percent, Copy, Trash2, Users, ReceiptText, Share2, Info, Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -324,4 +324,3 @@ export default function SplitBillClientPage() {
         </div>
     );
 }
-
