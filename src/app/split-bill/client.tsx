@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, UserPlus, Trash2, Users, Share2, Percent, ReceiptText, ScanLine, Edit, FileUp, Loader2, Info, X } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Users, Share2, Percent, ReceiptText, ScanLine, Edit, FileUp, Loader2, Info, X, Copy } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -42,6 +42,7 @@ export default function SplitBillClientPage() {
 
     // --- State Management ---
     const [stage, setStage] = React.useState<SplitBillStage>('select_method');
+    const [billName, setBillName] = React.useState('');
     const [people, setPeople] = React.useState<Person[]>([]);
     const [newPersonName, setNewPersonName] = React.useState('');
     
@@ -163,12 +164,22 @@ export default function SplitBillClientPage() {
               });
             }
 
-            if (result.tax) setTax(result.tax);
-            if (result.serviceCharge) setService(result.serviceCharge);
-            if (result.discountAmount) {
-                setDiscount(result.discountAmount);
-                setDiscountType('amount');
-            }
+            if(result.notes) setBillName(result.notes);
+
+            const applyChargeHeuristic = (value: number | undefined, setValue: (v: number) => void, setType: (t: ChargeType) => void) => {
+                if (typeof value === 'number') {
+                    if (value > 0 && value <= 100) { // Assume values <= 100 are percentages
+                        setType('percent');
+                    } else {
+                        setType('amount');
+                    }
+                    setValue(value);
+                }
+            };
+
+            applyChargeHeuristic(result.tax, setTax, setTaxType);
+            applyChargeHeuristic(result.serviceCharge, setService, setServiceType);
+            applyChargeHeuristic(result.discountAmount, setDiscount, setDiscountType);
             
             setStage('calculate');
           }
@@ -238,15 +249,27 @@ export default function SplitBillClientPage() {
 
     }, [items, people, tax, service, discount, discountType, taxType, serviceType, splitMode, customAmounts]);
 
-    const generateWhatsAppMessage = () => {
-        let message = `*Rincian Tagihan*\n\n`;
+     const generateShareMessage = () => {
+        let message = `🧾 *Rincian Tagihan: ${billName || 'Patungan'}*\n\n`;
         summary.perPersonBreakdown.forEach(person => {
-            message += `*${person.name}*: *${formatCurrency(person.finalAmount)}*\n`;
+            message += `▪️ *${person.name}*: *${formatCurrency(person.finalAmount)}*\n`;
         });
-        message += `\n*Total Keseluruhan: ${formatCurrency(summary.finalTotal)}*`;
-        message += `\n\nTerima kasih! Dihitung dengan Jaga Duit.`;
+        message += `\n*TOTAL TAGIHAN: ${formatCurrency(summary.finalTotal)}*`;
+        message += `\n\nTerima kasih! 🙏\n_Dihitung dengan Jaga Duit_`;
+        return message;
+    };
+    
+    const generateWhatsAppMessage = () => {
+        const message = generateShareMessage();
         const encodedMessage = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+    };
+    
+    const handleCopyMessage = () => {
+        const message = generateShareMessage();
+        navigator.clipboard.writeText(message)
+            .then(() => toast({ title: "Tersalin!", description: "Rincian tagihan telah disalin ke clipboard." }))
+            .catch(() => toast({ title: "Gagal Menyalin", variant: "destructive" }));
     };
     
     const renderContent = () => {
@@ -285,7 +308,13 @@ export default function SplitBillClientPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-in fade-in duration-500">
                         <div className="lg:col-span-2 space-y-6">
                             <Card>
-                                <CardHeader><CardTitle>1. Peserta Patungan</CardTitle></CardHeader>
+                                <CardHeader><CardTitle>1. Detail Tagihan</CardTitle></CardHeader>
+                                <CardContent>
+                                     <Input placeholder="Nama Tagihan (Contoh: Makan Malam Tim)" value={billName} onChange={e => setBillName(e.target.value)} />
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader><CardTitle>2. Peserta Patungan</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="flex gap-2">
                                         <Input placeholder="Nama Orang" value={newPersonName} onChange={e => setNewPersonName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addPerson()} />
@@ -303,7 +332,7 @@ export default function SplitBillClientPage() {
                             </Card>
 
                             <Card>
-                                <CardHeader><CardTitle>2. Daftar Item</CardTitle></CardHeader>
+                                <CardHeader><CardTitle>3. Daftar Item</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
                                 {items.length > 0 && (
                                      <Alert>
@@ -361,7 +390,7 @@ export default function SplitBillClientPage() {
                         
                         <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
                             <Card>
-                                <CardHeader><CardTitle>3. Biaya Tambahan & Diskon</CardTitle></CardHeader>
+                                <CardHeader><CardTitle>4. Biaya Tambahan & Diskon</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="flex items-center gap-2">
                                         <Label className="flex-grow">Diskon</Label>
@@ -392,7 +421,7 @@ export default function SplitBillClientPage() {
 
                             <Card>
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2"><ReceiptText />4. Rincian Akhir</CardTitle>
+                                    <CardTitle className="flex items-center gap-2"><ReceiptText />5. Rincian Akhir</CardTitle>
                                     <div className="pt-2">
                                         <ToggleGroup type="single" size="sm" className="w-full" value={splitMode} onValueChange={(v: SplitMode) => v && setSplitMode(v)}>
                                             <ToggleGroupItem value="equal" className="flex-1">Sama Rata</ToggleGroupItem>
@@ -438,8 +467,11 @@ export default function SplitBillClientPage() {
                                 )}
                                 </CardContent>
                                 <CardFooter className="flex-col gap-2">
-                                    <Button className="w-full bg-green-500 hover:bg-green-600" onClick={generateWhatsAppMessage} disabled={summary.perPersonBreakdown.length === 0}>
+                                     <Button className="w-full bg-green-500 hover:bg-green-600" onClick={generateWhatsAppMessage} disabled={summary.perPersonBreakdown.length === 0}>
                                         <Share2 className="h-4 w-4 mr-2"/>Bagikan ke WhatsApp
+                                    </Button>
+                                    <Button className="w-full" variant="outline" onClick={handleCopyMessage} disabled={summary.perPersonBreakdown.length === 0}>
+                                        <Copy className="h-4 w-4 mr-2"/>Salin Rincian
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -468,5 +500,3 @@ export default function SplitBillClientPage() {
         </div>
     );
 }
-
-    
