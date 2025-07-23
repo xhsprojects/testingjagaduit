@@ -276,8 +276,8 @@ export default function SplitBillClientPage() {
                         <CardHeader><CardTitle>Hasil Akhir</CardTitle></CardHeader>
                         <CardContent className="space-y-2">
                            {summary.perPerson.map(s => (
-                               <div key={s.personId} className="flex justify-between items-center p-3 rounded-md bg-secondary">
-                                   <span className="font-semibold">{s.personName}</span>
+                               <div key={s.id} className="flex justify-between items-center p-3 rounded-md bg-secondary">
+                                   <span className="font-semibold">{s.name}</span>
                                    <span className="font-bold text-primary">{formatCurrency(s.finalAmount)}</span>
                                </div>
                            ))}
