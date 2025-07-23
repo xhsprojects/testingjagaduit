@@ -17,34 +17,38 @@ const SpeedDialContext = React.createContext<{ position: 'bottom-right' | 'botto
 export function SpeedDial({ children, mainIcon, position = "bottom-right", className }: SpeedDialProps) {
   const [isOpen, setIsOpen] = React.useState(false)
 
-  // Close speed dial when clicking outside
+  // Close speed dial when clicking outside (on the overlay)
   React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isOpen) {
-        // A simple check to see if the click was outside the component's main div
-        const target = event.target as HTMLElement;
-        if (!target.closest(`[data-speed-dial-wrapper="${position}"]`)) {
-          setIsOpen(false);
-        }
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscKey);
+    }
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscKey);
     };
-  }, [isOpen, position]);
+  }, [isOpen]);
 
 
   return (
     <SpeedDialContext.Provider value={{ position }}>
+        {isOpen && (
+            <div 
+                className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm animate-in fade-in-0"
+                onClick={() => setIsOpen(false)}
+            />
+        )}
         <div 
             className={cn(
                 "fixed z-40",
                 position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
                 className
             )}
-            data-speed-dial-wrapper={position}
         >
         <div className={cn(
             "relative z-50 flex flex-col-reverse gap-3",
