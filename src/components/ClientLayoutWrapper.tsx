@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useAuth } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { BottomNavbar } from "./BottomNavbar";
 import InstallPwaPrompt from "./InstallPwaPrompt";
 import NotificationHandler from "./NotificationHandler";
+import { ThemeProvider } from "./ThemeProvider";
 
 // An explicit list of theme classes we manage.
 const THEME_CLASSES = ['theme-default', 'theme-forest', 'theme-sunset', 'theme-ocean', 'theme-midnight', 'theme-sakura', 'theme-gold', 'theme-custom'];
@@ -59,7 +60,8 @@ const getContrastColor = (hex: string): string => {
     return (yiq >= 128) ? '224 71.4% 4.1%' : '0 0% 100%';
 };
 
-export function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
+// This is the inner component that has access to the AuthContext
+function AppContent({ children }: { children: React.ReactNode }) {
     const { theme, customThemeColor, isMaintenanceMode, isAdmin, loading, user } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
@@ -131,4 +133,22 @@ export function ClientLayoutWrapper({ children }: { children: React.ReactNode })
             {user && <NotificationHandler />}
         </>
     );
+}
+
+// This is the main wrapper that provides all contexts
+export function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthProvider>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <AppContent>
+              {children}
+            </AppContent>
+        </ThemeProvider>
+    </AuthProvider>
+  );
 }
