@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { scanReceipt } from '@/ai/flows/scan-receipt-flow';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // --- Tipe Data ---
 interface Person {
@@ -48,8 +49,11 @@ export default function SplitBillClientPage() {
     const [newPersonName, setNewPersonName] = React.useState('');
     
     const [items, setItems] = React.useState<BillItem[]>([]);
-    const [newItem, setNewItem] = React.useState({ id: '', name: '', quantity: 1, price: 0 });
-    const [editingItemId, setEditingItemId] = React.useState<string | null>(null);
+    const [newItem, setNewItem] = React.useState({ name: '', quantity: 1, price: 0 });
+    
+    const [itemToEdit, setItemToEdit] = React.useState<BillItem | null>(null);
+    const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+
 
     const [tax, setTax] = React.useState(0);
     const [service, setService] = React.useState(0);
@@ -88,27 +92,33 @@ export default function SplitBillClientPage() {
         });
     };
 
-    const handleSaveItem = () => {
+    const handleAddItem = () => {
         if (newItem.name.trim() && newItem.price > 0 && newItem.quantity > 0) {
-            if (editingItemId) {
-                // Update existing item
-                setItems(prev => prev.map(item => item.id === editingItemId ? {...item, ...newItem} : item));
-            } else {
-                // Add new item
-                setItems(prev => [...prev, {
-                    id: `i-${Date.now()}`,
-                    ...newItem,
-                    sharedBy: new Set(people.map(p => p.id))
-                }]);
-            }
-            setNewItem({ id: '', name: '', quantity: 1, price: 0 });
-            setEditingItemId(null);
+            setItems(prev => [...prev, {
+                id: `i-${Date.now()}`,
+                ...newItem,
+                sharedBy: new Set(people.map(p => p.id))
+            }]);
+            setNewItem({ name: '', quantity: 1, price: 0 });
         }
     };
     
-    const handleEditItem = (item: BillItem) => {
-        setEditingItemId(item.id);
-        setNewItem({ id: item.id, name: item.name, quantity: item.quantity, price: item.price });
+    const handleOpenEditModal = (item: BillItem) => {
+        setItemToEdit(item);
+        setIsEditModalOpen(true);
+    };
+    
+    const handleUpdateItem = (updatedItem: Omit<BillItem, 'id' | 'sharedBy'>) => {
+        if (!itemToEdit) return;
+
+        setItems(prev => prev.map(item => 
+            item.id === itemToEdit.id 
+            ? { ...item, ...updatedItem } 
+            : item
+        ));
+        
+        setItemToEdit(null);
+        setIsEditModalOpen(false);
     };
 
     const removeItem = (id: string) => setItems(prev => prev.filter(item => item.id !== id));
@@ -169,10 +179,11 @@ export default function SplitBillClientPage() {
 
             const applyChargeHeuristic = (value: number | undefined, setValue: (v: number) => void, setType: (t: ChargeType) => void) => {
                 if (typeof value === 'number' && value > 0) {
-                    if (value <= 100) {
-                        setType('percent');
-                    } else {
+                    // if value has more than 2 digits, it's likely an amount.
+                    if (value > 99) {
                         setType('amount');
+                    } else {
+                        setType('percent');
                     }
                     setValue(value);
                 }
@@ -356,7 +367,7 @@ export default function SplitBillClientPage() {
                                                 <p className="text-sm text-muted-foreground">{item.quantity} x {formatCurrency(item.price)} = {formatCurrency(item.quantity * item.price)}</p>
                                             </div>
                                             <div className='flex items-center'>
-                                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditItem(item)}><Edit className="h-4 w-4" /></Button>
+                                               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenEditModal(item)}><Edit className="h-4 w-4" /></Button>
                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeItem(item.id)}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
@@ -387,7 +398,7 @@ export default function SplitBillClientPage() {
                                             <Input type="text" inputMode='numeric' placeholder="Harga" value={newItem.price > 0 ? formatCurrency(newItem.price) : ""} onChange={e => setNewItem(p => ({...p, price: Number(e.target.value.replace(/[^0-9]/g, ''))}))}/>
                                         </div>
                                     </div>
-                                    <Button onClick={handleSaveItem} className="w-full">{editingItemId ? "Simpan Perubahan" : "Tambah Item"}</Button>
+                                    <Button onClick={handleAddItem} className="w-full">Tambah Item</Button>
                                 </div>
                                 </CardContent>
                             </Card>
@@ -502,6 +513,68 @@ export default function SplitBillClientPage() {
             <main className="flex-1 p-4 sm:p-6 md:p-8">
                 {renderContent()}
             </main>
+
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Ubah Item</DialogTitle>
+                        <DialogDescription>
+                            Perbarui detail item di bawah ini.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {itemToEdit && (
+                         <EditItemForm
+                            item={itemToEdit}
+                            onSave={handleUpdateItem}
+                            onCancel={() => setIsEditModalOpen(false)}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
+
+        </div>
+    );
+}
+
+
+// --- Komponen Edit Item Form ---
+interface EditItemFormProps {
+    item: BillItem;
+    onSave: (updatedItem: Omit<BillItem, 'id' | 'sharedBy'>) => void;
+    onCancel: () => void;
+}
+
+function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
+    const [name, setName] = React.useState(item.name);
+    const [quantity, setQuantity] = React.useState(item.quantity);
+    const [price, setPrice] = React.useState(item.price);
+
+    const handleSave = () => {
+        if (name.trim() && price > 0 && quantity > 0) {
+            onSave({ name: name.trim(), quantity, price });
+        }
+    };
+
+    return (
+        <div className="space-y-4 py-4">
+            <div className="space-y-2">
+                <Label htmlFor="edit-item-name">Nama Item</Label>
+                <Input id="edit-item-name" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="edit-item-quantity">Jumlah</Label>
+                    <Input id="edit-item-quantity" type="number" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="edit-item-price">Harga Satuan</Label>
+                    <Input id="edit-item-price" type="text" inputMode="numeric" value={price > 0 ? formatCurrency(price) : ""} onChange={(e) => setPrice(Number(e.target.value.replace(/[^0-9]/g, '')))} />
+                </div>
+            </div>
+             <DialogFooter>
+                <Button variant="ghost" onClick={onCancel}>Batal</Button>
+                <Button onClick={handleSave}>Simpan Perubahan</Button>
+            </DialogFooter>
         </div>
     );
 }
