@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ArrowLeft, Loader2, UserPlus, Percent, Trash2, Users, ReceiptText, Share2, Camera, Wand2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -126,8 +126,8 @@ export default function SplitBillClientPage() {
                 </header>
                 <main className="flex-1 p-4 sm:p-6 md:p-8 flex items-center justify-center">
                     <div className="w-full max-w-md space-y-6">
-                        <h2 className="text-2xl font-bold text-center font-headline">Pilih Metode Perhitungan</h2>
-                        <Card className="hover:border-primary transition-colors">
+                        <h2 className="text-2xl font-bold text-center font-headline animate-in fade-in-0 slide-in-from-bottom-5 duration-500">Pilih Metode Perhitungan</h2>
+                        <Card className="hover:border-primary transition-colors animate-in fade-in-0 slide-in-from-bottom-5 duration-500 delay-100">
                             <CardHeader className="flex-row items-center gap-4">
                                 <Camera className="h-8 w-8 text-primary"/>
                                 <div>
@@ -144,7 +144,7 @@ export default function SplitBillClientPage() {
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
                             </CardFooter>
                         </Card>
-                         <Card className="hover:border-primary transition-colors">
+                         <Card className="hover:border-primary transition-colors animate-in fade-in-0 slide-in-from-bottom-5 duration-500 delay-200">
                             <CardHeader className="flex-row items-center gap-4">
                                 <ReceiptText className="h-8 w-8 text-primary"/>
                                 <div>
@@ -173,7 +173,7 @@ export default function SplitBillClientPage() {
             </header>
             <main className="flex-1 p-4 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div className="lg:col-span-2 space-y-6">
-                    <Card>
+                    <Card className="animate-in fade-in-0 duration-500">
                         <CardHeader>
                             <CardTitle>1. Total Tagihan</CardTitle>
                         </CardHeader>
@@ -188,7 +188,7 @@ export default function SplitBillClientPage() {
                             />
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="animate-in fade-in-0 duration-500 delay-100">
                         <CardHeader><CardTitle>2. Peserta Patungan</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex gap-2">
@@ -197,7 +197,7 @@ export default function SplitBillClientPage() {
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 {people.map(p => (
-                                    <Badge key={p.id} variant="secondary" className="pl-2 pr-1 text-base">
+                                    <Badge key={p.id} variant="secondary" className="pl-2 pr-1 text-base animate-in zoom-in-95 duration-300">
                                         {p.name}
                                         <button onClick={() => removePerson(p.id)} className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 text-destructive"><X className="h-3 w-3"/></button>
                                     </Badge>
@@ -206,7 +206,7 @@ export default function SplitBillClientPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
+                    <Card className="animate-in fade-in-0 duration-500 delay-200">
                         <CardHeader><CardTitle>3. Cara Pembagian</CardTitle></CardHeader>
                          <CardContent>
                            {/* Add logic for equal/unequal split here */}
@@ -216,7 +216,7 @@ export default function SplitBillClientPage() {
                 </div>
                 
                 <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
-                    <Card>
+                    <Card className="animate-in fade-in-0 duration-500 delay-300">
                         <CardHeader><CardTitle>Biaya Tambahan</CardTitle></CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center gap-2">
@@ -232,11 +232,11 @@ export default function SplitBillClientPage() {
                         </CardContent>
                     </Card>
 
-                     <Card>
+                     <Card className="animate-in fade-in-0 duration-500 delay-400">
                         <CardHeader><CardTitle>Hasil Akhir</CardTitle></CardHeader>
                         <CardContent className="space-y-2">
                            {summary.perPerson.map(s => (
-                               <div key={s.id} className="flex justify-between items-center p-3 rounded-md bg-secondary">
+                               <div key={s.id} className="flex justify-between items-center p-3 rounded-md bg-secondary animate-in fade-in-0 duration-300">
                                    <span className="font-semibold">{s.name}</span>
                                    <span className="font-bold text-primary">{formatCurrency(s.finalAmount)}</span>
                                </div>
