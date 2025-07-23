@@ -6,22 +6,18 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, Loader2, UserPlus, FilePlus, Percent, Copy, Trash2, Users, ReceiptText, Share2, Info, Check, X, Camera, Wand2 } from 'lucide-react';
+import { ArrowLeft, Loader2, UserPlus, Percent, Trash2, Users, ReceiptText, Share2, Camera, Wand2, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { scanReceipt } from '@/ai/flows/scan-receipt-flow';
 
 // --- Tipe Data ---
 interface Person {
   id: string;
   name: string;
-  amount: number; // Custom amount for manual unequal split
-  isLocked: boolean;
 }
 
 type SplitMode = 'equal' | 'unequal';
@@ -30,7 +26,7 @@ type Stage = 'selection' | 'calculation';
 
 // --- Komponen Utama ---
 export default function SplitBillClientPage() {
-    const { user, loading: authLoading, isPremium } = useAuth();
+    const { isPremium } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -84,7 +80,7 @@ export default function SplitBillClientPage() {
 
     const addPerson = () => {
         if (newPersonName.trim()) {
-            setPeople(prev => [...prev, { id: `p-${Date.now()}`, name: newPersonName.trim(), amount: 0, isLocked: false }]);
+            setPeople(prev => [...prev, { id: `p-${Date.now()}`, name: newPersonName.trim() }]);
             setNewPersonName('');
         }
     };
@@ -93,48 +89,19 @@ export default function SplitBillClientPage() {
         setPeople(prev => prev.filter(p => p.id !== id));
     };
 
-    const updatePersonAmount = (id: string, newAmount: number) => {
-        setPeople(prev => prev.map(p => p.id === id ? { ...p, amount: newAmount } : p));
-    };
-    
-    const toggleLockPerson = (id: string) => {
-        setPeople(prev => prev.map(p => p.id === id ? { ...p, isLocked: !p.isLocked } : p));
-    };
-
-
     // --- Kalkulasi ---
     const summary = React.useMemo(() => {
         const finalTotal = totalBill * (1 + (tax / 100)) * (1 + (service / 100));
         if (finalTotal === 0 || people.length === 0) {
-            return { perPerson: [], finalTotal: 0, remainder: 0 };
+            return { perPerson: [], finalTotal: 0 };
         }
-
-        if (splitMode === 'equal') {
-            const amountPerPerson = finalTotal / people.length;
-            return {
-                perPerson: people.map(p => ({ ...p, finalAmount: amountPerPerson })),
-                finalTotal,
-                remainder: 0,
-            };
-        } else { // Unequal split
-            const lockedPeople = people.filter(p => p.isLocked);
-            const unlockedPeople = people.filter(p => !p.isLocked);
-            
-            const lockedTotal = lockedPeople.reduce((sum, p) => sum + p.amount, 0);
-            const remainingTotal = finalTotal - lockedTotal;
-            
-            const amountForUnlocked = unlockedPeople.length > 0 ? remainingTotal / unlockedPeople.length : 0;
-            const remainder = remainingTotal < 0 ? Math.abs(remainingTotal) : 0;
-
-            return {
-                perPerson: people.map(p => ({
-                    ...p,
-                    finalAmount: p.isLocked ? p.amount : (amountForUnlocked > 0 ? amountForUnlocked : 0),
-                })),
-                finalTotal,
-                remainder,
-            };
-        }
+        
+        const amountPerPerson = finalTotal / people.length;
+        return {
+            perPerson: people.map(p => ({ ...p, finalAmount: amountPerPerson })),
+            finalTotal,
+        };
+        
     }, [totalBill, tax, service, people, splitMode]);
 
     const generateWhatsAppMessage = () => {
@@ -143,17 +110,10 @@ export default function SplitBillClientPage() {
             message += `*${person.name}*: *${formatCurrency(person.finalAmount)}*\n`;
         });
         message += `\n*Total Keseluruhan: ${formatCurrency(summary.finalTotal)}*`;
-        if (summary.remainder > 0) {
-             message += `\n\n*Perhatian:* Masih ada sisa tagihan ${formatCurrency(summary.remainder)} yang belum terbagi.`;
-        }
         message += `\n\nTerima kasih! Dihitung dengan Jaga Duit.`;
         const encodedMessage = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
     };
-
-     if (authLoading) {
-        return <div className="flex h-screen w-full items-center justify-center bg-secondary"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
-    }
 
     if (stage === 'selection') {
         return (
@@ -250,7 +210,7 @@ export default function SplitBillClientPage() {
                         <CardHeader><CardTitle>3. Cara Pembagian</CardTitle></CardHeader>
                          <CardContent>
                            {/* Add logic for equal/unequal split here */}
-                           <p className="text-muted-foreground">Fitur pembagian custom akan segera hadir!</p>
+                           <p className="text-muted-foreground">Untuk saat ini, pembagian masih dilakukan secara merata. Fitur pembagian custom akan segera hadir!</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -288,7 +248,9 @@ export default function SplitBillClientPage() {
                            </div>
                         </CardContent>
                         <CardFooter className="flex-col gap-2">
-                            <Button className="w-full bg-green-500 hover:bg-green-600" onClick={generateWhatsAppMessage}><Share2 className="h-4 w-4 mr-2"/>Bagikan ke WhatsApp</Button>
+                            <Button className="w-full bg-green-500 hover:bg-green-600" onClick={generateWhatsAppMessage} disabled={summary.perPerson.length === 0}>
+                                <Share2 className="h-4 w-4 mr-2"/>Bagikan ke WhatsApp
+                            </Button>
                         </CardFooter>
                     </Card>
                 </div>
