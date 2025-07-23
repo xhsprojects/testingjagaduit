@@ -13,11 +13,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { scanReceipt } from '@/ai/flows/scan-receipt-flow';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // --- Tipe Data ---
 interface Person {
   id: string;
   name: string;
+  amount: number;
 }
 
 type SplitMode = 'equal' | 'unequal';
@@ -80,7 +82,7 @@ export default function SplitBillClientPage() {
 
     const addPerson = () => {
         if (newPersonName.trim()) {
-            setPeople(prev => [...prev, { id: `p-${Date.now()}`, name: newPersonName.trim() }]);
+            setPeople(prev => [...prev, { id: `p-${Date.now()}`, name: newPersonName.trim(), amount: 0 }]);
             setNewPersonName('');
         }
     };
@@ -89,17 +91,36 @@ export default function SplitBillClientPage() {
         setPeople(prev => prev.filter(p => p.id !== id));
     };
 
+    const handlePersonAmountChange = (id: string, newAmount: number) => {
+        setPeople(prev => prev.map(p => p.id === id ? { ...p, amount: newAmount } : p));
+    };
+
     // --- Kalkulasi ---
     const summary = React.useMemo(() => {
-        const finalTotal = totalBill * (1 + (tax / 100)) * (1 + (service / 100));
-        if (finalTotal === 0 || people.length === 0) {
-            return { perPerson: [], finalTotal: 0 };
+        const subTotal = splitMode === 'equal' ? totalBill : people.reduce((sum, p) => sum + p.amount, 0);
+        const taxAmount = subTotal * (tax / 100);
+        const serviceAmount = subTotal * (service / 100);
+        const finalTotal = subTotal + taxAmount + serviceAmount;
+
+        if (subTotal === 0 || people.length === 0) {
+            return { perPerson: [], finalTotal: 0, remainingToSplit: totalBill };
         }
         
-        const amountPerPerson = finalTotal / people.length;
+        const perPerson = people.map(p => {
+            let finalAmount = 0;
+            if (splitMode === 'equal') {
+                finalAmount = finalTotal / people.length;
+            } else { // unequal
+                const personContributionRatio = p.amount / subTotal;
+                finalAmount = p.amount + (taxAmount * personContributionRatio) + (serviceAmount * personContributionRatio);
+            }
+            return { ...p, finalAmount };
+        });
+
         return {
-            perPerson: people.map(p => ({ ...p, finalAmount: amountPerPerson })),
+            perPerson,
             finalTotal,
+            remainingToSplit: totalBill - subTotal,
         };
         
     }, [totalBill, tax, service, people, splitMode]);
@@ -175,7 +196,7 @@ export default function SplitBillClientPage() {
                 <div className="lg:col-span-2 space-y-6">
                     <Card className="animate-in fade-in-0 duration-500">
                         <CardHeader>
-                            <CardTitle>1. Total Tagihan</CardTitle>
+                            <CardTitle>1. Total Tagihan (sebelum pajak & servis)</CardTitle>
                         </CardHeader>
                          <CardContent>
                             <Input 
@@ -209,8 +230,34 @@ export default function SplitBillClientPage() {
                     <Card className="animate-in fade-in-0 duration-500 delay-200">
                         <CardHeader><CardTitle>3. Cara Pembagian</CardTitle></CardHeader>
                          <CardContent>
-                           {/* Add logic for equal/unequal split here */}
-                           <p className="text-muted-foreground">Untuk saat ini, pembagian masih dilakukan secara merata. Fitur pembagian custom akan segera hadir!</p>
+                           <Tabs value={splitMode} onValueChange={(v) => setSplitMode(v as SplitMode)} className="w-full">
+                                <TabsList className="grid w-full grid-cols-2">
+                                    <TabsTrigger value="equal">Bagi Rata</TabsTrigger>
+                                    <TabsTrigger value="unequal">Bagi Custom</TabsTrigger>
+                                </TabsList>
+                                <TabsContent value="equal" className="pt-4">
+                                     <p className="text-muted-foreground text-sm">Total tagihan akan dibagi rata ke semua peserta yang ditambahkan.</p>
+                                </TabsContent>
+                                <TabsContent value="unequal" className="pt-4 space-y-2">
+                                     {people.map(p => (
+                                         <div key={p.id} className="flex items-center gap-4">
+                                             <label className="w-24 truncate font-medium">{p.name}</label>
+                                             <Input
+                                                type="text"
+                                                inputMode="numeric"
+                                                placeholder="Jumlah tagihan"
+                                                value={p.amount > 0 ? formatCurrency(p.amount) : ""}
+                                                onChange={e => handlePersonAmountChange(p.id, Number(e.target.value.replace(/[^0-9]/g, '')))}
+                                             />
+                                         </div>
+                                     ))}
+                                     {people.length > 0 && summary.remainingToSplit !== 0 && (
+                                        <div className={cn("text-right text-sm font-semibold", summary.remainingToSplit > 0 ? 'text-amber-600' : 'text-destructive')}>
+                                            {summary.remainingToSplit > 0 ? `Sisa yang belum dibagi: ${formatCurrency(summary.remainingToSplit)}` : `Kelebihan alokasi: ${formatCurrency(Math.abs(summary.remainingToSplit))}`}
+                                        </div>
+                                     )}
+                                </TabsContent>
+                            </Tabs>
                         </CardContent>
                     </Card>
                 </div>
