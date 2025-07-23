@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from 'react';
@@ -167,8 +168,8 @@ export default function SplitBillClientPage() {
             if(result.notes) setBillName(result.notes);
 
             const applyChargeHeuristic = (value: number | undefined, setValue: (v: number) => void, setType: (t: ChargeType) => void) => {
-                if (typeof value === 'number') {
-                    if (value > 0 && value <= 100) { // Assume values <= 100 are percentages
+                if (typeof value === 'number' && value > 0) {
+                    if (value <= 100) {
                         setType('percent');
                     } else {
                         setType('amount');
@@ -249,24 +250,28 @@ export default function SplitBillClientPage() {
 
     }, [items, people, tax, service, discount, discountType, taxType, serviceType, splitMode, customAmounts]);
 
-     const generateShareMessage = () => {
-        let message = `🧾 *Rincian Tagihan: ${billName || 'Patungan'}*\n\n`;
+     const generateShareMessage = (forWhatsApp = false) => {
+        const receiptIcon = forWhatsApp ? '[Struk]' : '🧾';
+        const bulletPoint = forWhatsApp ? '-' : '▪️';
+        const thanksIcon = forWhatsApp ? '😊' : '🙏';
+
+        let message = `${receiptIcon} *Rincian Tagihan: ${billName || 'Patungan'}*\n\n`;
         summary.perPersonBreakdown.forEach(person => {
-            message += `▪️ *${person.name}*: *${formatCurrency(person.finalAmount)}*\n`;
+            message += `${bulletPoint} *${person.name}*: *${formatCurrency(person.finalAmount)}*\n`;
         });
         message += `\n*TOTAL TAGIHAN: ${formatCurrency(summary.finalTotal)}*`;
-        message += `\n\nTerima kasih! 🙏\n_Dihitung dengan Jaga Duit_`;
+        message += `\n\nTerima kasih! ${thanksIcon}\n_Dihitung dengan Jaga Duit_`;
         return message;
     };
     
     const generateWhatsAppMessage = () => {
-        const message = generateShareMessage();
+        const message = generateShareMessage(true);
         const encodedMessage = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
     };
     
     const handleCopyMessage = () => {
-        const message = generateShareMessage();
+        const message = generateShareMessage(false);
         navigator.clipboard.writeText(message)
             .then(() => toast({ title: "Tersalin!", description: "Rincian tagihan telah disalin ke clipboard." }))
             .catch(() => toast({ title: "Gagal Menyalin", variant: "destructive" }));
