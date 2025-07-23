@@ -30,6 +30,9 @@ const ScanReceiptOutputSchema = z.object({
     items: z.array(ScannedItemSchema).describe("A detailed list of all items found on the receipt."),
     totalAmount: z.number().optional().describe('The final total amount found on the receipt. Must be a number without any currency symbols, commas, or periods.'),
     notes: z.string().optional().describe("General information from the receipt, such as the store name and address."),
+    tax: z.number().optional().describe("The total tax amount (PPN) found on the receipt, if any."),
+    serviceCharge: z.number().optional().describe("The total service charge amount found on the receipt, if any."),
+    discountAmount: z.number().optional().describe("The total discount amount found on the receipt, if any."),
 });
 export type ScanReceiptOutput = z.infer<typeof ScanReceiptOutputSchema>;
 
@@ -54,24 +57,27 @@ const prompt = ai.definePrompt({
   name: 'scanReceiptPrompt',
   input: {schema: ScanReceiptInputSchema},
   output: {schema: ScanReceiptOutputSchema},
-  prompt: `You are an expert OCR data extractor. Analyze the provided receipt image and extract all itemized details.
+  prompt: `You are an expert OCR data extractor specializing in Indonesian receipts. Analyze the provided receipt image and extract all relevant details.
 
 **Your Task:**
-1.  **Identify Each Item:** Read the receipt line by line and identify every single item purchased.
-2.  **Extract Item Details:** For each item, extract its name, quantity, and the price PER-UNIT.
+1.  **Identify Each Item:** Read the receipt line by line and identify every single item purchased. Extract its name, quantity, and the price PER-UNIT.
     - If a line says "2 x Indomie Goreng 7.000", the name is "Indomie Goreng", quantity is 2, and price is 3500.
     - If a line says "Kopi Susu 15.000" without quantity, assume the quantity is 1.
     - The price should be a pure number, without "Rp" or commas.
-3.  **Extract Total Amount:** Find the final, total amount of the bill.
+2.  **Extract Additional Charges & Discounts:**
+    - Find any **tax** (Pajak, PPN) and extract its total amount.
+    - Find any **service charge** (Layanan, Servis) and extract its total amount.
+    - Find any **discount** (Diskon, Potongan) and extract its total amount.
+3.  **Extract Total Amount:** Find the final, total amount of the bill after all charges and discounts.
 4.  **Extract Store Name:** Identify the name of the store or merchant. Put this in the 'notes' field.
-5.  **Compile Output:** Return a JSON object containing an array of all items, the total amount, and the store name.
+5.  **Compile Output:** Return a JSON object containing the array of items, the final total amount, store name, and any tax, service charge, or discount amounts you found.
 
 **Example:**
-For a receipt with "Kopi Susu 15.000" and "2 Roti Coklat 10.000", your output for the 'items' array would be:
-[
-  { "name": "Kopi Susu", "quantity": 1, "price": 15000 },
-  { "name": "Roti Coklat", "quantity": 2, "price": 5000 }
-]
+For a receipt with "Kopi Susu 15.000", "Diskon 5.000", and "Pajak 1.000", your output should include:
+- items: [{ "name": "Kopi Susu", "quantity": 1, "price": 15000 }]
+- discountAmount: 5000
+- tax: 1000
+- totalAmount: 11000
 
 **READ THIS RECEIPT NOW AND EXTRACT THE DATA:**
 {{media url=receiptImage}}`,
@@ -97,3 +103,4 @@ const scanReceiptFlow = ai.defineFlow(
     return output!;
   }
 );
+

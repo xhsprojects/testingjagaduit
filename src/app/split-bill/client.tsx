@@ -6,7 +6,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, UserPlus, Trash2, Users, Share2, Percent, ReceiptText, ScanLine, Edit, FileUp, Loader2, Info } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Users, Share2, Percent, ReceiptText, ScanLine, Edit, FileUp, Loader2, Info, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -48,10 +48,10 @@ export default function SplitBillClientPage() {
     const [items, setItems] = React.useState<BillItem[]>([]);
     const [newItem, setNewItem] = React.useState({ name: '', quantity: 1, price: 0 });
 
-    const [tax, setTax] = React.useState(11);
-    const [service, setService] = React.useState(5);
+    const [tax, setTax] = React.useState(0);
+    const [service, setService] = React.useState(0);
     const [discount, setDiscount] = React.useState(0);
-    const [discountType, setDiscountType] = React.useState<DiscountType>('percent');
+    const [discountType, setDiscountType] = React.useState<DiscountType>('amount');
     const [isScanning, setIsScanning] = React.useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -134,6 +134,14 @@ export default function SplitBillClientPage() {
                 variant: "destructive"
               });
             }
+
+            // Set tax, service, and discount if detected
+            if (result.tax) setTax(result.tax);
+            if (result.serviceCharge) setService(result.serviceCharge);
+            if (result.discountAmount) {
+                setDiscount(result.discountAmount);
+                setDiscountType('amount'); // Assume detected discount is an amount
+            }
             
             setStage('calculate');
           }
@@ -157,8 +165,11 @@ export default function SplitBillClientPage() {
             : Math.min(subtotal, discount);
 
         const subtotalAfterDiscount = subtotal - discountAmount;
-        const taxAmount = subtotalAfterDiscount * (tax / 100);
-        const serviceAmount = subtotalAfterDiscount * (service / 100);
+        
+        // Use fixed tax and service amounts if they were scanned, otherwise calculate percentage
+        const taxAmount = tax > 100 ? tax : subtotalAfterDiscount * (tax / 100);
+        const serviceAmount = service > 100 ? service : subtotalAfterDiscount * (service / 100);
+
         const finalTotal = subtotalAfterDiscount + taxAmount + serviceAmount;
 
         let personTotals: Record<string, number> = {};
@@ -251,7 +262,7 @@ export default function SplitBillClientPage() {
                                         {people.map(p => (
                                             <Badge key={p.id} variant="secondary" className="pl-2 pr-1 text-base">
                                                 {p.name}
-                                                <button onClick={() => removePerson(p.id)} className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 text-destructive"><Trash2 className="h-3 w-3"/></button>
+                                                <button onClick={() => removePerson(p.id)} className="ml-1 rounded-full p-0.5 hover:bg-destructive/20 text-destructive"><X className="h-3 w-3"/></button>
                                             </Badge>
                                         ))}
                                     </div>
@@ -342,8 +353,8 @@ export default function SplitBillClientPage() {
                                 <CardContent className="space-y-2 text-sm">
                                     <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>{formatCurrency(summary.subtotal)}</span></div>
                                     <div className="flex justify-between"><span className="text-muted-foreground">Diskon</span><span className="text-green-600">- {formatCurrency(summary.discountAmount)}</span></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Pajak ({tax}%)</span><span>+ {formatCurrency(summary.taxAmount)}</span></div>
-                                    <div className="flex justify-between"><span className="text-muted-foreground">Servis ({service}%)</span><span>+ {formatCurrency(summary.serviceAmount)}</span></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Pajak ({tax > 100 ? "Rp" : tax + "%"})</span><span>+ {formatCurrency(summary.taxAmount)}</span></div>
+                                    <div className="flex justify-between"><span className="text-muted-foreground">Servis ({service > 100 ? "Rp" : service + "%"})</span><span>+ {formatCurrency(summary.serviceAmount)}</span></div>
                                 <Separator />
                                     <div className="flex justify-between items-center font-bold text-lg">
                                     <span>TOTAL</span>
@@ -393,3 +404,4 @@ export default function SplitBillClientPage() {
 
 
     
+
