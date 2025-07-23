@@ -180,7 +180,7 @@ export default function SplitBillClientPage() {
             const applyChargeHeuristic = (value: number | undefined, setValue: (v: number) => void, setType: (t: ChargeType) => void) => {
                 if (typeof value === 'number' && value > 0) {
                     // if value has more than 2 digits, it's likely an amount.
-                    if (value > 99) {
+                    if (String(value).length > 2) {
                         setType('amount');
                     } else {
                         setType('percent');
@@ -262,11 +262,10 @@ export default function SplitBillClientPage() {
     }, [items, people, tax, service, discount, discountType, taxType, serviceType, splitMode, customAmounts]);
 
      const generateShareMessage = (forWhatsApp = false) => {
-        const receiptIcon = forWhatsApp ? '[Struk]' : '🧾';
         const bulletPoint = forWhatsApp ? '-' : '▪️';
         const thanksIcon = forWhatsApp ? '😊' : '🙏';
 
-        let message = `${receiptIcon} *Rincian Tagihan: ${billName || 'Patungan'}*\n\n`;
+        let message = `*Rincian Tagihan: ${billName || 'Patungan'}*\n\n`;
         summary.perPersonBreakdown.forEach(person => {
             message += `${bulletPoint} *${person.name}*: *${formatCurrency(person.finalAmount)}*\n`;
         });
@@ -394,7 +393,7 @@ export default function SplitBillClientPage() {
                                     <div className="flex flex-col md:flex-row gap-2">
                                         <Input placeholder="Nama item" value={newItem.name} onChange={e => setNewItem(p => ({...p, name: e.target.value}))} />
                                         <div className="flex gap-2">
-                                            <Input className="w-20" type="number" placeholder="Jml" value={newItem.quantity} onChange={e => setNewItem(p => ({...p, quantity: parseInt(e.target.value) || 1}))} />
+                                            <Input className="w-20" type="text" placeholder="Jml" value={newItem.quantity} onChange={e => setNewItem(p => ({ ...p, quantity: Number(e.target.value.replace(/[^0-9]/g, '')) || '' }))}/>
                                             <Input type="text" inputMode='numeric' placeholder="Harga" value={newItem.price > 0 ? formatCurrency(newItem.price) : ""} onChange={e => setNewItem(p => ({...p, price: Number(e.target.value.replace(/[^0-9]/g, ''))}))}/>
                                         </div>
                                     </div>
@@ -410,7 +409,7 @@ export default function SplitBillClientPage() {
                                 <CardContent className="space-y-4">
                                     <div className="flex items-center gap-2">
                                         <Label className="flex-grow">Diskon</Label>
-                                        <Input className="w-24" type="number" value={discount} onChange={e => setDiscount(parseFloat(e.target.value) || 0)} />
+                                        <Input className="w-24" type="text" value={discount || ''} onChange={e => setDiscount(Number(e.target.value.replace(/[^0-9]/g, '')) || 0)} />
                                         <ToggleGroup type="single" variant="outline" value={discountType} onValueChange={(v: ChargeType) => v && setDiscountType(v)}>
                                             <ToggleGroupItem value="percent" aria-label="Diskon persen">%</ToggleGroupItem>
                                             <ToggleGroupItem value="amount" aria-label="Diskon nominal">Rp</ToggleGroupItem>
@@ -418,7 +417,7 @@ export default function SplitBillClientPage() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Label className="flex-grow">Pajak</Label>
-                                        <Input className="w-24" type="number" value={tax} onChange={e => setTax(parseFloat(e.target.value) || 0)} />
+                                        <Input className="w-24" type="text" value={tax || ''} onChange={e => setTax(Number(e.target.value.replace(/[^0-9]/g, '')) || 0)} />
                                         <ToggleGroup type="single" variant="outline" value={taxType} onValueChange={(v: ChargeType) => v && setTaxType(v)}>
                                             <ToggleGroupItem value="percent" aria-label="Pajak persen">%</ToggleGroupItem>
                                             <ToggleGroupItem value="amount" aria-label="Pajak nominal">Rp</ToggleGroupItem>
@@ -426,7 +425,7 @@ export default function SplitBillClientPage() {
                                     </div>
                                      <div className="flex items-center gap-2">
                                         <Label className="flex-grow">Servis</Label>
-                                        <Input className="w-24" type="number" value={service} onChange={e => setService(parseFloat(e.target.value) || 0)} />
+                                        <Input className="w-24" type="text" value={service || ''} onChange={e => setService(Number(e.target.value.replace(/[^0-9]/g, '')) || 0)} />
                                         <ToggleGroup type="single" variant="outline" value={serviceType} onValueChange={(v: ChargeType) => v && setServiceType(v)}>
                                             <ToggleGroupItem value="percent" aria-label="Servis persen">%</ToggleGroupItem>
                                             <ToggleGroupItem value="amount" aria-label="Servis nominal">Rp</ToggleGroupItem>
@@ -546,12 +545,12 @@ interface EditItemFormProps {
 
 function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
     const [name, setName] = React.useState(item.name);
-    const [quantity, setQuantity] = React.useState(item.quantity);
+    const [quantity, setQuantity] = React.useState<number | string>(item.quantity);
     const [price, setPrice] = React.useState(item.price);
 
     const handleSave = () => {
-        if (name.trim() && price > 0 && quantity > 0) {
-            onSave({ name: name.trim(), quantity, price });
+        if (name.trim() && Number(price) > 0 && Number(quantity) > 0) {
+            onSave({ name: name.trim(), quantity: Number(quantity), price: Number(price) });
         }
     };
 
@@ -564,7 +563,7 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="edit-item-quantity">Jumlah</Label>
-                    <Input id="edit-item-quantity" type="number" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value) || 1)} />
+                    <Input id="edit-item-quantity" type="text" value={quantity} onChange={(e) => setQuantity(e.target.value ? Number(e.target.value.replace(/[^0-9]/g, '')) : '')} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="edit-item-price">Harga Satuan</Label>
@@ -578,3 +577,4 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
         </div>
     );
 }
+
