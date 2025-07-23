@@ -6,7 +6,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ArrowLeft, UserPlus, Trash2, Users, Share2, Percent, ReceiptText, ScanLine, Edit, FileUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, UserPlus, Trash2, Users, Share2, Percent, ReceiptText, ScanLine, Edit, FileUp, Loader2, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { scanReceipt } from '@/ai/flows/scan-receipt-flow';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // --- Tipe Data ---
 interface Person {
@@ -111,15 +112,29 @@ export default function SplitBillClientPage() {
           if ('error' in result) {
             toast({ title: "Gagal Memindai", description: result.error, variant: "destructive" });
           } else {
-            const scannedItem: BillItem = {
-              id: `i-scanned-${Date.now()}`,
-              name: result.notes || 'Tagihan Hasil Pindai',
-              quantity: 1,
-              price: result.totalAmount || 0,
-              sharedBy: new Set(people.map(p => p.id))
-            };
-            setItems([scannedItem]);
-            toast({ title: "Pindai Berhasil", description: `Total tagihan ${formatCurrency(result.totalAmount || 0)} berhasil diekstrak.` });
+            const scannedItems: BillItem[] = (result.items || []).map((item, index) => ({
+                id: `i-scanned-${Date.now()}-${index}`,
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+                sharedBy: new Set(people.map(p => p.id))
+            }));
+            
+            if(scannedItems.length > 0) {
+              setItems(scannedItems);
+              toast({
+                duration: 8000,
+                title: "Pindai Berhasil!",
+                description: `${scannedItems.length} item berhasil diekstrak. Mohon periksa kembali nama dan harga sebelum melanjutkan.`,
+              });
+            } else {
+               toast({
+                title: "Tidak Ada Item Ditemukan",
+                description: "AI tidak dapat menemukan rincian item. Struk mungkin hanya berisi total akhir. Silakan isi manual.",
+                variant: "destructive"
+              });
+            }
+            
             setStage('calculate');
           }
           setIsScanning(false);
@@ -128,6 +143,8 @@ export default function SplitBillClientPage() {
         console.error("Scan error:", error);
         toast({ title: "Error", description: "Terjadi kesalahan saat memproses gambar.", variant: "destructive" });
         setIsScanning(false);
+      } finally {
+        if(fileInputRef.current) fileInputRef.current.value = "";
       }
     };
 
@@ -202,7 +219,7 @@ export default function SplitBillClientPage() {
                                 <CardTitle className="font-headline text-xl">Pindai Struk (Otomatis)</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-muted-foreground">Ambil foto atau unggah gambar struk. AI akan mengekstrak total tagihan untuk Anda.</p>
+                                <p className="text-muted-foreground">Ambil foto atau unggah gambar struk. AI akan mengekstrak rincian item untuk Anda.</p>
                                 {!isPremium && <Badge variant="destructive" className="mt-4">Fitur Premium</Badge>}
                             </CardContent>
                         </Card>
@@ -244,6 +261,15 @@ export default function SplitBillClientPage() {
                             <Card>
                                 <CardHeader><CardTitle>2. Daftar Item</CardTitle></CardHeader>
                                 <CardContent className="space-y-4">
+                                {items.length > 0 && (
+                                     <Alert>
+                                        <Info className="h-4 w-4" />
+                                        <AlertTitle>Periksa Kembali Hasil Pindai</AlertTitle>
+                                        <AlertDescription>
+                                            Pastikan nama item, jumlah, dan harga sudah sesuai dengan struk fisik Anda sebelum melanjutkan.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
                                 {items.map(item => (
                                     <div key={item.id} className="p-3 border rounded-lg space-y-3">
                                         <div className="flex justify-between items-start">
