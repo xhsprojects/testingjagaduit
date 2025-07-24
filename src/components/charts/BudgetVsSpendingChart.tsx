@@ -50,14 +50,16 @@ export default function BudgetVsSpendingChart({ data }: BudgetVsSpendingChartPro
   }
 
   return (
-    <ChartContainer config={chartConfig} className="max-h-[300px] w-full">
+    <ChartContainer config={chartConfig} className="h-[300px] w-full">
       <BarChart
         accessibilityLayer
         data={chartData}
         layout="vertical"
         margin={{
           left: 10,
-          right: 10,
+          right: 20,
+          top: 10,
+          bottom: 10,
         }}
       >
         <CartesianGrid horizontal={false} />
@@ -69,6 +71,7 @@ export default function BudgetVsSpendingChart({ data }: BudgetVsSpendingChartPro
           axisLine={false}
           tickFormatter={(value) => value.slice(0, 15)}
           className="text-xs"
+          width={80}
         />
         <XAxis dataKey="budget" type="number" hide />
         <ChartTooltip

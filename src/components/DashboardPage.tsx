@@ -33,7 +33,7 @@ import FinancialChatbot from './FinancialChatbot';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from './ui/badge';
 import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
@@ -475,13 +475,13 @@ export default function DashboardPage({
                         <CardDescription>Perbandingan pengeluaran Anda dalam rentang waktu yang berbeda.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-2 gap-4 text-center">
-                        <div className="rounded-lg bg-secondary p-4">
-                            <p className="text-sm text-muted-foreground">7 Hari Terakhir</p>
-                            <p className="text-xl sm:text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last7Days)}</p>
+                         <div className="rounded-lg bg-secondary p-4">
+                            <p className="text-xs sm:text-sm text-muted-foreground">7 Hari Terakhir</p>
+                            <p className="text-lg sm:text-2xl font-bold font-headline whitespace-nowrap overflow-hidden text-ellipsis">{formatCurrency(weeklySpending.last7Days)}</p>
                         </div>
                         <div className="rounded-lg bg-secondary p-4">
-                            <p className="text-sm text-muted-foreground">30 Hari Terakhir</p>
-                            <p className="text-xl sm:text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last30Days)}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">30 Hari Terakhir</p>
+                            <p className="text-lg sm:text-2xl font-bold font-headline whitespace-nowrap overflow-hidden text-ellipsis">{formatCurrency(weeklySpending.last30Days)}</p>
                         </div>
                     </CardContent>
                     <CardFooter>
@@ -495,7 +495,7 @@ export default function DashboardPage({
                         <CardTitle>Anggaran vs Realisasi</CardTitle>
                         <CardDescription>Perbandingan alokasi dan realisasi per kategori.</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-[300px] w-full pl-0">
+                    <CardContent>
                         <BudgetVsSpendingChart data={expensesByCategory} />
                     </CardContent>
                 </Card>
