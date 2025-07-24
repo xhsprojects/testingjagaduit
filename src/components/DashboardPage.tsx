@@ -14,7 +14,7 @@ import { AddExpenseForm } from './AddExpenseForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { DateRange } from 'react-day-picker';
 import { DateRangePicker } from './DateRangePicker';
-import { startOfMonth, endOfMonth, format, endOfDay } from 'date-fns';
+import { startOfMonth, endOfMonth, format, endOfDay, subDays } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -162,13 +162,14 @@ export default function DashboardPage({
 
   const categoryMap = React.useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
 
-  const filterByDateRange = (items: (Expense | Income)[]) => {
+  const filterByDateRange = (items: (Expense | Income)[], customDateRange?: DateRange) => {
+     const range = customDateRange || date;
      return items.filter(item => {
-      if (!date?.from) return true;
+      if (!range?.from) return true;
       const itemDate = new Date(item.date);
-      const from = new Date(date.from);
+      const from = new Date(range.from);
       from.setHours(0, 0, 0, 0); // Start of day
-      const to = date.to ? new Date(date.to) : from;
+      const to = range.to ? new Date(range.to) : from;
       to.setHours(23, 59, 59, 999); // End of day
       return itemDate >= from && itemDate <= to;
     });
@@ -406,8 +407,16 @@ export default function DashboardPage({
   const cashflowChartData = [{
     name: "Arus Kas",
     Pemasukan: totalFilteredIncomes,
-    Pengeluaran: totalFilteredExpenses,
+    Pengeluaran: totalFilteredExpenses - totalSavings, // Exclude savings from expenses
+    Tabungan: totalSavings,
   }];
+
+  const weeklySpending = React.useMemo(() => {
+    const today = new Date();
+    const last7Days = filterByDateRange(expenses, {from: subDays(today, 6), to: today}).reduce((sum, e) => sum + e.amount, 0);
+    const last30Days = filterByDateRange(expenses, {from: subDays(today, 29), to: today}).reduce((sum, e) => sum + e.amount, 0);
+    return { last7Days, last30Days };
+  }, [expenses]);
 
   return (
     <>
@@ -432,7 +441,7 @@ export default function DashboardPage({
               <Card>
                   <CardHeader>
                       <CardTitle>Arus Kas</CardTitle>
-                      <CardDescription>Perbandingan pemasukan vs. pengeluaran.</CardDescription>
+                      <CardDescription>Perbandingan pemasukan, pengeluaran, dan tabungan pada periode terpilih.</CardDescription>
                   </CardHeader>
                   <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
@@ -444,19 +453,50 @@ export default function DashboardPage({
                               <Legend />
                               <Bar dataKey="Pemasukan" fill="#4CAF50" radius={[4,4,0,0]} />
                               <Bar dataKey="Pengeluaran" fill="#F44336" radius={[4,4,0,0]}/>
+                              <Bar dataKey="Tabungan" fill="#2196F3" radius={[4,4,0,0]}/>
                           </BarChart>
                       </ResponsiveContainer>
                   </CardContent>
               </Card>
               <Card>
-                  <CardHeader>
-                      <CardTitle>Distribusi Pengeluaran</CardTitle>
-                      <CardDescription>Berdasarkan kategori pada periode terpilih.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <BudgetChart data={expensesByCategory} />
-                  </CardContent>
+                <CardHeader>
+                    <CardTitle>Distribusi Pengeluaran</CardTitle>
+                    <CardDescription>Kategori pengeluaran terbesar pada periode ini.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <BudgetChart data={expensesByCategory} />
+                </CardContent>
               </Card>
+               <Card>
+                  <CardHeader>
+                      <CardTitle>Analisis Tren Pengeluaran</CardTitle>
+                      <CardDescription>Perbandingan pengeluaran Anda dalam rentang waktu yang berbeda.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-2 gap-4 text-center">
+                        <div className="rounded-lg bg-secondary p-4">
+                            <p className="text-sm text-muted-foreground">7 Hari Terakhir</p>
+                            <p className="text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last7Days)}</p>
+                        </div>
+                        <div className="rounded-lg bg-secondary p-4">
+                            <p className="text-sm text-muted-foreground">30 Hari Terakhir</p>
+                            <p className="text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last30Days)}</p>
+                        </div>
+                  </CardContent>
+                   <CardFooter>
+                      <p className="text-xs text-muted-foreground">
+                        * Data pengeluaran diambil relatif dari hari ini, bukan periode yang dipilih di atas.
+                      </p>
+                  </CardFooter>
+              </Card>
+               <Card>
+                    <CardHeader>
+                        <CardTitle>Anggaran vs Realisasi</CardTitle>
+                        <CardDescription>Perbandingan alokasi dan realisasi per kategori.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[300px]">
+                        <BudgetVsSpendingChart data={expensesByCategory} />
+                    </CardContent>
+                </Card>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
               <div className="lg:col-span-4">
