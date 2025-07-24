@@ -437,42 +437,44 @@ export default function DashboardPage({
             periodLabel={periodLabel}
             onReset={() => setIsResetConfirmOpen(true)}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-              <Card>
-                  <CardHeader>
-                      <CardTitle>Arus Kas</CardTitle>
-                      <CardDescription>Perbandingan pemasukan, pengeluaran, dan tabungan pada periode terpilih.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={cashflowChartData}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="name" />
-                              <YAxis tickFormatter={(value) => formatCurrency(value).replace('Rp\u00A0','')} />
-                              <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                              <Legend />
-                              <Bar dataKey="Pemasukan" fill="#4CAF50" radius={[4,4,0,0]} />
-                              <Bar dataKey="Pengeluaran" fill="#F44336" radius={[4,4,0,0]}/>
-                              <Bar dataKey="Tabungan" fill="#2196F3" radius={[4,4,0,0]}/>
-                          </BarChart>
-                      </ResponsiveContainer>
-                  </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                    <CardTitle>Distribusi Pengeluaran</CardTitle>
-                    <CardDescription>Kategori pengeluaran terbesar pada periode ini.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <BudgetChart data={expensesByCategory} />
-                </CardContent>
-              </Card>
-               <Card>
-                  <CardHeader>
-                      <CardTitle>Analisis Tren Pengeluaran</CardTitle>
-                      <CardDescription>Perbandingan pengeluaran Anda dalam rentang waktu yang berbeda.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-2 gap-4 text-center">
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Arus Kas</CardTitle>
+                        <CardDescription>Perbandingan pemasukan, pengeluaran, dan tabungan pada periode terpilih.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={cashflowChartData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis tickFormatter={(value) => formatCurrency(value).replace('Rp\u00A0','')} />
+                                <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                                <Legend />
+                                <Bar dataKey="Pemasukan" fill="#4CAF50" radius={[4,4,0,0]} />
+                                <Bar dataKey="Pengeluaran" fill="#F44336" radius={[4,4,0,0]}/>
+                                <Bar dataKey="Tabungan" fill="#2196F3" radius={[4,4,0,0]}/>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Distribusi Pengeluaran</CardTitle>
+                        <CardDescription>Kategori pengeluaran terbesar pada periode ini.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <BudgetChart data={expensesByCategory} />
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Analisis Tren Pengeluaran</CardTitle>
+                        <CardDescription>Perbandingan pengeluaran Anda dalam rentang waktu yang berbeda.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4 text-center">
                         <div className="rounded-lg bg-secondary p-4">
                             <p className="text-sm text-muted-foreground">7 Hari Terakhir</p>
                             <p className="text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last7Days)}</p>
@@ -481,14 +483,14 @@ export default function DashboardPage({
                             <p className="text-sm text-muted-foreground">30 Hari Terakhir</p>
                             <p className="text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last30Days)}</p>
                         </div>
-                  </CardContent>
-                   <CardFooter>
-                      <p className="text-xs text-muted-foreground">
-                        * Data pengeluaran diambil relatif dari hari ini, bukan periode yang dipilih di atas.
-                      </p>
-                  </CardFooter>
-              </Card>
-               <Card>
+                    </CardContent>
+                    <CardFooter>
+                        <p className="text-xs text-muted-foreground">
+                            * Data pengeluaran diambil relatif dari hari ini, bukan periode yang dipilih di atas.
+                        </p>
+                    </CardFooter>
+                </Card>
+                <Card>
                     <CardHeader>
                         <CardTitle>Anggaran vs Realisasi</CardTitle>
                         <CardDescription>Perbandingan alokasi dan realisasi per kategori.</CardDescription>
@@ -497,7 +499,7 @@ export default function DashboardPage({
                         <BudgetVsSpendingChart data={expensesByCategory} />
                     </CardContent>
                 </Card>
-          </div>
+            </div>
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
               <div className="lg:col-span-4">
                   <Tabs defaultValue="expenses" className="w-full">
