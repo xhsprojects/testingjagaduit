@@ -440,6 +440,15 @@ export default function DashboardPage({
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                 <Card>
                     <CardHeader>
+                        <CardTitle>Distribusi Pengeluaran</CardTitle>
+                        <CardDescription>Kategori pengeluaran terbesar pada periode ini.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <BudgetChart data={expensesByCategory} />
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
                         <CardTitle>Arus Kas</CardTitle>
                         <CardDescription>Perbandingan pemasukan, pengeluaran, dan tabungan pada periode terpilih.</CardDescription>
                     </CardHeader>
@@ -458,15 +467,6 @@ export default function DashboardPage({
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Distribusi Pengeluaran</CardTitle>
-                        <CardDescription>Kategori pengeluaran terbesar pada periode ini.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <BudgetChart data={expensesByCategory} />
-                    </CardContent>
-                </Card>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                 <Card>
@@ -477,11 +477,11 @@ export default function DashboardPage({
                     <CardContent className="grid grid-cols-2 gap-4 text-center">
                         <div className="rounded-lg bg-secondary p-4">
                             <p className="text-sm text-muted-foreground">7 Hari Terakhir</p>
-                            <p className="text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last7Days)}</p>
+                            <p className="text-xl sm:text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last7Days)}</p>
                         </div>
                         <div className="rounded-lg bg-secondary p-4">
                             <p className="text-sm text-muted-foreground">30 Hari Terakhir</p>
-                            <p className="text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last30Days)}</p>
+                            <p className="text-xl sm:text-2xl font-bold font-headline">{formatCurrency(weeklySpending.last30Days)}</p>
                         </div>
                     </CardContent>
                     <CardFooter>
@@ -495,7 +495,7 @@ export default function DashboardPage({
                         <CardTitle>Anggaran vs Realisasi</CardTitle>
                         <CardDescription>Perbandingan alokasi dan realisasi per kategori.</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-[300px]">
+                    <CardContent className="h-[300px] w-full pl-0">
                         <BudgetVsSpendingChart data={expensesByCategory} />
                     </CardContent>
                 </Card>
