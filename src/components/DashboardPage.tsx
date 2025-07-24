@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -38,6 +39,7 @@ import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
 import BudgetVsSpendingChart from '@/components/charts/BudgetVsSpendingChart';
 import { Separator } from './ui/separator';
+import { BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, ResponsiveContainer } from 'recharts';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -401,6 +403,12 @@ export default function DashboardPage({
   const detailWallet = expenseDetail?.walletId ? wallets.find(w => w.id === expenseDetail.walletId) : null;
   const DetailCategoryIcon = detailCategory?.icon ? iconMap[detailCategory.icon] : null;
 
+  const cashflowChartData = [{
+    name: "Arus Kas",
+    Pemasukan: totalFilteredIncomes,
+    Pengeluaran: totalFilteredExpenses,
+  }];
+
   return (
     <>
       <div className="flex min-h-screen w-full flex-col">
@@ -423,6 +431,25 @@ export default function DashboardPage({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
               <Card>
                   <CardHeader>
+                      <CardTitle>Arus Kas</CardTitle>
+                      <CardDescription>Perbandingan pemasukan vs. pengeluaran.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={cashflowChartData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="name" />
+                              <YAxis tickFormatter={(value) => formatCurrency(value).replace('Rp\u00A0','')} />
+                              <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                              <Legend />
+                              <Bar dataKey="Pemasukan" fill="#4CAF50" radius={[4,4,0,0]} />
+                              <Bar dataKey="Pengeluaran" fill="#F44336" radius={[4,4,0,0]}/>
+                          </BarChart>
+                      </ResponsiveContainer>
+                  </CardContent>
+              </Card>
+              <Card>
+                  <CardHeader>
                       <CardTitle>Distribusi Pengeluaran</CardTitle>
                       <CardDescription>Berdasarkan kategori pada periode terpilih.</CardDescription>
                   </CardHeader>
@@ -430,7 +457,6 @@ export default function DashboardPage({
                       <BudgetChart data={expensesByCategory} />
                   </CardContent>
               </Card>
-              <BudgetVsSpendingChart data={expensesByCategory} />
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
               <div className="lg:col-span-4">
