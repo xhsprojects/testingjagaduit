@@ -404,20 +404,6 @@ export default function DashboardPage({
   const detailWallet = expenseDetail?.walletId ? wallets.find(w => w.id === expenseDetail.walletId) : null;
   const DetailCategoryIcon = detailCategory?.icon ? iconMap[detailCategory.icon] : null;
 
-  const cashflowChartData = [{
-    name: "Arus Kas",
-    Pemasukan: totalFilteredIncomes,
-    Pengeluaran: totalFilteredExpenses - totalSavings, // Exclude savings from expenses
-    Tabungan: totalSavings,
-  }];
-
-  const weeklySpending = React.useMemo(() => {
-    const today = new Date();
-    const last7Days = filterByDateRange(expenses, {from: subDays(today, 6), to: today}).reduce((sum, e) => sum + e.amount, 0);
-    const last30Days = filterByDateRange(expenses, {from: subDays(today, 29), to: today}).reduce((sum, e) => sum + e.amount, 0);
-    return { last7Days, last30Days };
-  }, [expenses]);
-
   return (
     <>
       <div className="flex min-h-screen w-full flex-col">
@@ -449,53 +435,10 @@ export default function DashboardPage({
                 </Card>
                 <Card>
                     <CardHeader>
-                        <CardTitle>Arus Kas</CardTitle>
-                        <CardDescription>Perbandingan pemasukan, pengeluaran, dan tabungan pada periode terpilih.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={cashflowChartData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis tickFormatter={(value) => formatCurrency(value).replace('Rp\u00A0','')} />
-                                <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                                <Legend />
-                                <Bar dataKey="Pemasukan" fill="#4CAF50" radius={[4,4,0,0]} />
-                                <Bar dataKey="Pengeluaran" fill="#F44336" radius={[4,4,0,0]}/>
-                                <Bar dataKey="Tabungan" fill="#2196F3" radius={[4,4,0,0]}/>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Analisis Tren Pengeluaran</CardTitle>
-                        <CardDescription>Perbandingan pengeluaran Anda dalam rentang waktu yang berbeda.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-2 gap-4 text-center">
-                         <div className="rounded-lg bg-secondary p-4">
-                            <p className="text-xs sm:text-sm text-muted-foreground">7 Hari Terakhir</p>
-                            <p className="text-lg sm:text-2xl font-bold font-headline whitespace-nowrap overflow-hidden text-ellipsis">{formatCurrency(weeklySpending.last7Days)}</p>
-                        </div>
-                        <div className="rounded-lg bg-secondary p-4">
-                            <p className="text-xs sm:text-sm text-muted-foreground">30 Hari Terakhir</p>
-                            <p className="text-lg sm:text-2xl font-bold font-headline whitespace-nowrap overflow-hidden text-ellipsis">{formatCurrency(weeklySpending.last30Days)}</p>
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        <p className="text-xs text-muted-foreground">
-                            * Data pengeluaran diambil relatif dari hari ini, bukan periode yang dipilih di atas.
-                        </p>
-                    </CardFooter>
-                </Card>
-                <Card>
-                    <CardHeader>
                         <CardTitle>Anggaran vs Realisasi</CardTitle>
                         <CardDescription>Perbandingan alokasi dan realisasi per kategori.</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-2">
                         <BudgetVsSpendingChart data={expensesByCategory} />
                     </CardContent>
                 </Card>
