@@ -41,6 +41,13 @@ import {
   User,
   BookText,
   Users,
+  LayoutGrid,
+  PlusCircle,
+  Bot,
+  ScanLine,
+  BarChart3,
+  Users2,
+  BookOpen,
 } from 'lucide-react';
 
 export const iconMap = {
@@ -85,6 +92,14 @@ export const iconMap = {
   User,
   BookText,
   Users,
+  LayoutGrid,
+  PlusCircle,
+  Bot,
+  ScanLine,
+  BarChart3,
+  Users2,
+  BookOpen,
+  HandCoins,
 };
 
 export type IconName = keyof typeof iconMap;
