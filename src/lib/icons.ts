@@ -48,6 +48,7 @@ import {
   BarChart3,
   Users2,
   BookOpen,
+  HandCoins,
 } from 'lucide-react';
 
 export const iconMap = {
