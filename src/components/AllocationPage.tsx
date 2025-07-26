@@ -4,10 +4,10 @@
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { iconMap, IconName, iconNames } from '@/lib/icons';
+import { iconMap, IconName } from '@/lib/icons';
 import { presetCategories, presetWallets } from '@/lib/data';
 import type { Category, Wallet } from '@/lib/types';
-import { Check, Edit, Loader2, Sparkles, Trash2, Wallet as WalletIcon, CheckCircle, ArrowRight, Banknote, Landmark, CreditCard, ChevronRight } from 'lucide-react';
+import { Check, Loader2, Sparkles, Trash2, Wallet as WalletIcon, ChevronRight, Banknote, Landmark, CreditCard, Edit } from 'lucide-react';
 import { Input } from './ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -160,10 +160,10 @@ export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) 
                                         </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {iconNames.map(iconName => (
+                                        {Object.keys(iconMap).map(iconName => (
                                             <SelectItem key={iconName} value={iconName}>
                                                 <div className="flex items-center gap-2">
-                                                    {React.createElement(iconMap[iconName], { className: 'h-4 w-4' })}
+                                                    {React.createElement(iconMap[iconName as IconName], { className: 'h-4 w-4' })}
                                                     <span>{iconName}</span>
                                                 </div>
                                             </SelectItem>
