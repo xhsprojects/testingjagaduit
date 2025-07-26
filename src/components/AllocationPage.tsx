@@ -7,37 +7,90 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { iconMap } from '@/lib/icons';
 import { presetCategories, presetWallets } from '@/lib/data';
 import type { Category, Wallet } from '@/lib/types';
-import { Check, Edit, Loader2, Sparkles, Trash2, Wallet as WalletIcon } from 'lucide-react';
+import { Check, Edit, Loader2, Sparkles, Trash2, Wallet as WalletIcon, CheckCircle, ArrowRight } from 'lucide-react';
 import { Input } from './ui/input';
 import { useAuth } from '@/context/AuthContext';
+import { cn } from '@/lib/utils';
+import { Badge } from './ui/badge';
 
 interface AllocationPageProps {
   onSave: (data: { categories: Category[], wallets: Wallet[] }) => void;
   onSkip: () => void;
 }
 
+type Step = 'wallets' | 'categories' | 'done';
+
 export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) {
   const { user } = useAuth();
+  const [step, setStep] = React.useState<Step>('wallets');
+  
   const [categories, setCategories] = React.useState<Category[]>(
     presetCategories.map((cat, index) => ({
-        ...cat,
-        id: `preset-cat-${index}`,
+      ...cat,
+      id: `preset-cat-${index}`,
     }))
   );
-  const [wallets, setWallets] = React.useState<Omit<Wallet, 'id' | 'initialBalance'>[]>(presetWallets);
+  
+  const [wallets, setWallets] = React.useState<Wallet[]>(
+    presetWallets.map(w => ({
+      ...w,
+      id: `wallet-preset-${w.name.toLowerCase().replace(/\s/g, '-')}`,
+      initialBalance: 0
+    }))
+  );
+
   const [isSaving, setIsSaving] = React.useState(false);
+
+  const handleWalletNameChange = (id: string, newName: string) => {
+    setWallets(currentWallets => currentWallets.map(w => w.id === id ? { ...w, name: newName } : w));
+  };
+
+  const handleCategoryNameChange = (id: string, newName: string) => {
+    setCategories(currentCategories => currentCategories.map(c => c.id === id ? { ...c, name: newName } : c));
+  };
+  
+  const handleRemoveWallet = (id: string) => {
+      setWallets(current => current.filter(w => w.id !== id));
+  };
+
+  const handleAddWallet = () => {
+      const newId = `wallet-new-${Date.now()}`;
+      setWallets(current => [...current, { name: 'Dompet Baru', icon: 'Wallet', id: newId, initialBalance: 0 }]);
+  };
+
+  const handleRemoveCategory = (id: string) => {
+      setCategories(current => current.filter(c => c.id !== id));
+  };
+  
+  const handleAddCategory = () => {
+      const newId = `cat-new-${Date.now()}`;
+      setCategories(current => [...current, { name: 'Kategori Baru', icon: 'ShoppingBasket', id: newId }]);
+  };
+
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Create full wallet objects with IDs and zero balance
-    const finalWallets: Wallet[] = wallets.map(w => ({
-        ...w,
-        id: `wallet-preset-${w.name.toLowerCase().replace(/\s/g, '-')}`,
-        initialBalance: 0
-    }));
-    await onSave({ categories, wallets: finalWallets });
+    await onSave({ categories, wallets });
     setIsSaving(false);
   };
+  
+  const StepIndicator = () => (
+    <div className="flex justify-center items-center gap-2 mb-4">
+        <div className={cn("flex items-center gap-2 text-sm", step === 'wallets' ? 'font-bold text-primary' : 'text-muted-foreground')}>
+            <div className={cn("w-6 h-6 rounded-full flex items-center justify-center border-2", step === 'wallets' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-secondary-foreground')}>
+                1
+            </div>
+            <span>Atur Dompet</span>
+        </div>
+        <div className="h-0.5 w-8 bg-border"></div>
+         <div className={cn("flex items-center gap-2 text-sm", step === 'categories' ? 'font-bold text-primary' : 'text-muted-foreground')}>
+            <div className={cn("w-6 h-6 rounded-full flex items-center justify-center border-2", step === 'categories' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary border-secondary-foreground')}>
+                2
+            </div>
+            <span>Atur Kategori</span>
+        </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
@@ -49,51 +102,68 @@ export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) 
             <CardTitle className="text-2xl font-headline">Selamat Datang, {user?.displayName?.split(' ')[0] || 'Pengguna'}!</CardTitle>
             <CardDescription>Mari siapkan Jaga Duit untuk pertama kali. Anda bisa mengubah ini nanti di Pengaturan.</CardDescription>
         </CardHeader>
+        
+        <StepIndicator/>
+
         <CardContent className="space-y-8">
-            <div className="space-y-4">
-                <h3 className="font-semibold text-lg flex items-center gap-2"><WalletIcon className="h-5 w-5 text-primary"/> Langkah 1: Atur Dompet Anda</h3>
-                <p className="text-sm text-muted-foreground">Ini adalah sumber dana Anda, seperti rekening bank atau dompet tunai. Saldo awal bisa diatur nanti.</p>
-                <div className="space-y-2">
-                    {wallets.map((wallet, index) => (
-                        <div key={index} className="flex items-center gap-2 p-2 border rounded-md bg-background">
-                           <span className="p-2 bg-secondary rounded-md">
-                             {React.createElement(iconMap[wallet.icon], { className: 'h-5 w-5' })}
-                           </span>
-                           <Input className="flex-grow" value={wallet.name} readOnly />
-                           <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setWallets(w => w.filter((_, i) => i !== index))}>
-                               <Trash2 className="h-4 w-4"/>
-                           </Button>
-                        </div>
-                    ))}
-                    <Button variant="outline" className="w-full" onClick={() => setWallets(w => [...w, {name: 'Dompet Baru', icon: 'Wallet'}])}>Tambah Dompet</Button>
+            {step === 'wallets' && (
+                <div className="space-y-4 animate-in fade-in duration-300">
+                    <h3 className="font-semibold text-lg flex items-center gap-2"><WalletIcon className="h-5 w-5 text-primary"/> Langkah 1: Atur Dompet Anda</h3>
+                    <p className="text-sm text-muted-foreground">Ini adalah sumber dana Anda, seperti rekening bank atau dompet tunai. Saldo awal bisa diatur nanti.</p>
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                        {wallets.map((wallet) => (
+                            <div key={wallet.id} className="flex items-center gap-2 p-2 border rounded-md bg-background">
+                               <span className="p-2 bg-secondary rounded-md">
+                                 {React.createElement(iconMap[wallet.icon], { className: 'h-5 w-5' })}
+                               </span>
+                               <Input className="flex-grow" value={wallet.name} onChange={(e) => handleWalletNameChange(wallet.id, e.target.value)} />
+                               <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveWallet(wallet.id)}>
+                                   <Trash2 className="h-4 w-4"/>
+                               </Button>
+                            </div>
+                        ))}
+                    </div>
+                    <Button variant="outline" className="w-full" onClick={handleAddWallet}>Tambah Dompet</Button>
                 </div>
-            </div>
-            <div className="space-y-4">
-                <h3 className="font-semibold text-lg flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Langkah 2: Konfirmasi Kategori</h3>
-                <p className="text-sm text-muted-foreground">Kami telah menyiapkan beberapa kategori umum untuk Anda. Anda bisa menghapus yang tidak perlu.</p>
-                 <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                    {categories.map((cat, index) => (
-                         <div key={index} className="flex items-center gap-2 p-2 border rounded-md bg-background">
-                           <span className="p-2 bg-secondary rounded-md">
-                             {React.createElement(iconMap[cat.icon], { className: 'h-5 w-5' })}
-                           </span>
-                           <Input className="flex-grow" value={cat.name} readOnly />
-                           <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setCategories(c => c.filter((_, i) => i !== index))} disabled={cat.isEssential}>
-                               <Trash2 className="h-4 w-4"/>
-                           </Button>
-                        </div>
-                    ))}
+            )}
+            {step === 'categories' && (
+                 <div className="space-y-4 animate-in fade-in duration-300">
+                    <h3 className="font-semibold text-lg flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Langkah 2: Konfirmasi Kategori</h3>
+                    <p className="text-sm text-muted-foreground">Kami telah menyiapkan beberapa kategori umum. Anda bisa mengubah nama, menambah, atau menghapus yang tidak perlu.</p>
+                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                        {categories.map((cat) => (
+                             <div key={cat.id} className="flex items-center gap-2 p-2 border rounded-md bg-background">
+                               <span className="p-2 bg-secondary rounded-md">
+                                 {React.createElement(iconMap[cat.icon], { className: 'h-5 w-5' })}
+                               </span>
+                               <Input className="flex-grow" value={cat.name} onChange={(e) => handleCategoryNameChange(cat.id, e.target.value)} disabled={cat.isEssential} />
+                               <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveCategory(cat.id)} disabled={cat.isEssential}>
+                                   <Trash2 className="h-4 w-4"/>
+                               </Button>
+                               {cat.isEssential && <Badge variant="secondary">Wajib</Badge>}
+                            </div>
+                        ))}
+                    </div>
+                     <Button variant="outline" className="w-full" onClick={handleAddCategory}>Tambah Kategori</Button>
                 </div>
-            </div>
+            )}
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline" className="w-full sm:w-auto" onClick={onSkip}>Atur Nanti Saja</Button>
-            <Button className="w-full sm:w-auto flex-grow" disabled={isSaving} onClick={handleSave}>
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4"/>}
-              Simpan & Lanjutkan
-            </Button>
+            {step === 'wallets' && (
+                 <Button className="w-full sm:w-auto flex-grow" onClick={() => setStep('categories')}>
+                     Lanjutkan <ArrowRight className="ml-2 h-4 w-4"/>
+                 </Button>
+            )}
+             {step === 'categories' && (
+                <Button className="w-full sm:w-auto flex-grow" disabled={isSaving} onClick={handleSave}>
+                  {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4"/>}
+                  Simpan & Selesai
+                </Button>
+            )}
         </CardFooter>
       </Card>
     </div>
   );
 }
+

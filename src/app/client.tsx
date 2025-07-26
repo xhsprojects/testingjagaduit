@@ -52,7 +52,7 @@ export default function ClientPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [isDataSetup, setIsDataSetup] = React.useState(true);
+  const [isDataSetup, setIsDataSetup] = React.useState<boolean | undefined>(undefined);
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [budgetPeriod, setBudgetPeriod] = React.useState<BudgetPeriod | null>(null);
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
@@ -171,17 +171,19 @@ export default function ClientPage() {
       setIsLoading(true);
       try {
         const categoriesSnapshot = await getDocs(collection(db, 'users', uid, 'categories'));
-        const walletsSnapshot = await getDocs(collection(db, 'users', uid, 'wallets'));
-
-        if (categoriesSnapshot.empty || walletsSnapshot.empty) {
+        
+        if (categoriesSnapshot.empty) {
             setIsDataSetup(false);
             setIsLoading(false);
             return;
         }
 
+        setIsDataSetup(true);
+
         const cats = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Category);
         setCategories(cats);
         
+        const walletsSnapshot = await getDocs(collection(db, 'users', uid, 'wallets'));
         const walletsData = walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Wallet);
         setWallets(walletsData);
         
@@ -232,7 +234,6 @@ export default function ClientPage() {
         const recurringSnapshot = await getDocs(recurringQuery);
         setRecurringTxs(recurringSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as RecurringTransaction));
 
-        setIsDataSetup(true);
 
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
@@ -282,7 +283,7 @@ export default function ClientPage() {
         // Save Wallets
         data.wallets.forEach(wallet => {
             const walletRef = doc(db, 'users', user.uid, 'wallets', wallet.id);
-            batch.set(walletRef, { name: wallet.name, icon: wallet.icon, initialBalance: 0 });
+            batch.set(walletRef, { name: wallet.name, icon: wallet.icon, initialBalance: wallet.initialBalance });
         });
         
         // Create initial budget period
@@ -509,7 +510,7 @@ export default function ClientPage() {
     return budgetPeriod?.categoryBudgets.reduce((sum, cb) => sum + cb.budget, 0) || 0;
   }, [budgetPeriod]);
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || isDataSetup === undefined) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-secondary">
         <div className="text-lg font-semibold text-primary">Memuat Aplikasi...</div>
