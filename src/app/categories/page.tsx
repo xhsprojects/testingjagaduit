@@ -8,10 +8,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
 import type { Category } from '@/lib/types';
-import { collection, doc, writeBatch, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { collection, doc, writeBatch, onSnapshot, deleteDoc, getDoc } from 'firebase/firestore';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ArrowLeft, Loader2, PlusCircle, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { AddCategoryForm } from './AddCategoryForm';
 
 export default function CategoriesPage() {
