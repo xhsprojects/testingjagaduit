@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { iconMap, IconName } from '@/lib/icons';
 import { presetCategories, presetWallets } from '@/lib/data';
 import type { Category, Wallet } from '@/lib/types';
-import { Check, Loader2, Sparkles, Trash2, Wallet as WalletIcon, ChevronRight, Banknote, Landmark, CreditCard, Edit } from 'lucide-react';
+import { Check, Loader2, Sparkles, Trash2, Wallet as WalletIcon, ChevronRight, Banknote, Landmark, Edit, CreditCard } from 'lucide-react';
 import { Input } from './ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { cn, formatCurrency } from '@/lib/utils';
