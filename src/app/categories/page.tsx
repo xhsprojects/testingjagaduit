@@ -41,13 +41,19 @@ export default function CategoriesPage() {
 
     const handleSaveCategory = async (categoryData: Omit<Category, 'id'> & { id?: string }) => {
         if (!user) return;
-        const id = categoryData.id || `cat-user-${Date.now()}`;
         const isEditing = !!categoryData.id;
+        const id = categoryData.id || `cat-user-${Date.now()}`;
         
         try {
             const batch = writeBatch(db);
             const categoryRef = doc(db, 'users', user.uid, 'categories', id);
-            batch.set(categoryRef, { name: categoryData.name, icon: categoryData.icon, isEssential: categoryData.isEssential, isDebtCategory: categoryData.isDebtCategory }, { merge: true });
+            
+            // When editing, only update name and icon to preserve essential fields
+            const dataToSave = isEditing
+                ? { name: categoryData.name, icon: categoryData.icon }
+                : { ...categoryData, id, isEssential: false, isDebtCategory: false };
+
+            batch.set(categoryRef, dataToSave, { merge: true });
 
             if (!isEditing) {
                 const budgetRef = doc(db, 'users', user.uid, 'budgets', 'current');
@@ -149,7 +155,7 @@ export default function CategoriesPage() {
                 categoryToEdit={editingCategory}
             />
             
-            <AlertDialog open={!!categoryToDelete} onOpenChange={setCategoryToDelete}>
+            <AlertDialog open={!!categoryToDelete} onOpenChange={(open) => !open && setCategoryToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Hapus Kategori "{categoryToDelete?.name}"?</AlertDialogTitle>

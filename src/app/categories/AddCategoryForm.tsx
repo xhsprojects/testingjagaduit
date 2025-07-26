@@ -16,8 +16,6 @@ import type { Category } from '@/lib/types';
 const formSchema = z.object({
   name: z.string().min(1, "Nama kategori tidak boleh kosong."),
   icon: z.enum(iconNames, { required_error: "Ikon harus dipilih." }),
-  isEssential: z.boolean().optional(),
-  isDebtCategory: z.boolean().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -32,7 +30,7 @@ interface AddCategoryFormProps {
 export function AddCategoryForm({ isOpen, onOpenChange, onSubmit, categoryToEdit }: AddCategoryFormProps) {
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
-        defaultValues: { name: '', icon: 'ShoppingBasket', isEssential: false, isDebtCategory: false },
+        defaultValues: { name: '', icon: 'ShoppingBasket' },
     });
     
     const isEditing = !!categoryToEdit;
@@ -40,15 +38,24 @@ export function AddCategoryForm({ isOpen, onOpenChange, onSubmit, categoryToEdit
     React.useEffect(() => {
         if (isOpen) {
             if (categoryToEdit) {
-                form.reset(categoryToEdit);
+                form.reset({
+                    name: categoryToEdit.name,
+                    icon: categoryToEdit.icon,
+                });
             } else {
-                form.reset({ name: '', icon: 'ShoppingBasket', isEssential: false, isDebtCategory: false });
+                form.reset({ name: '', icon: 'ShoppingBasket' });
             }
         }
     }, [isOpen, categoryToEdit, form]);
     
     const handleSubmit = (data: FormValues) => {
-        onSubmit({ ...data, id: categoryToEdit?.id });
+        // Construct the data to be submitted, keeping essential fields from the original object
+        const submissionData = {
+            ...categoryToEdit, // Start with existing data to preserve isEssential etc.
+            ...data, // Overwrite name and icon with form data
+            id: categoryToEdit?.id,
+        };
+        onSubmit(submissionData);
     };
 
     return (
@@ -120,4 +127,3 @@ export function AddCategoryForm({ isOpen, onOpenChange, onSubmit, categoryToEdit
         </Dialog>
     );
 }
-
