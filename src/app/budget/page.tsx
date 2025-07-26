@@ -66,50 +66,69 @@ export default function BudgetPage() {
     React.useEffect(() => {
         if (!user) return;
         
-        let unsubCategories: () => void;
-        let unsubBudget: () => void;
-
         const loadData = async () => {
             setIsLoadingData(true);
             try {
+                // 1. Fetch master categories first. This is the source of truth.
                 const categoriesQuery = collection(db, 'users', user.uid, 'categories');
-                unsubCategories = onSnapshot(categoriesQuery, (snapshot) => {
-                    const cats = snapshot.docs.map(d => ({id: d.id, ...d.data()}) as Category);
-                    setCategories(cats);
+                const categoriesSnapshot = await getDocs(categoriesQuery);
+                const masterCategories = categoriesSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as Category);
+                setCategories(masterCategories);
 
-                    const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
-                    unsubBudget = onSnapshot(budgetDocRef, (docSnap) => {
-                        if (docSnap.exists()) {
-                            const data = docSnap.data();
-                            const categoryBudgets = data.categoryBudgets || [];
-                            
-                            // Ensure form has a budget for every master category
-                            const formBudgets = cats.map(cat => {
-                                const existingBudget = categoryBudgets.find((b: BudgetCategory) => b.categoryId === cat.id);
-                                return {
-                                    categoryId: cat.id,
-                                    budget: existingBudget?.budget || 0,
-                                };
-                            });
-                            replace(formBudgets);
-                            setExpenses(data.expenses || []);
-                        }
-                        setIsLoadingData(false);
-                    });
+                // 2. Fetch or create the budget document.
+                const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
+                const budgetDocSnap = await getDoc(budgetDocRef);
+                
+                let categoryBudgets: BudgetCategory[] = [];
+                let existingExpenses: Expense[] = [];
+
+                if (budgetDocSnap.exists()) {
+                    const budgetData = budgetDocSnap.data();
+                    existingExpenses = budgetData.expenses || [];
+
+                    // Check if categoryBudgets field exists. If not, create it for backward compatibility.
+                    if (budgetData.categoryBudgets) {
+                        categoryBudgets = budgetData.categoryBudgets;
+                    } else {
+                        // Old account, categoryBudgets field is missing. Create it.
+                        categoryBudgets = masterCategories.map(cat => ({
+                            categoryId: cat.id,
+                            budget: 0, // Default to 0, user can set it up.
+                        }));
+                        // IMPORTANT: Update the document in Firestore so it exists for next time.
+                        await updateDoc(budgetDocRef, { categoryBudgets });
+                    }
+                } else {
+                    // This case should ideally be handled by the initial setup page, but as a fallback:
+                    categoryBudgets = masterCategories.map(cat => ({
+                        categoryId: cat.id,
+                        budget: 0,
+                    }));
+                }
+                
+                setExpenses(existingExpenses);
+
+                // 3. Ensure every master category has a corresponding entry in the form.
+                const formBudgets = masterCategories.map(cat => {
+                    const existingBudget = categoryBudgets.find(b => b.categoryId === cat.id);
+                    return {
+                        categoryId: cat.id,
+                        budget: existingBudget?.budget || 0,
+                    };
                 });
+                
+                replace(formBudgets);
+
             } catch (error) {
                 console.error("Error loading budget page data: ", error);
                 toast({title: "Gagal Memuat Data", variant: "destructive"});
+            } finally {
                 setIsLoadingData(false);
             }
         };
 
         loadData();
 
-        return () => {
-            unsubCategories?.();
-            unsubBudget?.();
-        };
     }, [user, replace, toast]);
   
     const categoryMap = React.useMemo(() => new Map(categories.map(c => [c.id, c])), [categories]);
