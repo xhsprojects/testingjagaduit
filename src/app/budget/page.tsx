@@ -17,7 +17,7 @@ import type { Category, Expense, Wallet as WalletType, Income, BudgetCategory } 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, getDoc, collection, writeBatch, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc, collection, writeBatch, updateDoc, getDocs } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
