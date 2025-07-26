@@ -202,11 +202,18 @@ export default function ClientPage() {
         let loadedBudget: BudgetPeriod;
 
         if (budgetDocSnap.exists()) {
-          const data = convertTimestamps(budgetDocSnap.data());
+          const data = convertTimestamps(budgetDocSnap.data()) as BudgetPeriod;
+           // Ensure categoryBudgets exists to prevent crashes.
+           if (!data.categoryBudgets) {
+              data.categoryBudgets = cats.map(c => ({ categoryId: c.id, budget: 0 }));
+              // Save it back if it's missing for this user
+              await updateDoc(budgetDocRef, { categoryBudgets: data.categoryBudgets });
+          }
           loadedBudget = data;
           currentExpenses = data.expenses || [];
           currentIncomes = data.incomes || [];
         } else {
+            // This case handles users who exist but have no budget document yet.
             const newBudgetPeriod: BudgetPeriod = {
                 categoryBudgets: cats.map(c => ({ categoryId: c.id, budget: 0 })),
                 expenses: [],
