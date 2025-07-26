@@ -79,9 +79,9 @@ ActionCard.displayName = "ActionCard";
 
 export default function DashboardPage({ 
   categories, 
-  expenses, 
+  expenses = [], 
   income,
-  incomes,
+  incomes = [],
   totalWalletBalance,
   savingGoals, 
   reminders,
@@ -164,7 +164,7 @@ export default function DashboardPage({
 
   const filterByDateRange = (items: (Expense | Income)[], customDateRange?: DateRange) => {
      const range = customDateRange || date;
-     return items.filter(item => {
+     return (items || []).filter(item => {
       if (!range?.from) return true;
       const itemDate = new Date(item.date);
       const from = new Date(range.from);
@@ -204,7 +204,7 @@ export default function DashboardPage({
   }, [date]);
 
   const totalFilteredExpenses = React.useMemo(() => filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0), [filteredExpenses]);
-  const totalFilteredIncomes = React.useMemo(() => filteredIncomes.reduce((sum, inc) => sum + inc.amount, 0), [incomes, date]);
+  const totalFilteredIncomes = React.useMemo(() => filteredIncomes.reduce((sum, inc) => sum + inc.amount, 0), [filteredIncomes]);
 
   const remainingBudget = income - totalFilteredExpenses;
 
