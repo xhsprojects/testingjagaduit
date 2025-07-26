@@ -1,10 +1,8 @@
-
 "use client";
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import type { Category, Expense, SavingGoal, BudgetPeriod, Income, Reminder, Wallet, RecurringTransaction } from '@/lib/types';
-import AllocationPage from '@/components/AllocationPage';
 import DashboardPage from '@/components/DashboardPage';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -21,6 +19,7 @@ import { AddIncomeForm } from '@/components/AddIncomeForm';
 import { awardUserXp } from './achievements/actions';
 import { ToastAction } from '@/components/ui/toast';
 import { presetWallets } from '@/lib/data';
+import OnboardingPage from './onboarding/page';
 
 // Helper to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {
@@ -51,7 +50,7 @@ export default function ClientPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [isBudgetSetup, setIsBudgetSetup] = React.useState(false);
+  const [isDataSetup, setIsDataSetup] = React.useState(false);
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
   const [incomes, setIncomes] = React.useState<Income[]>([]);
@@ -160,70 +159,99 @@ export default function ClientPage() {
 
   }, [toast]);
 
+  const loadData = React.useCallback(async () => {
+      if (!uid) return;
+      setIsLoading(true);
+
+      try {
+          // Check if main user document exists. This determines if it's a new or existing user.
+          const userDocRef = doc(db, 'users', uid);
+          const userDocSnap = await getDoc(userDocRef);
+
+          if (!userDocSnap.exists()) {
+              // This is a new user who hasn't completed onboarding.
+              setIsDataSetup(false);
+              setIsLoading(false);
+              return;
+          }
+
+          // User exists, proceed to load all their data.
+          const categoriesQuery = query(collection(db, 'users', uid, 'categories'));
+          const walletsQuery = query(collection(db, 'users', uid, 'wallets'));
+          const goalsQuery = query(collection(db, 'users', uid, 'savingGoals'));
+          const recurringQuery = query(collection(db, 'users', uid, 'recurringTransactions'));
+          const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
+
+          const [categoriesSnap, walletsSnap, goalsSnap, recurringSnap, budgetSnap] = await Promise.all([
+              getDocs(categoriesQuery),
+              getDocs(walletsQuery),
+              getDocs(goalsSnap),
+              getDocs(recurringQuery),
+              getDoc(budgetDocRef),
+          ]);
+          
+          const loadedCategories = categoriesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Category);
+          const loadedWallets = walletsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Wallet);
+
+          setCategories(loadedCategories);
+          setWallets(loadedWallets);
+          setSavingGoals(goalsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as SavingGoal));
+          setRecurringTxs(recurringSnap.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as RecurringTransaction));
+
+          if (budgetSnap.exists()) {
+              const data = convertTimestamps(budgetSnap.data());
+              const recurringResult = await processRecurringTransactions(
+                  uid, 
+                  data.expenses || [],
+                  data.incomes || [],
+              );
+              
+              const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (data.expenses || []);
+              const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (data.incomes || []);
+
+              if (recurringResult) {
+                  toast({
+                      title: "Transaksi Otomatis Ditambahkan",
+                      description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
+                  });
+              }
+
+              setIncome(data.income || 0);
+              setExpenses(finalExpenses);
+              setIncomes(finalIncomes);
+          } else {
+              // Edge case: user exists but budget doc is missing. Create a default one.
+               await setDoc(budgetDocRef, {
+                  income: 0,
+                  categories: loadedCategories.map(c => ({...c, budget: 0})),
+                  expenses: [],
+                  incomes: [],
+                  periodStart: new Date().toISOString(),
+                  periodEnd: null,
+              });
+              setIncome(0);
+              setExpenses([]);
+              setIncomes([]);
+          }
+
+          setIsDataSetup(true);
+
+      } catch (error: any) {
+          console.error("Failed to load initial data:", error);
+          toast({ title: 'Gagal Memuat Data', description: `Error: ${error.message}`, variant: 'destructive' });
+      } finally {
+          setIsLoading(false);
+      }
+  }, [uid, processRecurringTransactions, toast]);
+
   React.useEffect(() => {
     if (authLoading) return;
     if (!uid) {
       router.push('/login');
       return;
     }
-
-    const loadInitialData = async () => {
-      setIsLoading(true);
-      try {
-        const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
-        const budgetDocSnap = await getDoc(budgetDocRef);
-
-        if (budgetDocSnap.exists()) {
-          const data = convertTimestamps(budgetDocSnap.data());
-          
-          const recurringResult = await processRecurringTransactions(
-            uid, 
-            data.expenses || [],
-            data.incomes || [],
-          );
-          
-          const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (data.expenses || []);
-          const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (data.incomes || []);
-
-          if (recurringResult) {
-            toast({
-                title: "Transaksi Otomatis Ditambahkan",
-                description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
-            })
-          }
-
-          setCategories(data.categories || []);
-          setIncome(data.income || 0);
-          setExpenses(finalExpenses);
-          setIncomes(finalIncomes);
-          setIsBudgetSetup(true);
-
-        } else {
-          setIsBudgetSetup(false);
-        }
-
-        const goalsQuerySnapshot = await getDocs(collection(db, 'users', uid, 'savingGoals'));
-        const goals = goalsQuerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingGoal[];
-        setSavingGoals(goals);
-        
-        const recurringQuery = query(collection(db, 'users', uid, 'recurringTransactions'));
-        const recurringSnapshot = await getDocs(recurringQuery);
-        setRecurringTxs(recurringSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as RecurringTransaction));
-        
-        const walletsSnapshot = await getDocs(collection(db, 'users', uid, 'wallets'));
-        const walletsData = walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Wallet[];
-        setWallets(walletsData);
-
-      } catch (error: any) {
-        console.error("Failed to load initial data:", error);
-        toast({ title: 'Gagal Memuat Data', description: `Error: ${error.message}`, variant: 'destructive' });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadInitialData();
-  }, [uid, authLoading, router, toast, processRecurringTransactions]);
+    loadData();
+  }, [uid, authLoading, router, loadData]);
 
   React.useEffect(() => {
       if (reminders.length > 0 && !hasShownReminderToast) {
@@ -247,64 +275,6 @@ export default function ClientPage() {
           }
       }
   }, [reminders, hasShownReminderToast, toast, router]);
-
-  const handleSaveBudget = async (data: { income: number; categories: Category[] }) => {
-    if (!user || !idToken) return;
-    const batch = writeBatch(db);
-    const walletsCollectionRef = collection(db, 'users', user.uid, 'wallets');
-
-    try {
-        const budgetData = {
-            income: data.income,
-            categories: data.categories,
-            expenses: [],
-            incomes: [],
-            periodStart: new Date().toISOString(),
-            periodEnd: null,
-        };
-        
-        const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
-        batch.set(budgetDocRef, budgetData);
-
-        // Check if wallets already exist before creating presets
-        const walletsSnapshot = await getDocs(walletsCollectionRef);
-        if (walletsSnapshot.empty) {
-            // Only create preset wallets if none exist.
-            // This prevents overwriting existing wallets on subsequent budget setups.
-            presetWallets.forEach(walletPreset => {
-                const walletId = `wallet-preset-${walletPreset.name.toLowerCase().replace(/\s/g, '-')}`;
-                const walletDocRef = doc(db, 'users', user.uid, 'wallets', walletId);
-                batch.set(walletDocRef, {
-                    name: walletPreset.name,
-                    icon: walletPreset.icon,
-                    initialBalance: 0,
-                });
-            });
-        }
-        
-        await batch.commit();
-
-        setIncome(data.income);
-        setCategories(data.categories);
-        setExpenses([]);
-        setIncomes([]);
-        // Re-fetch wallets to get the new ones
-        const updatedWalletsSnapshot = await getDocs(collection(db, 'users', user.uid, 'wallets'));
-        setWallets(updatedWalletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Wallet[]);
-
-        setIsBudgetSetup(true);
-        toast({
-            title: 'Anggaran Disimpan!',
-            description: 'Anda sekarang dapat mulai melacak pengeluaran Anda.',
-        });
-        await awardAchievement(user.uid, 'first-step', achievements, idToken);
-        if (idToken) await awardUserXp(100, idToken);
-
-    } catch (error) {
-        console.error("Failed to save budget:", error);
-        toast({ title: 'Gagal Menyimpan Anggaran', variant: 'destructive' });
-    }
-  };
   
   const handleExpensesUpdate = async (updatedExpenses: Expense[]) => {
     if (!user) return;
@@ -473,20 +443,27 @@ export default function ClientPage() {
         try {
             const archiveDocRef = doc(collection(db, 'users', user.uid, 'archivedBudgets'));
             batch.set(archiveDocRef, archivedPeriod);
-            batch.delete(budgetDocRef);
+            
+            // Instead of deleting, we reset the budget document for the new period
+             const newBudgetData = {
+                income: 0,
+                categories: categories.map(c => ({...c, budget: 0})),
+                expenses: [],
+                incomes: [],
+                periodStart: new Date().toISOString(),
+                periodEnd: null,
+            };
+
+            batch.set(budgetDocRef, newBudgetData);
 
             await batch.commit();
             
-            setIncome(0);
-            setCategories([]);
-            setExpenses([]);
-            setIncomes([]);
-            setIsBudgetSetup(false);
+            await loadData(); // Reload all data to reflect the changes
             
             toast({ title: 'Periode Baru Dimulai', description: 'Saldo dompet telah diperbarui dan data lama diarsipkan.' });
         } catch (error) {
              console.error("Error resetting budget:", error);
-            toast({ title: 'Error', description: 'Gagal mengarsipkan data dan memperbarui saldo.', variant: 'destructive' });
+            toast({ title: 'Error', description: 'Gagal mengarsipkan data dan memulai periode baru.', variant: 'destructive' });
         }
     }
   };
@@ -511,8 +488,8 @@ export default function ClientPage() {
     return null;
   }
 
-  if (!isBudgetSetup) {
-    return <AllocationPage onSave={handleSaveBudget} />;
+  if (!isDataSetup) {
+    return <OnboardingPage onSetupComplete={loadData} />;
   }
 
   const detailIncomeWallet = detailIncome?.walletId ? wallets.find(w => w.id === detailIncome.walletId) : null;
