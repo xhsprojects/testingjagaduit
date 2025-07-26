@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from 'react';
@@ -16,12 +17,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 interface AllocationPageProps {
   onSave: (data: { categories: Category[], wallets: Wallet[] }) => void;
-  onSkip: () => void;
 }
 
-type Step = 'wallets' | 'categories' | 'done';
+type Step = 'wallets' | 'categories';
 
-export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) {
+export default function AllocationPage({ onSave }: AllocationPageProps) {
   const { user } = useAuth();
   const [step, setStep] = React.useState<Step>('wallets');
   

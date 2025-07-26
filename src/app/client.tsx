@@ -168,9 +168,11 @@ export default function ClientPage() {
     const loadInitialData = async () => {
       setIsLoading(true);
       try {
-        const categoriesSnapshot = await getDocs(collection(db, 'users', uid, 'categories'));
-        
-        if (categoriesSnapshot.empty) {
+        const userDocRef = doc(db, 'users', uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        // If the main user document doesn't exist, it's a new user.
+        if (!userDocSnap.exists()) {
             setIsDataSetup(false);
             setIsLoading(false);
             return;
@@ -178,6 +180,8 @@ export default function ClientPage() {
 
         setIsDataSetup(true);
 
+        // User is existing, load all their data
+        const categoriesSnapshot = await getDocs(collection(db, 'users', uid, 'categories'));
         const cats = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Category);
         setCategories(cats);
         
@@ -197,7 +201,7 @@ export default function ClientPage() {
           currentIncomes = data.incomes || [];
           setBudgetPeriod(data);
         } else {
-            // If budget period doesn't exist, create one
+            // If budget period doesn't exist but categories do, create a new budget period
             const newBudgetPeriod: BudgetPeriod = {
                 categoryBudgets: cats.map(c => ({ categoryId: c.id, budget: 0 })),
                 expenses: [],
@@ -231,7 +235,6 @@ export default function ClientPage() {
         const recurringQuery = query(collection(db, 'users', uid, 'recurringTransactions'));
         const recurringSnapshot = await getDocs(recurringQuery);
         setRecurringTxs(recurringSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as RecurringTransaction));
-
 
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
@@ -521,7 +524,7 @@ export default function ClientPage() {
   }
 
   if (!isDataSetup) {
-    return <AllocationPage onSave={handleInitialSetup} onSkip={() => setIsDataSetup(true)} />;
+    return <AllocationPage onSave={handleInitialSetup} />;
   }
 
   const detailIncomeWallet = detailIncome?.walletId ? wallets.find(w => w.id === detailIncome.walletId) : null;
