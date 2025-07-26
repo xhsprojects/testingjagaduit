@@ -178,53 +178,61 @@ export default function ClientPage() {
         const userDocRef = doc(db, 'users', uid);
         const userDocSnap = await getDoc(userDocRef);
 
+        // This is the main gatekeeper. If the user document doesn't exist, they are a new user.
         if (!userDocSnap.exists()) {
             setIsDataSetup(false);
             setIsLoading(false);
             return;
         }
 
+        // If we reach here, the user is considered "existing".
         setIsDataSetup(true);
 
+        // Fetch all master data collections
         const categoriesSnapshot = await getDocs(collection(db, 'users', uid, 'categories'));
-        const cats = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Category);
-        setCategories(cats);
-        
         const walletsSnapshot = await getDocs(collection(db, 'users', uid, 'wallets'));
-        const walletsData = walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Wallet);
-        setWallets(walletsData);
-        
+        const goalsQuerySnapshot = await getDocs(collection(db, 'users', uid, 'savingGoals'));
+        const recurringSnapshot = await getDocs(query(collection(db, 'users', uid, 'recurringTransactions')));
+
+        const masterCategories = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Category);
+        setCategories(masterCategories);
+        setWallets(walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Wallet));
+        setSavingGoals(goalsQuerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingGoal[]);
+        setRecurringTxs(recurringSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as RecurringTransaction));
+
+        // Now, safely load or create the budget document
         const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
         const budgetDocSnap = await getDoc(budgetDocRef);
 
         let currentExpenses: Expense[] = [];
         let currentIncomes: Income[] = [];
-        let loadedBudget: BudgetPeriod;
-
+        
         if (budgetDocSnap.exists()) {
-          const data = convertTimestamps(budgetDocSnap.data()) as BudgetPeriod;
-           // Ensure categoryBudgets exists to prevent crashes.
-           if (!data.categoryBudgets) {
-              data.categoryBudgets = cats.map(c => ({ categoryId: c.id, budget: 0 }));
-              // Save it back if it's missing for this user
-              await updateDoc(budgetDocRef, { categoryBudgets: data.categoryBudgets });
+          const budgetData = convertTimestamps(budgetDocSnap.data()) as BudgetPeriod;
+          let loadedBudget = budgetData;
+
+          // Crucial check for old accounts: if categoryBudgets field is missing, create it without overwriting other data.
+          if (!budgetData.categoryBudgets) {
+            const newCategoryBudgets = masterCategories.map(c => ({ categoryId: c.id, budget: 0 }));
+            await updateDoc(budgetDocRef, { categoryBudgets: newCategoryBudgets });
+            loadedBudget = { ...budgetData, categoryBudgets: newCategoryBudgets };
           }
-          loadedBudget = data;
-          currentExpenses = data.expenses || [];
-          currentIncomes = data.incomes || [];
+          
+          setBudgetPeriod(loadedBudget);
+          currentExpenses = loadedBudget.expenses || [];
+          currentIncomes = loadedBudget.incomes || [];
         } else {
             // This case handles users who exist but have no budget document yet.
             const newBudgetPeriod: BudgetPeriod = {
-                categoryBudgets: cats.map(c => ({ categoryId: c.id, budget: 0 })),
+                categoryBudgets: masterCategories.map(c => ({ categoryId: c.id, budget: 0 })),
                 expenses: [],
                 incomes: [],
                 periodStart: new Date().toISOString(),
-                income: 0
+                income: 0,
             };
             await setDoc(budgetDocRef, newBudgetPeriod);
-            loadedBudget = newBudgetPeriod;
+            setBudgetPeriod(newBudgetPeriod);
         }
-        setBudgetPeriod(loadedBudget);
 
         const recurringResult = await processRecurringTransactions(uid, currentExpenses, currentIncomes);
         
@@ -240,14 +248,6 @@ export default function ClientPage() {
         
         setExpenses(finalExpenses);
         setIncomes(finalIncomes);
-        
-        const goalsQuerySnapshot = await getDocs(collection(db, 'users', uid, 'savingGoals'));
-        const goals = goalsQuerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingGoal[];
-        setSavingGoals(goals);
-        
-        const recurringQuery = query(collection(db, 'users', uid, 'recurringTransactions'));
-        const recurringSnapshot = await getDocs(recurringQuery);
-        setRecurringTxs(recurringSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as RecurringTransaction));
 
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
