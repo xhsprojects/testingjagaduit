@@ -281,6 +281,18 @@ export default function ClientPage() {
     const batch = writeBatch(db);
     
     try {
+        const userDocRef = doc(db, 'users', user.uid);
+        batch.set(userDocRef, {
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            createdAt: serverTimestamp(),
+            lastLogin: serverTimestamp(),
+            xp: 0,
+            level: 1,
+            theme: 'default'
+        });
+
         // Save Categories
         data.categories.forEach(category => {
             const categoryRef = doc(db, 'users', user.uid, 'categories', category.id);
@@ -450,7 +462,7 @@ export default function ClientPage() {
     
     const totalAddedIncomes = (incomes || []).reduce((sum, inc) => sum + inc.amount, 0);
     const totalExpensesValue = (expenses || []).reduce((sum, exp) => sum + exp.amount, 0);
-    const baseBudget = budgetPeriod.categoryBudgets.reduce((sum, cb) => sum + cb.budget, 0);
+    const baseBudget = (budgetPeriod.categoryBudgets || []).reduce((sum, cb) => sum + cb.budget, 0);
     const totalIncomeValue = baseBudget + totalAddedIncomes;
     const remainingBudgetValue = totalIncomeValue - totalExpensesValue;
 
@@ -514,7 +526,7 @@ export default function ClientPage() {
   }, [wallets, incomes, expenses]);
 
   const baseBudget = React.useMemo(() => {
-    return budgetPeriod?.categoryBudgets.reduce((sum, cb) => sum + cb.budget, 0) || 0;
+    return (budgetPeriod?.categoryBudgets || []).reduce((sum, cb) => sum + cb.budget, 0);
   }, [budgetPeriod]);
 
   if (authLoading || isLoading || isDataSetup === undefined) {
