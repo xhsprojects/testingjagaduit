@@ -68,10 +68,13 @@ export default function CategoriesClientPage() {
         return () => categoriesUnsubscribe();
     }, [user, form]);
   
-    const { fields, append, remove, formState: { isDirty } } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "categories",
     });
+
+    // Safely access isDirty with a default value to prevent crash during build
+    const { formState: { isDirty = false } = {} } = form;
 
     const handleAddNewCategory = () => {
         append({
