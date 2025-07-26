@@ -2,209 +2,97 @@
 "use client";
 
 import * as React from 'react';
-import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, PlusCircle, Wallet } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
-import { iconNames, IconName, iconMap } from '@/lib/icons';
-import { presetCategories } from '@/lib/data';
-import type { Category } from '@/lib/types';
-
-const categorySchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, "Nama kategori tidak boleh kosong."),
-  budget: z.coerce.number().min(0, "Anggaran harus angka positif.").default(0),
-  icon: z.string().min(1, "Pilih ikon."),
-  isEssential: z.boolean().optional(),
-  isDebtCategory: z.boolean().optional(),
-});
-
-const allocationFormSchema = z.object({
-  categories: z.array(categorySchema).min(1, "Harus ada minimal satu kategori anggaran."),
-});
-
-type AllocationFormValues = z.infer<typeof allocationFormSchema>;
+import { iconMap } from '@/lib/icons';
+import { presetCategories, presetWallets } from '@/lib/data';
+import type { Category, Wallet } from '@/lib/types';
+import { Check, Edit, Loader2, Sparkles, Trash2, Wallet as WalletIcon } from 'lucide-react';
+import { Input } from './ui/input';
+import { useAuth } from '@/context/AuthContext';
 
 interface AllocationPageProps {
-  onSave: (data: { income: number; categories: Category[] }) => void;
+  onSave: (data: { categories: Category[], wallets: Wallet[] }) => void;
+  onSkip: () => void;
 }
 
-export default function AllocationPage({ onSave }: AllocationPageProps) {
-  const form = useForm<AllocationFormValues>({
-    resolver: zodResolver(allocationFormSchema),
-    defaultValues: {
-      categories: presetCategories.map((cat, index) => ({
+export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) {
+  const { user } = useAuth();
+  const [categories, setCategories] = React.useState<Category[]>(
+    presetCategories.map((cat, index) => ({
         ...cat,
         id: `preset-cat-${index}`,
-        budget: 0,
-        icon: cat.icon as string,
-        isEssential: cat.isEssential || false,
-        isDebtCategory: cat.isDebtCategory || false,
-      })),
-    },
-    mode: "onChange",
-  });
-  
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "categories",
-  });
+    }))
+  );
+  const [wallets, setWallets] = React.useState<Omit<Wallet, 'id' | 'initialBalance'>[]>(presetWallets);
+  const [isSaving, setIsSaving] = React.useState(false);
 
-  const watchCategories = useWatch({ control: form.control, name: 'categories' });
-
-  const totalAllocated = React.useMemo(() => {
-    return (watchCategories || []).reduce((sum, cat) => sum + (Number(cat.budget) || 0), 0);
-  }, [watchCategories]);
-
-  const handleAddNewCategory = () => {
-    append({
-      id: `cat-new-${Date.now()}`,
-      name: '',
-      budget: 0,
-      icon: 'PiggyBank',
-      isEssential: false,
-      isDebtCategory: false,
-    });
-  };
-
-  const onSubmit = (data: AllocationFormValues) => {
-    const totalIncome = data.categories.reduce((sum, cat) => sum + (Number(cat.budget) || 0), 0);
-    onSave({
-        income: totalIncome,
-        categories: data.categories.map(c => ({
-            ...c,
-            icon: c.icon as IconName,
-        }))
-    });
+  const handleSave = async () => {
+    setIsSaving(true);
+    // Create full wallet objects with IDs and zero balance
+    const finalWallets: Wallet[] = wallets.map(w => ({
+        ...w,
+        id: `wallet-preset-${w.name.toLowerCase().replace(/\s/g, '-')}`,
+        initialBalance: 0
+    }));
+    await onSave({ categories, wallets: finalWallets });
+    setIsSaving(false);
   };
 
   return (
     <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle className="text-2xl font-headline">Atur Anggaran Bulanan Anda</CardTitle>
-          <CardDescription>Tentukan alokasi dana untuk setiap kategori. Total dari semua alokasi ini akan menjadi anggaran bulanan Anda.</CardDescription>
+      <Card className="w-full max-w-2xl animate-in fade-in duration-500">
+        <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Sparkles className="h-9 w-9 text-primary" />
+            </div>
+            <CardTitle className="text-2xl font-headline">Selamat Datang, {user?.displayName?.split(' ')[0] || 'Pengguna'}!</CardTitle>
+            <CardDescription>Mari siapkan Jaga Duit untuk pertama kali. Anda bisa mengubah ini nanti di Pengaturan.</CardDescription>
         </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Alokasi Anggaran</h3>
-                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                  {fields.map((field, index) => (
-                    <div key={field.id} className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                       <Controller
-                            control={form.control}
-                            name={`categories.${index}.icon`}
-                            render={({ field }) => {
-                                const Icon = iconMap[field.value as IconName] || Wallet;
-                                return (
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger className="w-20 h-16">
-                                                <SelectValue>
-                                                    <Icon className="h-6 w-6 mx-auto" />
-                                                </SelectValue>
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {iconNames.map(iconName => {
-                                                const IconComponent = iconMap[iconName];
-                                                return (
-                                                    <SelectItem key={iconName} value={iconName}>
-                                                        <div className="flex items-center gap-2">
-                                                            <IconComponent className="h-4 w-4" />
-                                                            <span>{iconName}</span>
-                                                        </div>
-                                                    </SelectItem>
-                                                )
-                                            })}
-                                        </SelectContent>
-                                    </Select>
-                                )
-                            }}
-                        />
-                      <div className="flex-grow space-y-1">
-                        <FormField
-                          control={form.control}
-                          name={`categories.${index}.name`}
-                          render={({ field }) => (
-                            <FormItem className="m-0">
-                              <FormControl>
-                                <Input placeholder="Nama Kategori" {...field} disabled={watchCategories?.[index]?.isEssential} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name={`categories.${index}.budget`}
-                          render={({ field }) => (
-                            <FormItem className="m-0">
-                              <FormControl>
-                                <Input 
-                                  type="text" 
-                                  inputMode="numeric"
-                                  placeholder="Anggaran (Rp)" 
-                                  value={field.value > 0 ? formatCurrency(field.value) : ""}
-                                  onChange={(e) => {
-                                    const numericValue = Number(e.target.value.replace(/[^0-9]/g, ''));
-                                    field.onChange(numericValue);
-                                  }}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        type="button" 
-                        onClick={() => remove(index)} 
-                        className="text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={watchCategories?.[index]?.isEssential}
-                        title={watchCategories?.[index]?.isEssential ? "Kategori ini tidak dapat dihapus" : "Hapus kategori"}
-                        >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+        <CardContent className="space-y-8">
+            <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2"><WalletIcon className="h-5 w-5 text-primary"/> Langkah 1: Atur Dompet Anda</h3>
+                <p className="text-sm text-muted-foreground">Ini adalah sumber dana Anda, seperti rekening bank atau dompet tunai. Saldo awal bisa diatur nanti.</p>
+                <div className="space-y-2">
+                    {wallets.map((wallet, index) => (
+                        <div key={index} className="flex items-center gap-2 p-2 border rounded-md bg-background">
+                           <span className="p-2 bg-secondary rounded-md">
+                             {React.createElement(iconMap[wallet.icon], { className: 'h-5 w-5' })}
+                           </span>
+                           <Input className="flex-grow" value={wallet.name} readOnly />
+                           <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setWallets(w => w.filter((_, i) => i !== index))}>
+                               <Trash2 className="h-4 w-4"/>
+                           </Button>
+                        </div>
+                    ))}
+                    <Button variant="outline" className="w-full" onClick={() => setWallets(w => [...w, {name: 'Dompet Baru', icon: 'Wallet'}])}>Tambah Dompet</Button>
                 </div>
-                 {form.formState.errors.categories && (
-                    <p className="text-sm font-medium text-destructive">{form.formState.errors.categories.message || form.formState.errors.categories.root?.message}</p>
-                )}
-                <Button type="button" variant="outline" onClick={handleAddNewCategory} className="w-full">
-                  <PlusCircle className="mr-2" /> Tambah Kategori Baru
-                </Button>
-              </div>
-
-              <div className="p-4 bg-secondary rounded-lg space-y-2">
-                 <div className="flex justify-between items-center text-lg">
-                    <span className="font-bold font-headline flex items-center gap-2">
-                      <Wallet className="h-5 w-5 text-primary" />
-                      Total Anggaran Bulanan
-                    </span>
-                    <span className="font-bold font-headline text-primary">{formatCurrency(totalAllocated)}</span>
+            </div>
+            <div className="space-y-4">
+                <h3 className="font-semibold text-lg flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Langkah 2: Konfirmasi Kategori</h3>
+                <p className="text-sm text-muted-foreground">Kami telah menyiapkan beberapa kategori umum untuk Anda. Anda bisa menghapus yang tidak perlu.</p>
+                 <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                    {categories.map((cat, index) => (
+                         <div key={index} className="flex items-center gap-2 p-2 border rounded-md bg-background">
+                           <span className="p-2 bg-secondary rounded-md">
+                             {React.createElement(iconMap[cat.icon], { className: 'h-5 w-5' })}
+                           </span>
+                           <Input className="flex-grow" value={cat.name} readOnly />
+                           <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => setCategories(c => c.filter((_, i) => i !== index))} disabled={cat.isEssential}>
+                               <Trash2 className="h-4 w-4"/>
+                           </Button>
+                        </div>
+                    ))}
                 </div>
-              </div>
-
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" className="w-full text-lg py-6" disabled={form.formState.isSubmitting}>
-                Simpan Anggaran & Mulai
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
+            </div>
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={onSkip}>Atur Nanti Saja</Button>
+            <Button className="w-full sm:w-auto flex-grow" disabled={isSaving} onClick={handleSave}>
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4"/>}
+              Simpan & Lanjutkan
+            </Button>
+        </CardFooter>
       </Card>
     </div>
   );

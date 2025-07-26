@@ -4,7 +4,7 @@ import type { IconName } from '@/lib/icons';
 export type Category = {
   id: string;
   name: string;
-  budget: number;
+  // budget: number; // REMOVED
   icon: IconName;
   isEssential?: boolean;
   isDebtCategory?: boolean;
@@ -64,6 +64,10 @@ export type Expense = {
   adminFee?: number;
 };
 
+export type BudgetCategory = {
+    categoryId: string;
+    budget: number;
+}
 
 export type RecurringTransaction = {
   id: string;
@@ -96,7 +100,8 @@ export type Debt = {
 export type BudgetPeriod = {
   income: number;
   incomes?: Income[];
-  categories: Category[];
+  // categories: Category[]; // REPLACED
+  categoryBudgets: BudgetCategory[];
   expenses: Expense[];
   periodStart: string; // ISO date string
   periodEnd?: string;   // ISO date string, optional for the current period

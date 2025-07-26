@@ -1,14 +1,15 @@
 
+
 "use client";
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import type { Category, Expense, SavingGoal, BudgetPeriod, Income, Reminder, Wallet, RecurringTransaction } from '@/lib/types';
+import type { Category, Expense, SavingGoal, BudgetPeriod, Income, Reminder, Wallet, RecurringTransaction, BudgetCategory } from '@/lib/types';
 import AllocationPage from '@/components/AllocationPage';
 import DashboardPage from '@/components/DashboardPage';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { doc, getDoc, setDoc, updateDoc, collection, addDoc, deleteDoc, getDocs, writeBatch, query, where, orderBy } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, addDoc, deleteDoc, getDocs, writeBatch, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { awardAchievement } from '@/lib/achievements-manager';
 import { format } from 'date-fns';
@@ -20,7 +21,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AddIncomeForm } from '@/components/AddIncomeForm';
 import { awardUserXp } from './achievements/actions';
 import { ToastAction } from '@/components/ui/toast';
-import { presetWallets } from '@/lib/data';
+import { presetCategories, presetWallets } from '@/lib/data';
 
 // Helper to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {
@@ -51,17 +52,16 @@ export default function ClientPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [isBudgetSetup, setIsBudgetSetup] = React.useState(false);
+  const [isDataSetup, setIsDataSetup] = React.useState(true);
   const [categories, setCategories] = React.useState<Category[]>([]);
+  const [budgetPeriod, setBudgetPeriod] = React.useState<BudgetPeriod | null>(null);
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
   const [incomes, setIncomes] = React.useState<Income[]>([]);
   const [savingGoals, setSavingGoals] = React.useState<SavingGoal[]>([]);
   const [recurringTxs, setRecurringTxs] = React.useState<RecurringTransaction[]>([]);
   const [wallets, setWallets] = React.useState<Wallet[]>([]);
-  const [income, setIncome] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(true);
   
-  // State for Income CRUD
   const [isAddIncomeFormOpen, setIsAddIncomeFormOpen] = React.useState(false);
   const [editingIncome, setEditingIncome] = React.useState<Income | null>(null);
   const [incomeToDelete, setIncomeToDelete] = React.useState<string | null>(null);
@@ -170,38 +170,60 @@ export default function ClientPage() {
     const loadInitialData = async () => {
       setIsLoading(true);
       try {
+        const categoriesSnapshot = await getDocs(collection(db, 'users', uid, 'categories'));
+        const walletsSnapshot = await getDocs(collection(db, 'users', uid, 'wallets'));
+
+        if (categoriesSnapshot.empty || walletsSnapshot.empty) {
+            setIsDataSetup(false);
+            setIsLoading(false);
+            return;
+        }
+
+        const cats = categoriesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Category);
+        setCategories(cats);
+        
+        const walletsData = walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Wallet);
+        setWallets(walletsData);
+        
         const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
         const budgetDocSnap = await getDoc(budgetDocRef);
 
+        let currentExpenses: Expense[] = [];
+        let currentIncomes: Income[] = [];
+
         if (budgetDocSnap.exists()) {
           const data = convertTimestamps(budgetDocSnap.data());
-          
-          const recurringResult = await processRecurringTransactions(
-            uid, 
-            data.expenses || [],
-            data.incomes || [],
-          );
-          
-          const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (data.expenses || []);
-          const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (data.incomes || []);
+          currentExpenses = data.expenses || [];
+          currentIncomes = data.incomes || [];
+          setBudgetPeriod(data);
+        } else {
+            // If budget period doesn't exist, create one
+            const newBudgetPeriod: BudgetPeriod = {
+                categoryBudgets: cats.map(c => ({ categoryId: c.id, budget: 0 })),
+                expenses: [],
+                incomes: [],
+                periodStart: new Date().toISOString(),
+                income: 0
+            };
+            await setDoc(budgetDocRef, newBudgetPeriod);
+            setBudgetPeriod(newBudgetPeriod);
+        }
 
-          if (recurringResult) {
+        const recurringResult = await processRecurringTransactions(uid, currentExpenses, currentIncomes);
+        
+        const finalExpenses = recurringResult ? recurringResult.updatedExpenses : currentExpenses;
+        const finalIncomes = recurringResult ? recurringResult.updatedIncomes : currentIncomes;
+        
+        if (recurringResult) {
             toast({
                 title: "Transaksi Otomatis Ditambahkan",
                 description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
             })
-          }
-
-          setCategories(data.categories || []);
-          setIncome(data.income || 0);
-          setExpenses(finalExpenses);
-          setIncomes(finalIncomes);
-          setIsBudgetSetup(true);
-
-        } else {
-          setIsBudgetSetup(false);
         }
-
+        
+        setExpenses(finalExpenses);
+        setIncomes(finalIncomes);
+        
         const goalsQuerySnapshot = await getDocs(collection(db, 'users', uid, 'savingGoals'));
         const goals = goalsQuerySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingGoal[];
         setSavingGoals(goals);
@@ -209,10 +231,8 @@ export default function ClientPage() {
         const recurringQuery = query(collection(db, 'users', uid, 'recurringTransactions'));
         const recurringSnapshot = await getDocs(recurringQuery);
         setRecurringTxs(recurringSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as RecurringTransaction));
-        
-        const walletsSnapshot = await getDocs(collection(db, 'users', uid, 'wallets'));
-        const walletsData = walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Wallet[];
-        setWallets(walletsData);
+
+        setIsDataSetup(true);
 
       } catch (error: any) {
         console.error("Failed to load initial data:", error);
@@ -228,7 +248,7 @@ export default function ClientPage() {
   React.useEffect(() => {
       if (reminders.length > 0 && !hasShownReminderToast) {
           const today = new Date();
-          today.setHours(23, 59, 59, 999); // Check for anything due by the end of today
+          today.setHours(23, 59, 59, 999);
           
           const dueReminders = reminders.filter(r => !r.isPaid && new Date(r.dueDate) <= today);
 
@@ -243,66 +263,59 @@ export default function ClientPage() {
                   ),
                   duration: 8000,
               });
-              setHasShownReminderToast(true); // Ensure it only shows once per session
+              setHasShownReminderToast(true);
           }
       }
   }, [reminders, hasShownReminderToast, toast, router]);
 
-  const handleSaveBudget = async (data: { income: number; categories: Category[] }) => {
+  const handleInitialSetup = async (data: { categories: Category[], wallets: Wallet[] }) => {
     if (!user || !idToken) return;
     const batch = writeBatch(db);
-    const walletsCollectionRef = collection(db, 'users', user.uid, 'wallets');
-
+    
     try {
-        const budgetData = {
-            income: data.income,
-            categories: data.categories,
+        // Save Categories
+        data.categories.forEach(category => {
+            const categoryRef = doc(db, 'users', user.uid, 'categories', category.id);
+            batch.set(categoryRef, { name: category.name, icon: category.icon, isEssential: !!category.isEssential, isDebtCategory: !!category.isDebtCategory });
+        });
+        
+        // Save Wallets
+        data.wallets.forEach(wallet => {
+            const walletRef = doc(db, 'users', user.uid, 'wallets', wallet.id);
+            batch.set(walletRef, { name: wallet.name, icon: wallet.icon, initialBalance: 0 });
+        });
+        
+        // Create initial budget period
+        const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
+        const newBudgetPeriod: BudgetPeriod = {
+            categoryBudgets: data.categories.map(c => ({ categoryId: c.id, budget: 0 })),
             expenses: [],
             incomes: [],
             periodStart: new Date().toISOString(),
-            periodEnd: null,
+            income: 0,
         };
-        
-        const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
-        batch.set(budgetDocRef, budgetData);
+        batch.set(budgetDocRef, newBudgetPeriod);
 
-        // Check if wallets already exist before creating presets
-        const walletsSnapshot = await getDocs(walletsCollectionRef);
-        if (walletsSnapshot.empty) {
-            // Only create preset wallets if none exist.
-            // This prevents overwriting existing wallets on subsequent budget setups.
-            presetWallets.forEach(walletPreset => {
-                const walletId = `wallet-preset-${walletPreset.name.toLowerCase().replace(/\s/g, '-')}`;
-                const walletDocRef = doc(db, 'users', user.uid, 'wallets', walletId);
-                batch.set(walletDocRef, {
-                    name: walletPreset.name,
-                    icon: walletPreset.icon,
-                    initialBalance: 0,
-                });
-            });
-        }
-        
         await batch.commit();
 
-        setIncome(data.income);
         setCategories(data.categories);
+        setWallets(data.wallets);
+        setBudgetPeriod(newBudgetPeriod);
         setExpenses([]);
         setIncomes([]);
-        // Re-fetch wallets to get the new ones
-        const updatedWalletsSnapshot = await getDocs(collection(db, 'users', user.uid, 'wallets'));
-        setWallets(updatedWalletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Wallet[]);
+        
+        setIsDataSetup(true);
 
-        setIsBudgetSetup(true);
         toast({
-            title: 'Anggaran Disimpan!',
-            description: 'Anda sekarang dapat mulai melacak pengeluaran Anda.',
+            title: 'Pengaturan Selesai!',
+            description: 'Anda sekarang dapat mulai menggunakan Jaga Duit.',
         });
         await awardAchievement(user.uid, 'first-step', achievements, idToken);
         if (idToken) await awardUserXp(100, idToken);
 
     } catch (error) {
-        console.error("Failed to save budget:", error);
-        toast({ title: 'Gagal Menyimpan Anggaran', variant: 'destructive' });
+        console.error("Failed to save initial setup:", error);
+        toast({ title: 'Gagal Menyimpan Pengaturan Awal', variant: 'destructive' });
     }
   };
   
@@ -310,7 +323,6 @@ export default function ClientPage() {
     if (!user) return;
     const isNewExpense = updatedExpenses.length > expenses.length;
     
-    // Part 1: Critical Path - Save to DB and update local state
     try {
         const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
         const sortedExpenses = updatedExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -318,8 +330,6 @@ export default function ClientPage() {
         await updateDoc(budgetDocRef, { expenses: sortedExpenses });
         setExpenses(sortedExpenses);
 
-        // Part 2: Non-critical gamification.
-        // This runs in the background and won't block the UI or crash the main flow.
         if (isNewExpense && idToken) {
             const tokenForGamification = idToken;
             
@@ -342,7 +352,6 @@ export default function ClientPage() {
                     if (expenseCount >= 100) await awardAchievement(user.uid, 'hundred-expenses', achievements, tokenForGamification);
                 } catch (error) {
                     console.error("Gamification background task failed:", error);
-                    // This error is caught silently and won't affect the user experience.
                 }
             })();
         }
@@ -427,67 +436,65 @@ export default function ClientPage() {
   }
 
   const handleReset = async () => {
-    if (!user || !idToken) return;
+    if (!user || !idToken || !budgetPeriod) return;
 
     const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
-    const budgetDocSnap = await getDoc(budgetDocRef);
+    
+    const totalAddedIncomes = (incomes || []).reduce((sum, inc) => sum + inc.amount, 0);
+    const totalExpensesValue = (expenses || []).reduce((sum, exp) => sum + exp.amount, 0);
+    const baseBudget = budgetPeriod.categoryBudgets.reduce((sum, cb) => sum + cb.budget, 0);
+    const totalIncomeValue = baseBudget + totalAddedIncomes;
+    const remainingBudgetValue = totalIncomeValue - totalExpensesValue;
 
-    if (budgetDocSnap.exists()) {
-        const currentData = budgetDocSnap.data() as BudgetPeriod;
-        const currentExpenses = currentData.expenses || [];
-        const currentIncomes = currentData.incomes || [];
+    const archivedPeriod: BudgetPeriod & {id?: string} = {
+        ...budgetPeriod,
+        periodEnd: new Date().toISOString(),
+        income: baseBudget,
+        totalIncome: totalIncomeValue,
+        totalExpenses: totalExpensesValue,
+        remainingBudget: remainingBudgetValue,
+    };
+    
+    const { income, ...archiveDataToSave } = archivedPeriod; // Exclude original 'income' from archived data as it's now baseBudget
 
+    if (baseBudget > 0 && (remainingBudgetValue / baseBudget) >= 0.2) {
+        await awardAchievement(user.uid, 'super-saver', achievements, idToken);
+    }
+    
+    try {
         const batch = writeBatch(db);
-
-        // Calculate final balances and prepare wallet updates
+        
         wallets.forEach(wallet => {
-            const totalIncome = currentIncomes
-                .filter(i => i.walletId === wallet.id)
-                .reduce((sum, i) => sum + i.amount, 0);
-            const totalExpense = currentExpenses
-                .filter(e => e.walletId === wallet.id)
-                .reduce((sum, e) => sum + e.amount, 0);
-            const finalBalance = wallet.initialBalance + totalIncome - totalExpense;
-
+            const walletIncome = (incomes || []).filter(i => i.walletId === wallet.id).reduce((sum, i) => sum + i.amount, 0);
+            const walletExpense = (expenses || []).filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
+            const finalBalance = wallet.initialBalance + walletIncome - walletExpense;
             const walletDocRef = doc(db, 'users', user.uid, 'wallets', wallet.id);
             batch.update(walletDocRef, { initialBalance: finalBalance });
         });
-
-        const totalExpensesValue = currentExpenses.reduce((sum: number, exp: Expense) => sum + exp.amount, 0);
-        const totalAddedIncomes = currentIncomes.reduce((sum: number, inc: Income) => sum + inc.amount, 0);
-        const totalIncomeValue = currentData.income + totalAddedIncomes;
-        const remainingBudgetValue = totalIncomeValue - totalExpensesValue;
-
-        const archivedPeriod = {
-            ...currentData,
-            periodEnd: new Date().toISOString(),
-            totalIncome: totalIncomeValue,
-            totalExpenses: totalExpensesValue,
-            remainingBudget: remainingBudgetValue,
-        };
-
-        if (currentData.income > 0 && (remainingBudgetValue / currentData.income) >= 0.2) {
-            await awardAchievement(user.uid, 'super-saver', achievements, idToken);
-        }
         
-        try {
-            const archiveDocRef = doc(collection(db, 'users', user.uid, 'archivedBudgets'));
-            batch.set(archiveDocRef, archivedPeriod);
-            batch.delete(budgetDocRef);
+        const archiveDocRef = doc(collection(db, 'users', user.uid, 'archivedBudgets'));
+        batch.set(archiveDocRef, archiveDataToSave);
+        
+        // Create new period, inheriting budgets from the old one
+        const newBudgetPeriod: BudgetPeriod = {
+            categoryBudgets: budgetPeriod.categoryBudgets, // Carry over budgets
+            expenses: [],
+            incomes: [],
+            periodStart: new Date().toISOString(),
+            income: baseBudget
+        };
+        batch.set(budgetDocRef, newBudgetPeriod);
 
-            await batch.commit();
-            
-            setIncome(0);
-            setCategories([]);
-            setExpenses([]);
-            setIncomes([]);
-            setIsBudgetSetup(false);
-            
-            toast({ title: 'Periode Baru Dimulai', description: 'Saldo dompet telah diperbarui dan data lama diarsipkan.' });
-        } catch (error) {
-             console.error("Error resetting budget:", error);
-            toast({ title: 'Error', description: 'Gagal mengarsipkan data dan memperbarui saldo.', variant: 'destructive' });
-        }
+        await batch.commit();
+        
+        setBudgetPeriod(newBudgetPeriod);
+        setExpenses([]);
+        setIncomes([]);
+
+        toast({ title: 'Periode Baru Dimulai', description: 'Saldo dompet telah diperbarui dan data lama diarsipkan.' });
+    } catch (error) {
+         console.error("Error resetting budget:", error);
+        toast({ title: 'Error', description: 'Gagal mengarsipkan data dan memperbarui saldo.', variant: 'destructive' });
     }
   };
   
@@ -498,6 +505,9 @@ export default function ClientPage() {
     return totalInitial + totalAddedIncomesToWallets - totalExpensesFromWallets;
   }, [wallets, incomes, expenses]);
 
+  const baseBudget = React.useMemo(() => {
+    return budgetPeriod?.categoryBudgets.reduce((sum, cb) => sum + cb.budget, 0) || 0;
+  }, [budgetPeriod]);
 
   if (authLoading || isLoading) {
     return (
@@ -511,8 +521,8 @@ export default function ClientPage() {
     return null;
   }
 
-  if (!isBudgetSetup) {
-    return <AllocationPage onSave={handleSaveBudget} />;
+  if (!isDataSetup) {
+    return <AllocationPage onSave={handleInitialSetup} onSkip={() => setIsDataSetup(true)} />;
   }
 
   const detailIncomeWallet = detailIncome?.walletId ? wallets.find(w => w.id === detailIncome.walletId) : null;
@@ -520,10 +530,10 @@ export default function ClientPage() {
   return (
     <>
         <DashboardPage 
-            key={JSON.stringify(categories) + income + JSON.stringify(savingGoals) + JSON.stringify(wallets) + JSON.stringify(incomes)} 
+            key={JSON.stringify(categories) + JSON.stringify(budgetPeriod) + JSON.stringify(savingGoals) + JSON.stringify(wallets) + JSON.stringify(incomes)} 
             categories={categories} 
             expenses={expenses}
-            income={income}
+            income={baseBudget}
             incomes={incomes}
             totalWalletBalance={totalWalletBalance}
             savingGoals={savingGoals}
