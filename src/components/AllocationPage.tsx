@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { iconMap, IconName, iconNames } from '@/lib/icons';
 import { presetCategories, presetWallets } from '@/lib/data';
 import type { Category, Wallet } from '@/lib/types';
-import { Check, Edit, Loader2, Sparkles, Trash2, Wallet as WalletIcon, CheckCircle, ArrowRight, Banknote, Landmark, CreditCard } from 'lucide-react';
+import { Check, Edit, Loader2, Sparkles, Trash2, Wallet as WalletIcon, CheckCircle, ArrowRight, Banknote, Landmark, CreditCard, ChevronRight } from 'lucide-react';
 import { Input } from './ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -46,8 +46,8 @@ export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) 
     setWallets(currentWallets => currentWallets.map(w => w.id === id ? { ...w, [field]: value } : w));
   };
   
-  const handleCategoryNameChange = (id: string, newName: string) => {
-    setCategories(currentCategories => currentCategories.map(c => c.id === id ? { ...c, name: newName } : c));
+  const handleCategoryChange = (id: string, field: keyof Category, value: string | IconName) => {
+    setCategories(currentCategories => currentCategories.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
   
   const handleRemoveWallet = (id: string) => {
@@ -110,12 +110,12 @@ export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) 
             {step === 'wallets' && (
                 <div className="space-y-4 animate-in fade-in duration-300">
                     <h3 className="font-semibold text-lg flex items-center gap-2"><WalletIcon className="h-5 w-5 text-primary"/> Langkah 1: Atur Dompet Anda</h3>
-                    <p className="text-sm text-muted-foreground">Ini adalah sumber dana Anda (rekening bank, dompet tunai). Atur nama, ikon, dan saldo awal masing-masing.</p>
+                    <p className="text-sm text-muted-foreground">Ini adalah sumber dana Anda (rekening bank, dompet tunai). Atur ikon, nama, dan saldo awal masing-masing.</p>
                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                         {wallets.map((wallet) => {
                              const Icon = iconMap[wallet.icon] || WalletIcon;
                              return (
-                            <div key={wallet.id} className="grid grid-cols-1 md:grid-cols-[auto,1fr,auto,auto] items-center gap-2 p-2 border rounded-md bg-background">
+                            <div key={wallet.id} className="flex items-center gap-3 p-2 border rounded-md bg-background">
                                 <Select onValueChange={(value: IconName) => handleWalletChange(wallet.id, 'icon', value)} defaultValue={wallet.icon}>
                                     <SelectTrigger className="w-[80px]">
                                         <SelectValue>
@@ -123,20 +123,21 @@ export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) 
                                         </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="Wallet"><div className="flex items-center gap-2"><WalletIcon className="h-4 w-4" /><span>Wallet</span></div></SelectItem>
-                                        <SelectItem value="Banknote"><div className="flex items-center gap-2"><Banknote className="h-4 w-4" /><span>Banknote</span></div></SelectItem>
-                                        <SelectItem value="Landmark"><div className="flex items-center gap-2"><Landmark className="h-4 w-4" /><span>Landmark</span></div></SelectItem>
-                                        <SelectItem value="CreditCard"><div className="flex items-center gap-2"><CreditCard className="h-4 w-4" /><span>Credit Card</span></div></SelectItem>
+                                        <SelectItem value="Wallet"><div className="flex items-center gap-2"><WalletIcon className="h-4 w-4" /><span>Dompet</span></div></SelectItem>
+                                        <SelectItem value="Banknote"><div className="flex items-center gap-2"><Banknote className="h-4 w-4" /><span>Tunai</span></div></SelectItem>
+                                        <SelectItem value="Landmark"><div className="flex items-center gap-2"><Landmark className="h-4 w-4" /><span>Bank</span></div></SelectItem>
+                                        <SelectItem value="CreditCard"><div className="flex items-center gap-2"><CreditCard className="h-4 w-4" /><span>Kartu</span></div></SelectItem>
                                     </SelectContent>
                                 </Select>
-                               <Input className="flex-grow" value={wallet.name} onChange={(e) => handleWalletChange(wallet.id, 'name', e.target.value)} />
-                               <Input 
-                                 className="w-32"
-                                 placeholder="Saldo Awal"
-                                 value={wallet.initialBalance > 0 ? formatCurrency(wallet.initialBalance) : ''}
-                                 onChange={(e) => handleWalletChange(wallet.id, 'initialBalance', Number(e.target.value.replace(/[^0-9]/g, '')))}
-                               />
-                               <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveWallet(wallet.id)}>
+                               <div className="flex-grow space-y-1">
+                                   <Input placeholder="Nama Dompet" value={wallet.name} onChange={(e) => handleWalletChange(wallet.id, 'name', e.target.value)} />
+                                   <Input 
+                                     placeholder="Saldo Awal"
+                                     value={wallet.initialBalance > 0 ? formatCurrency(wallet.initialBalance) : ''}
+                                     onChange={(e) => handleWalletChange(wallet.id, 'initialBalance', Number(e.target.value.replace(/[^0-9]/g, '')))}
+                                   />
+                               </div>
+                               <Button variant="ghost" size="icon" className="text-destructive h-8 w-8 flex-shrink-0" onClick={() => handleRemoveWallet(wallet.id)}>
                                    <Trash2 className="h-4 w-4"/>
                                </Button>
                             </div>
@@ -148,14 +149,28 @@ export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) 
             {step === 'categories' && (
                  <div className="space-y-4 animate-in fade-in duration-300">
                     <h3 className="font-semibold text-lg flex items-center gap-2"><Edit className="h-5 w-5 text-primary"/> Langkah 2: Konfirmasi Kategori</h3>
-                    <p className="text-sm text-muted-foreground">Kami telah menyiapkan beberapa kategori umum. Anda bisa mengubah nama, menambah, atau menghapus yang tidak perlu.</p>
+                    <p className="text-sm text-muted-foreground">Kami telah menyiapkan beberapa kategori umum. Anda bisa mengubah ikon, nama, atau menghapus yang tidak perlu.</p>
                      <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                         {categories.map((cat) => (
                              <div key={cat.id} className="flex items-center gap-2 p-2 border rounded-md bg-background">
-                               <span className="p-2 bg-secondary rounded-md">
-                                 {React.createElement(iconMap[cat.icon], { className: 'h-5 w-5' })}
-                               </span>
-                               <Input className="flex-grow" value={cat.name} onChange={(e) => handleCategoryNameChange(cat.id, e.target.value)} disabled={cat.isEssential} />
+                                <Select onValueChange={(value: IconName) => handleCategoryChange(cat.id, 'icon', value)} defaultValue={cat.icon}>
+                                    <SelectTrigger className="w-[80px]">
+                                        <SelectValue>
+                                            {React.createElement(iconMap[cat.icon] || WalletIcon, { className: 'h-5 w-5' })}
+                                        </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {iconNames.map(iconName => (
+                                            <SelectItem key={iconName} value={iconName}>
+                                                <div className="flex items-center gap-2">
+                                                    {React.createElement(iconMap[iconName], { className: 'h-4 w-4' })}
+                                                    <span>{iconName}</span>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                               <Input className="flex-grow" value={cat.name} onChange={(e) => handleCategoryChange(cat.id, 'name', e.target.value)} disabled={cat.isEssential} />
                                <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => handleRemoveCategory(cat.id)} disabled={cat.isEssential}>
                                    <Trash2 className="h-4 w-4"/>
                                </Button>
@@ -170,7 +185,7 @@ export default function AllocationPage({ onSave, onSkip }: AllocationPageProps) 
         <CardFooter className="flex flex-col sm:flex-row-reverse gap-2">
             {step === 'wallets' && (
                  <Button className="w-full sm:w-auto" onClick={() => setStep('categories')}>
-                     Lanjutkan <ArrowRight className="ml-2 h-4 w-4"/>
+                     Lanjutkan <ChevronRight className="ml-2 h-4 w-4"/>
                  </Button>
             )}
              {step === 'categories' && (
