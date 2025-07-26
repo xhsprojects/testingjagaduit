@@ -7,13 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { iconMap, IconName, iconNames } from '@/lib/icons';
 import { presetCategories, presetWallets } from '@/lib/data';
 import type { Category, Wallet } from '@/lib/types';
-import { Check, Edit, Loader2, Sparkles, Trash2, Wallet as WalletIcon, CheckCircle, ArrowRight, Banknote, Landmark } from 'lucide-react';
+import { Check, Edit, Loader2, Sparkles, Trash2, Wallet as WalletIcon, CheckCircle, ArrowRight, Banknote, Landmark, CreditCard } from 'lucide-react';
 import { Input } from './ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { cn, formatCurrency } from '@/lib/utils';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Controller } from 'react-hook-form';
 
 interface AllocationPageProps {
   onSave: (data: { categories: Category[], wallets: Wallet[] }) => void;
