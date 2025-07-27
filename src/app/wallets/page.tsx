@@ -137,7 +137,7 @@ export default function WalletsPage() {
     }, [user, toast]);
     
     const calculateWalletBalance = React.useCallback((walletId: string, initialBalance: number) => {
-        const totalIncome = incomes.filter(i => i.walletId === walletId).reduce((sum, i) => sum + i.amount, 0);
+        const totalIncome = incomes.filter(i => i.walletId === walletId).reduce((sum, inc) => sum + inc.amount, 0);
         const totalExpense = expenses.filter(e => e.walletId === walletId).reduce((sum, e) => sum + e.amount, 0);
         return initialBalance + totalIncome - totalExpense;
     }, [incomes, expenses]);

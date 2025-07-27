@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -185,7 +186,7 @@ export default function ClientPage() {
           const [categoriesSnap, walletsSnap, goalsSnap, recurringSnap, budgetSnap] = await Promise.all([
               getDocs(categoriesQuery),
               getDocs(walletsQuery),
-              getDocs(goalsSnap),
+              getDocs(goalsQuery),
               getDocs(recurringQuery),
               getDoc(budgetDocRef),
           ]);
@@ -469,10 +470,11 @@ export default function ClientPage() {
   };
   
   const totalWalletBalance = React.useMemo(() => {
-    const totalInitial = wallets.reduce((sum, w) => sum + w.initialBalance, 0);
-    const totalAddedIncomesToWallets = incomes.reduce((sum, i) => sum + i.amount, 0);
-    const totalExpensesFromWallets = expenses.reduce((sum, e) => sum + e.amount, 0);
-    return totalInitial + totalAddedIncomesToWallets - totalExpensesFromWallets;
+    return wallets.reduce((total, wallet) => {
+        const totalIncomeForWallet = incomes.filter(inc => inc.walletId === wallet.id).reduce((sum, inc) => sum + inc.amount, 0);
+        const totalExpenseForWallet = expenses.filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
+        return total + wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
+    }, 0);
   }, [wallets, incomes, expenses]);
 
 

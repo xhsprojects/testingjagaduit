@@ -160,7 +160,7 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
 
     const totalIncome = (incomes || []).filter(inc => inc.walletId === watchedWalletId).reduce((sum, inc) => sum + inc.amount, 0);
     const totalExpense = (expenses || []).filter(e => e.walletId === watchedWalletId).reduce((sum, e) => sum + e.amount, 0);
-    return wallet.initialBalance + totalIncome - totalExpense;
+    return wallet.initialBalance + totalIncome + totalExpense;
   }, [watchedWalletId, wallets, incomes, expenses]);
 
 
