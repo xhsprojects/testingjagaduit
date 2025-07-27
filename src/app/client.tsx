@@ -7,7 +7,7 @@ import type { Category, Expense, SavingGoal, BudgetPeriod, Income, Reminder, Wal
 import DashboardPage from '@/components/DashboardPage';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
-import { doc, getDoc, setDoc, updateDoc, collection, addDoc, deleteDoc, getDocs, writeBatch, query, where, orderBy } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, addDoc, deleteDoc, getDocs, writeBatch, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { awardAchievement } from '@/lib/achievements-manager';
 import { format } from 'date-fns';
@@ -159,92 +159,98 @@ export default function ClientPage() {
 
   }, [toast]);
 
-  const loadData = React.useCallback(async () => {
+  const loadData = React.useCallback(() => {
     if (!uid) return;
     setIsLoading(true);
 
-    try {
-        const userDocRef = doc(db, 'users', uid);
-        const userDocSnap = await getDoc(userDocRef);
+    let unsubscribes: (() => void)[] = [];
 
-        if (!userDocSnap.exists()) {
+    const userDocRef = doc(db, 'users', uid);
+    const userUnsubscribe = onSnapshot(userDocRef, (userSnap) => {
+        if (userSnap.exists()) {
+            setIsDataSetup(true);
+        } else {
             setIsDataSetup(false);
             setIsLoading(false);
-            return;
         }
-
-        // 1. Fetch all master data in parallel for efficiency
-        const categoriesPromise = getDocs(query(collection(db, 'users', uid, 'categories')));
-        const walletsPromise = getDocs(collection(db, 'users', uid, 'wallets'));
-        const goalsPromise = getDocs(collection(db, 'users', uid, 'savingGoals'));
-        const recurringPromise = getDocs(collection(db, 'users', uid, 'recurringTransactions'));
-        
-        const [categoriesSnap, walletsSnap, goalsSnap, recurringSnap] = await Promise.all([
-            categoriesPromise, walletsPromise, goalsPromise, recurringPromise
-        ]);
-
+    });
+    unsubscribes.push(userUnsubscribe);
+    
+    // Listen to master data first
+    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'users', uid, 'categories')), (categoriesSnap) => {
         const loadedCategories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
         setCategories(loadedCategories);
-        setWallets(walletsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Wallet));
-        setSavingGoals(goalsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as SavingGoal));
-        setRecurringTxs(recurringSnap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction));
-        
-        // 2. Now load budget document and sync if necessary
+
+        // Once we have categories, we can listen to the budget
         const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
-        const budgetSnap = await getDoc(budgetDocRef);
-        let budgetData;
-
-        if (budgetSnap.exists()) {
-            budgetData = convertTimestamps(budgetSnap.data());
-            // Sync categories into budget doc if it's missing (for older accounts)
-            if (!budgetData.categories || budgetData.categories.length === 0) {
-                const syncedCategories = loadedCategories.map(masterCat => ({...masterCat, budget: 0}));
-                await updateDoc(budgetDocRef, { categories: syncedCategories });
-                budgetData.categories = syncedCategories;
+        const budgetUnsubscribe = onSnapshot(budgetDocRef, async (budgetSnap) => {
+            let budgetData;
+            if (budgetSnap.exists()) {
+                budgetData = convertTimestamps(budgetSnap.data());
+                // Sync categories into budget doc if it's missing (for older accounts)
+                if ((!budgetData.categories || budgetData.categories.length === 0) && loadedCategories.length > 0) {
+                    const syncedCategories = loadedCategories.map(masterCat => ({...masterCat, budget: 0}));
+                    await updateDoc(budgetDocRef, { categories: syncedCategories });
+                    budgetData.categories = syncedCategories;
+                }
+            } else if (loadedCategories.length > 0) {
+                // Create a new budget document if it doesn't exist but we have categories
+                budgetData = {
+                    income: 0,
+                    categories: loadedCategories.map(c => ({...c, budget: 0})),
+                    expenses: [],
+                    incomes: [],
+                    periodStart: new Date().toISOString(),
+                    periodEnd: null,
+                };
+                await setDoc(budgetDocRef, budgetData);
             }
-        } else {
-            // Create a new budget document if it doesn't exist
-            budgetData = {
-                income: 0,
-                categories: loadedCategories.map(c => ({...c, budget: 0})),
-                expenses: [],
-                incomes: [],
-                periodStart: new Date().toISOString(),
-                periodEnd: null,
-            };
-            await setDoc(budgetDocRef, budgetData);
-        }
 
-        const recurringResult = await processRecurringTransactions(
-            uid, 
-            budgetData.expenses || [],
-            budgetData.incomes || [],
-        );
-        
-        const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
-        const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
+            if (budgetData) {
+                const recurringResult = await processRecurringTransactions(
+                    uid, 
+                    budgetData.expenses || [],
+                    budgetData.incomes || [],
+                );
+                
+                const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
+                const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
 
-        if (recurringResult) {
-            toast({
-                title: "Transaksi Otomatis Ditambahkan",
-                description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
-            });
-        }
-
-        setIncome(budgetData.income || 0);
-        setExpenses(finalExpenses);
-        setIncomes(finalIncomes);
-        
-        setIsDataSetup(true);
-
-    } catch (error: any) {
-        console.error("Failed to load initial data:", error);
-        toast({ title: 'Gagal Memuat Data', description: `Error: ${error.message}`, variant: 'destructive' });
-    } finally {
+                if (recurringResult) {
+                    toast({
+                        title: "Transaksi Otomatis Ditambahkan",
+                        description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
+                    });
+                }
+                
+                setIncome(budgetData.income || 0);
+                setExpenses(finalExpenses);
+                setIncomes(finalIncomes);
+            }
+             setIsLoading(false); // Stop loading after budget is processed
+        }, (error) => {
+            console.error("Error loading budget data:", error);
+            setIsLoading(false);
+        });
+        unsubscribes.push(budgetUnsubscribe);
+    }, (error) => {
+        console.error("Error loading categories data:", error);
         setIsLoading(false);
-    }
-  }, [uid, processRecurringTransactions, toast]);
+    });
+    unsubscribes.push(categoriesUnsubscribe);
 
+
+    // Load other data in parallel
+    const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), (snap) => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
+    const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), (snap) => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
+    const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), (snap) => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
+    
+    unsubscribes.push(walletsUnsubscribe, goalsUnsubscribe, recurringUnsubscribe);
+    
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
+  }, [uid, processRecurringTransactions, toast]);
 
   React.useEffect(() => {
     if (authLoading) return;
@@ -252,7 +258,8 @@ export default function ClientPage() {
       router.push('/login');
       return;
     }
-    loadData();
+    const cleanup = loadData();
+    return cleanup;
   }, [uid, authLoading, router, loadData]);
 
   React.useEffect(() => {
@@ -288,7 +295,7 @@ export default function ClientPage() {
         const sortedExpenses = updatedExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
         await updateDoc(budgetDocRef, { expenses: sortedExpenses });
-        setExpenses(sortedExpenses);
+        // No need to set state here, onSnapshot will do it
 
         // Part 2: Non-critical gamification.
         // This runs in the background and won't block the UI or crash the main flow.
@@ -329,7 +336,7 @@ export default function ClientPage() {
     const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
     const sortedIncomes = updatedIncomes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     await updateDoc(budgetDocRef, { incomes: sortedIncomes });
-    setIncomes(sortedIncomes);
+    // No need to set state here, onSnapshot will do it
   };
 
   const handleSaveIncome = async (incomeData: Income) => {
@@ -390,7 +397,7 @@ export default function ClientPage() {
     });
 
     await batch.commit();
-    setSavingGoals(updatedGoals);
+    // No need to set state here, onSnapshot will do it
     
     if (isNewGoal) {
       await awardAchievement(user.uid, 'first-goal', achievements, idToken);
@@ -414,7 +421,7 @@ export default function ClientPage() {
         // Calculate final balances and prepare wallet updates
         wallets.forEach(wallet => {
             const totalIncomeForWallet = currentIncomes
-                .filter(i => i.walletId === wallet.id)
+                .filter(inc => inc.walletId === wallet.id)
                 .reduce((sum, inc) => sum + inc.amount, 0);
             const totalExpenseForWallet = currentExpenses
                 .filter(e => e.walletId === wallet.id)
@@ -458,7 +465,7 @@ export default function ClientPage() {
 
             await batch.commit();
             
-            await loadData(); // Reload all data to reflect the changes
+            // Data will be reloaded automatically by onSnapshot listeners
             
             toast({ title: 'Periode Baru Dimulai', description: 'Saldo dompet telah diperbarui dan data lama diarsipkan.' });
         } catch (error) {
