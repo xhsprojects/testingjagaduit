@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -15,7 +16,7 @@ import type { Category } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { saveCategories } from './actions';
 import Link from 'next/link';
@@ -55,25 +56,51 @@ export default function CategoriesClientPage() {
 
     React.useEffect(() => {
         if (!user) return;
-        setIsLoadingData(true);
-        const categoriesUnsubscribe = onSnapshot(collection(db, 'users', user.uid, 'categories'), (snapshot) => {
-            const categoriesData = snapshot.docs.map(doc => ({ ...doc.data() as Omit<Category, 'budget'>, id: doc.id }));
-            form.reset({ categories: categoriesData as any[] });
-            setIsLoadingData(false);
-        }, (error) => {
-            console.error("Error fetching categories:", error);
-            setIsLoadingData(false);
-        });
+
+        const loadAndSyncCategories = async () => {
+            setIsLoadingData(true);
+            try {
+                const categoriesCollectionRef = collection(db, 'users', user.uid, 'categories');
+                const categoriesSnapshot = await getDoc(doc(categoriesCollectionRef)); // Dummy getDoc for consistency with single doc reads
+                
+                onSnapshot(categoriesCollectionRef, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const categoriesData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
+                        form.reset({ categories: categoriesData });
+                        setIsLoadingData(false);
+                    } else {
+                        // Fallback: If categories collection is empty, try to load from budget doc (for older accounts)
+                        const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
+                        getDoc(budgetDocRef).then(budgetSnap => {
+                            if (budgetSnap.exists() && budgetSnap.data().categories?.length > 0) {
+                                const budgetCategories = budgetSnap.data().categories as Category[];
+                                form.reset({ categories: budgetCategories });
+                                // Optionally, you could write these back to the categories collection here
+                            }
+                            setIsLoadingData(false);
+                        });
+                    }
+                }, (error) => {
+                    console.error("Error fetching categories:", error);
+                    toast({ title: "Gagal Memuat Kategori", variant: "destructive" });
+                    setIsLoadingData(false);
+                });
+
+            } catch (error) {
+                 console.error("Error loading categories page data: ", error);
+                 setIsLoadingData(false);
+            }
+        };
         
-        return () => categoriesUnsubscribe();
-    }, [user, form]);
+        loadAndSyncCategories();
+
+    }, [user, form, toast]);
   
     const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: "categories",
     });
 
-    // Safely access isDirty with a default value to prevent crash during build
     const { formState: { isDirty = false } = {} } = form;
 
     const handleAddNewCategory = () => {
@@ -213,3 +240,4 @@ export default function CategoriesClientPage() {
         </div>
     );
 }
+

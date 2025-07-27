@@ -19,7 +19,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AddIncomeForm } from '@/components/AddIncomeForm';
 import { awardUserXp } from './achievements/actions';
 import { ToastAction } from '@/components/ui/toast';
-import { presetWallets } from '@/lib/data';
 import OnboardingPage from './onboarding/page';
 
 // Helper to convert Firestore timestamps to JS Dates
@@ -161,97 +160,89 @@ export default function ClientPage() {
   }, [toast]);
 
   const loadData = React.useCallback(async () => {
-      if (!uid) return;
-      setIsLoading(true);
+    if (!uid) return;
+    setIsLoading(true);
 
-      try {
-          const userDocRef = doc(db, 'users', uid);
-          const userDocSnap = await getDoc(userDocRef);
+    try {
+        const userDocRef = doc(db, 'users', uid);
+        const userDocSnap = await getDoc(userDocRef);
 
-          if (!userDocSnap.exists()) {
-              setIsDataSetup(false);
-              setIsLoading(false);
-              return;
-          }
+        if (!userDocSnap.exists()) {
+            setIsDataSetup(false);
+            setIsLoading(false);
+            return;
+        }
 
-          // 1. Load all master data first
-          const categoriesQuery = query(collection(db, 'users', uid, 'categories'));
-          const walletsQuery = query(collection(db, 'users', uid, 'wallets'));
-          const goalsQuery = query(collection(db, 'users', uid, 'savingGoals'));
-          const recurringQuery = query(collection(db, 'users', uid, 'recurringTransactions'));
+        // 1. Load all master data first from their respective collections
+        const categoriesSnap = await getDocs(query(collection(db, 'users', uid, 'categories')));
+        const walletsSnap = await getDocs(collection(db, 'users', uid, 'wallets'));
+        const goalsSnap = await getDocs(collection(db, 'users', uid, 'savingGoals'));
+        const recurringSnap = await getDocs(collection(db, 'users', uid, 'recurringTransactions'));
+        
+        const loadedCategories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
+        setCategories(loadedCategories);
+        setWallets(walletsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Wallet));
+        setSavingGoals(goalsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as SavingGoal));
+        setRecurringTxs(recurringSnap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction));
 
-          const [categoriesSnap, walletsSnap, goalsSnap, recurringSnap] = await Promise.all([
-              getDocs(categoriesQuery),
-              getDocs(walletsQuery),
-              getDocs(goalsQuery),
-              getDocs(recurringQuery),
-          ]);
-          
-          const loadedCategories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
-          const loadedWallets = walletsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Wallet);
-          const loadedGoals = goalsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as SavingGoal);
-          const loadedRecurring = recurringSnap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction);
-          
-          setCategories(loadedCategories);
-          setWallets(loadedWallets);
-          setSavingGoals(loadedGoals);
-          setRecurringTxs(loadedRecurring);
+        // 2. Now load budget document and sync if necessary
+        const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
+        const budgetSnap = await getDoc(budgetDocRef);
+        let budgetData;
 
-          // 2. Now load budget document
-          const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
-          const budgetSnap = await getDoc(budgetDocRef);
+        if (budgetSnap.exists()) {
+            budgetData = convertTimestamps(budgetSnap.data());
+            // Sync categories into budget doc if it's missing (for older accounts)
+            if (!budgetData.categories || budgetData.categories.length === 0) {
+                const existingBudgets = (budgetData.categories || []).map((c: any) => ({...c}));
+                const syncedCategories = loadedCategories.map(masterCat => {
+                    const existing = existingBudgets.find(b => b.id === masterCat.id);
+                    return existing ? existing : {...masterCat, budget: 0};
+                });
+                await updateDoc(budgetDocRef, { categories: syncedCategories });
+                budgetData.categories = syncedCategories;
+            }
+        } else {
+            // Create a new budget document if it doesn't exist
+            budgetData = {
+                income: 0,
+                categories: loadedCategories.map(c => ({...c, budget: 0})),
+                expenses: [],
+                incomes: [],
+                periodStart: new Date().toISOString(),
+                periodEnd: null,
+            };
+            await setDoc(budgetDocRef, budgetData);
+        }
 
-          if (budgetSnap.exists()) {
-              const budgetData = convertTimestamps(budgetSnap.data());
+        const recurringResult = await processRecurringTransactions(
+            uid, 
+            budgetData.expenses || [],
+            budgetData.incomes || [],
+        );
+        
+        const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
+        const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
 
-              // Ensure budget document has categories (for older accounts)
-              if (!budgetData.categories || budgetData.categories.length === 0) {
-                  await updateDoc(budgetDocRef, {
-                      categories: loadedCategories.map(c => ({...c, budget: 0}))
-                  });
-              }
+        if (recurringResult) {
+            toast({
+                title: "Transaksi Otomatis Ditambahkan",
+                description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
+            });
+        }
 
-              const recurringResult = await processRecurringTransactions(
-                  uid, 
-                  budgetData.expenses || [],
-                  budgetData.incomes || [],
-              );
-              
-              const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
-              const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
+        setIncome(budgetData.income || 0);
+        setExpenses(finalExpenses);
+        setIncomes(finalIncomes);
+        
+        setIsDataSetup(true);
 
-              if (recurringResult) {
-                  toast({
-                      title: "Transaksi Otomatis Ditambahkan",
-                      description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
-                  });
-              }
-
-              setIncome(budgetData.income || 0);
-              setExpenses(finalExpenses);
-              setIncomes(finalIncomes);
-          } else {
-              await setDoc(budgetDocRef, {
-                  income: 0,
-                  categories: loadedCategories.map(c => ({...c, budget: 0})),
-                  expenses: [],
-                  incomes: [],
-                  periodStart: new Date().toISOString(),
-                  periodEnd: null,
-              });
-              setIncome(0);
-              setExpenses([]);
-              setIncomes([]);
-          }
-
-          setIsDataSetup(true);
-
-      } catch (error: any) {
-          console.error("Failed to load initial data:", error);
-          toast({ title: 'Gagal Memuat Data', description: `Error: ${error.message}`, variant: 'destructive' });
-      } finally {
-          setIsLoading(false);
-      }
+    } catch (error: any) {
+        console.error("Failed to load initial data:", error);
+        toast({ title: 'Gagal Memuat Data', description: `Error: ${error.message}`, variant: 'destructive' });
+    } finally {
+        setIsLoading(false);
+    }
   }, [uid, processRecurringTransactions, toast]);
 
 
@@ -479,8 +470,8 @@ export default function ClientPage() {
   
   const totalWalletBalance = React.useMemo(() => {
     return wallets.reduce((total, wallet) => {
-        const totalIncomeForWallet = incomes.filter(inc => inc.walletId === wallet.id).reduce((sum, inc) => sum + inc.amount, 0);
-        const totalExpenseForWallet = expenses.filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
+        const totalIncomeForWallet = (incomes || []).filter(inc => inc.walletId === wallet.id).reduce((sum, inc) => sum + inc.amount, 0);
+        const totalExpenseForWallet = (expenses || []).filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
         return total + wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
     }, 0);
   }, [wallets, incomes, expenses]);
@@ -600,4 +591,3 @@ export default function ClientPage() {
     </>
   );
 }
-
