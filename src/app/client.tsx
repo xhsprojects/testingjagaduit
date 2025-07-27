@@ -20,6 +20,7 @@ import { AddIncomeForm } from '@/components/AddIncomeForm';
 import { awardUserXp } from './achievements/actions';
 import { ToastAction } from '@/components/ui/toast';
 import OnboardingPage from './onboarding/page';
+import { Loader2 } from 'lucide-react';
 
 // Helper to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {
@@ -179,20 +180,33 @@ export default function ClientPage() {
     const unsubscribes: (() => void)[] = [];
 
     // --- SAFE CATEGORY LOADING ---
-    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'users', uid, 'categories')), (categoriesSnap) => {
-        let loadedCategories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
-        setCategories(loadedCategories);
-    }, (error) => {
-        console.error("Error loading categories data:", error);
-        toast({ title: 'Gagal Memuat Kategori', variant: 'destructive' });
-    });
-    unsubscribes.push(categoriesUnsubscribe);
+    const categoriesCollectionRef = collection(db, 'users', uid, 'categories');
+    const categoriesSnapshot = await getDocs(categoriesCollectionRef);
+    let loadedCategories = categoriesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
 
-    const budgetUnsubscribe = onSnapshot(doc(db, 'users', uid, 'budgets', 'current'), async (budgetSnap) => {
+    const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
+    const budgetSnap = await getDoc(budgetDocRef);
+
+    // This handles old accounts that might not have the categories subcollection yet.
+    if (loadedCategories.length === 0 && budgetSnap.exists() && budgetSnap.data().categories?.length > 0) {
+        const budgetCategories = budgetSnap.data().categories as Category[];
+        loadedCategories = budgetCategories;
+        // Write the categories to the new subcollection to fix the account data structure.
+        const batch = writeBatch(db);
+        budgetCategories.forEach(cat => {
+            const catRef = doc(categoriesCollectionRef, cat.id);
+            batch.set(catRef, cat);
+        });
+        await batch.commit();
+    }
+    
+    setCategories(loadedCategories);
+
+    // --- Attach listeners for realtime updates ---
+    const budgetUnsubscribe = onSnapshot(budgetDocRef, async (budgetSnap) => {
         if (budgetSnap.exists()) {
             const budgetData = convertTimestamps(budgetSnap.data());
             
-            // Process recurring transactions
             const recurringResult = await processRecurringTransactions(
                 uid, 
                 budgetData.expenses || [],
@@ -213,7 +227,7 @@ export default function ClientPage() {
             setExpenses(finalExpenses);
             setIncomes(finalIncomes);
         }
-        setIsLoading(false); // Set loading false after budget is processed
+        setIsLoading(false);
     }, (error) => {
         console.error("Error loading budget data:", error);
         setIsLoading(false);
@@ -221,7 +235,6 @@ export default function ClientPage() {
     });
     unsubscribes.push(budgetUnsubscribe);
 
-    // Load other data in parallel
     const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), (snap) => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
     const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), (snap) => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
     const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), (snap) => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
@@ -474,7 +487,10 @@ export default function ClientPage() {
   if (authLoading || isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-secondary">
-        <div className="text-lg font-semibold text-primary">Memuat Aplikasi...</div>
+        <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-lg font-semibold text-primary">Memuat Dasbor Anda...</p>
+        </div>
       </div>
     );
   }
@@ -585,5 +601,7 @@ export default function ClientPage() {
     </>
   );
 }
+
+    
 
     
