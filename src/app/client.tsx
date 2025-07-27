@@ -173,18 +173,22 @@ export default function ClientPage() {
             return;
         }
 
-        // 1. Load all master data first from their respective collections
-        const categoriesSnap = await getDocs(query(collection(db, 'users', uid, 'categories')));
-        const walletsSnap = await getDocs(collection(db, 'users', uid, 'wallets'));
-        const goalsSnap = await getDocs(collection(db, 'users', uid, 'savingGoals'));
-        const recurringSnap = await getDocs(collection(db, 'users', uid, 'recurringTransactions'));
+        // 1. Fetch all master data in parallel for efficiency
+        const categoriesPromise = getDocs(query(collection(db, 'users', uid, 'categories')));
+        const walletsPromise = getDocs(collection(db, 'users', uid, 'wallets'));
+        const goalsPromise = getDocs(collection(db, 'users', uid, 'savingGoals'));
+        const recurringPromise = getDocs(collection(db, 'users', uid, 'recurringTransactions'));
         
+        const [categoriesSnap, walletsSnap, goalsSnap, recurringSnap] = await Promise.all([
+            categoriesPromise, walletsPromise, goalsPromise, recurringPromise
+        ]);
+
         const loadedCategories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
         setCategories(loadedCategories);
         setWallets(walletsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Wallet));
         setSavingGoals(goalsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as SavingGoal));
         setRecurringTxs(recurringSnap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction));
-
+        
         // 2. Now load budget document and sync if necessary
         const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
         const budgetSnap = await getDoc(budgetDocRef);
@@ -194,11 +198,7 @@ export default function ClientPage() {
             budgetData = convertTimestamps(budgetSnap.data());
             // Sync categories into budget doc if it's missing (for older accounts)
             if (!budgetData.categories || budgetData.categories.length === 0) {
-                const existingBudgets = (budgetData.categories || []).map((c: any) => ({...c}));
-                const syncedCategories = loadedCategories.map(masterCat => {
-                    const existing = existingBudgets.find(b => b.id === masterCat.id);
-                    return existing ? existing : {...masterCat, budget: 0};
-                });
+                const syncedCategories = loadedCategories.map(masterCat => ({...masterCat, budget: 0}));
                 await updateDoc(budgetDocRef, { categories: syncedCategories });
                 budgetData.categories = syncedCategories;
             }
@@ -591,3 +591,5 @@ export default function ClientPage() {
     </>
   );
 }
+
+    
