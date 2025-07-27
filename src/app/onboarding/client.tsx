@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -7,7 +8,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormMessage, FormLabel } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, PlusCircle, Wallet, HandCoins, Loader2, ArrowRight, Check } from 'lucide-react';
 import { iconNames, IconName, iconMap } from '@/lib/icons';
@@ -16,6 +17,7 @@ import type { Category, Wallet as WalletType } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { saveOnboardingData } from './actions';
+import { formatCurrency } from '@/lib/utils';
 
 type OnboardingStage = 'wallets' | 'categories';
 
@@ -120,14 +122,54 @@ export default function OnboardingClientPage({ onSetupComplete }: OnboardingClie
                                 const Icon = iconMap[field.icon as IconName] || Wallet;
                                 return (
                                 <div key={field.id} className="flex items-center gap-3 p-3 border rounded-lg bg-background">
-                                    <Controller control={form.control} name={`wallets.${index}.icon`} render={({ field: ctlField }) => (
-                                        <Select onValueChange={ctlField.onChange} value={ctlField.value}><FormControl><SelectTrigger className="w-16 h-16"><SelectValue><Icon className="h-6 w-6 mx-auto" /></SelectValue></SelectTrigger></FormControl>
-                                        <SelectContent>{iconNames.map(i => <SelectItem key={i} value={i}><div className="flex items-center gap-2">{React.createElement(iconMap[i], {className: "h-4 w-4"})}<span>{i}</span></div></SelectItem>)}</SelectContent>
-                                        </Select>
-                                    )} />
+                                    <Controller
+                                      control={form.control}
+                                      name={`wallets.${index}.icon`}
+                                      render={({ field: ctlField }) => (
+                                          <Select onValueChange={ctlField.onChange} value={ctlField.value}>
+                                              <FormControl>
+                                                  <SelectTrigger className="w-16 h-16">
+                                                      <SelectValue>
+                                                          <Icon className="h-6 w-6 mx-auto" />
+                                                      </SelectValue>
+                                                  </SelectTrigger>
+                                              </FormControl>
+                                              <SelectContent>
+                                                  {iconNames.map(i => (
+                                                      <SelectItem key={i} value={i}>
+                                                          <div className="flex items-center gap-2">
+                                                              {React.createElement(iconMap[i], { className: "h-4 w-4" })}
+                                                              <span>{i}</span>
+                                                          </div>
+                                                      </SelectItem>
+                                                  ))}
+                                              </SelectContent>
+                                          </Select>
+                                      )}
+                                    />
                                     <div className="flex-grow space-y-1">
                                         <FormField control={form.control} name={`wallets.${index}.name`} render={({ field: f }) => (<FormItem><FormControl><Input placeholder="Nama Dompet" {...f} /></FormControl><FormMessage/></FormItem>)}/>
-                                        <FormField control={form.control} name={`wallets.${index}.initialBalance`} render={({ field: f }) => (<FormItem><FormControl><Input placeholder="Saldo Awal (Rp)" type="text" value={f.value > 0 ? f.value : ""} onChange={e => f.onChange(Number(e.target.value.replace(/[^0-9]/g, '')))}/></FormControl><FormMessage/></FormItem>)}/>
+                                        <Controller
+                                            control={form.control}
+                                            name={`wallets.${index}.initialBalance`}
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="Saldo Awal (Rp)"
+                                                            type="text"
+                                                            inputMode="numeric"
+                                                            value={field.value > 0 ? formatCurrency(field.value) : ""}
+                                                            onChange={e => {
+                                                                const numericValue = Number(e.target.value.replace(/[^0-9]/g, ''));
+                                                                field.onChange(numericValue);
+                                                            }}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
                                     <Button variant="ghost" size="icon" type="button" onClick={() => removeWallet(index)} className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
                                 </div>
@@ -174,3 +216,5 @@ export default function OnboardingClientPage({ onSetupComplete }: OnboardingClie
     </div>
   );
 }
+
+    

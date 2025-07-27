@@ -4,7 +4,7 @@
 import { getAuthAdmin, getDbAdmin } from '@/lib/firebase-server';
 import type { Category, Wallet } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
-import { serverTimestamp } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 interface ActionResult {
     success: boolean;
@@ -32,8 +32,8 @@ export async function saveOnboardingData(token: string, wallets: Wallet[], categ
             email: decodedToken.email,
             displayName: decodedToken.name,
             photoURL: decodedToken.picture,
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+            lastLogin: FieldValue.serverTimestamp(),
             xp: 100, // Initial XP for completing onboarding
             level: 1,
             theme: 'default',
@@ -78,3 +78,5 @@ export async function saveOnboardingData(token: string, wallets: Wallet[], categ
         return { success: false, message: `Terjadi kesalahan server: ${error.message}` };
     }
 }
+
+    

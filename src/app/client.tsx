@@ -89,7 +89,6 @@ export default function ClientPage() {
 
       recurringSnapshot.forEach(docSnap => {
         const transaction = { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as RecurringTransaction;
-        // Handle case where lastAdded might be null from older data structures
         const lastAddedDate = transaction.lastAdded ? new Date(transaction.lastAdded) : null;
         const dayOfMonth = transaction.dayOfMonth;
         
@@ -166,8 +165,6 @@ export default function ClientPage() {
     setIsLoading(true);
 
     const userDocRef = doc(db, 'users', uid);
-    
-    // Check for user document first to handle new users.
     const userSnap = await getDoc(userDocRef);
 
     if (!userSnap.exists()) {
@@ -179,61 +176,59 @@ export default function ClientPage() {
     setIsDataSetup(true);
     const unsubscribes: (() => void)[] = [];
 
-    // --- SAFE CATEGORY LOADING ---
-    const categoriesCollectionRef = collection(db, 'users', uid, 'categories');
-    const categoriesSnapshot = await getDocs(categoriesCollectionRef);
-    let loadedCategories = categoriesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
+    // Attach listeners for realtime updates
+    const categoriesUnsubscribe = onSnapshot(collection(db, 'users', uid, 'categories'), async (categoriesSnapshot) => {
+        let loadedCategories = categoriesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
 
-    const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
-    const budgetSnap = await getDoc(budgetDocRef);
-
-    // This handles old accounts that might not have the categories subcollection yet.
-    if (loadedCategories.length === 0 && budgetSnap.exists() && budgetSnap.data().categories?.length > 0) {
-        const budgetCategories = budgetSnap.data().categories as Category[];
-        loadedCategories = budgetCategories;
-        // Write the categories to the new subcollection to fix the account data structure.
-        const batch = writeBatch(db);
-        budgetCategories.forEach(cat => {
-            const catRef = doc(categoriesCollectionRef, cat.id);
-            batch.set(catRef, cat);
-        });
-        await batch.commit();
-    }
-    
-    setCategories(loadedCategories);
-
-    // --- Attach listeners for realtime updates ---
-    const budgetUnsubscribe = onSnapshot(budgetDocRef, async (budgetSnap) => {
-        if (budgetSnap.exists()) {
-            const budgetData = convertTimestamps(budgetSnap.data());
-            
-            const recurringResult = await processRecurringTransactions(
-                uid, 
-                budgetData.expenses || [],
-                budgetData.incomes || [],
-            );
-            
-            const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
-            const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
-
-            if (recurringResult) {
-                toast({
-                    title: "Transaksi Otomatis Ditambahkan",
-                    description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
+        const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
+        if (loadedCategories.length === 0) {
+            const budgetSnap = await getDoc(budgetDocRef);
+            if (budgetSnap.exists() && budgetSnap.data().categories?.length > 0) {
+                const budgetCategories = budgetSnap.data().categories as Category[];
+                loadedCategories = budgetCategories;
+                const batch = writeBatch(db);
+                budgetCategories.forEach(cat => {
+                    const catRef = doc(collection(db, 'users', uid, 'categories'), cat.id);
+                    batch.set(catRef, cat);
                 });
+                await batch.commit();
             }
-            
-            setIncome(budgetData.income || 0);
-            setExpenses(finalExpenses);
-            setIncomes(finalIncomes);
         }
-        setIsLoading(false);
-    }, (error) => {
-        console.error("Error loading budget data:", error);
-        setIsLoading(false);
-        toast({ title: 'Gagal Memuat Anggaran', variant: 'destructive' });
+        setCategories(loadedCategories);
+
+        const budgetUnsubscribe = onSnapshot(budgetDocRef, async (budgetSnap) => {
+            if (budgetSnap.exists()) {
+                const budgetData = convertTimestamps(budgetSnap.data());
+                
+                const recurringResult = await processRecurringTransactions(
+                    uid, 
+                    budgetData.expenses || [],
+                    budgetData.incomes || [],
+                );
+                
+                const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
+                const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
+
+                if (recurringResult) {
+                    toast({
+                        title: "Transaksi Otomatis Ditambahkan",
+                        description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
+                    });
+                }
+                
+                setIncome(budgetData.income || 0);
+                setExpenses(finalExpenses);
+                setIncomes(finalIncomes);
+            }
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error loading budget data:", error);
+            setIsLoading(false);
+            toast({ title: 'Gagal Memuat Anggaran', variant: 'destructive' });
+        });
+        unsubscribes.push(budgetUnsubscribe);
     });
-    unsubscribes.push(budgetUnsubscribe);
+    unsubscribes.push(categoriesUnsubscribe);
 
     const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), (snap) => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
     const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), (snap) => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
@@ -254,7 +249,7 @@ export default function ClientPage() {
     }
     const cleanupPromise = loadData();
     return () => {
-        cleanupPromise.then(cleanup => {
+        cleanupPromise?.then(cleanup => {
             if (cleanup) {
                 cleanup();
             }
@@ -601,7 +596,5 @@ export default function ClientPage() {
     </>
   );
 }
-
-    
 
     
