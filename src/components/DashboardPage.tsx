@@ -119,7 +119,6 @@ export default function DashboardPage({
     
     const dueReminders = (reminders || []).filter(r => !r.isPaid && new Date(r.dueDate) <= todayEnd).length;
     
-    // Only count recurring transactions if they haven't been added this month yet
     const dueRecurring = (recurringTxs || []).filter(tx => {
         const lastAdded = tx.lastAdded ? new Date(tx.lastAdded) : null;
         const alreadyAddedThisMonth = lastAdded && 
@@ -160,7 +159,10 @@ export default function DashboardPage({
     fetchDebts();
   }, [uid]);
 
-  const categoryMap = React.useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
+  const categoryMap = React.useMemo(() => {
+    if (!categories || categories.length === 0) return new Map();
+    return new Map(categories.map((cat) => [cat.id, cat]));
+  }, [categories]);
 
   const filterByDateRange = (items: (Expense | Income)[], customDateRange?: DateRange) => {
      const range = customDateRange || date;
@@ -209,6 +211,7 @@ export default function DashboardPage({
   const remainingBudget = income - totalFilteredExpenses;
 
   const expensesByCategory = React.useMemo(() => {
+      if (categories.length === 0) return [];
       const dataMap = new Map((categories || []).filter(Boolean).map((cat) => [cat.id, { ...cat, spent: 0 }]));
       for (const expense of filteredExpenses) {
           if (expense.isSplit && expense.splits) {
