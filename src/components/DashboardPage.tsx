@@ -111,6 +111,9 @@ export default function DashboardPage({
   const uid = user?.uid;
 
   const [hasShownReminderToast, setHasShownReminderToast] = React.useState(false);
+  
+  // Data loading guard: Wait until categories are properly populated.
+  const isDataReady = categories && categories.length > 0;
 
   const dueEventsCount = React.useMemo(() => {
     const today = new Date();
@@ -160,9 +163,9 @@ export default function DashboardPage({
   }, [uid]);
 
   const categoryMap = React.useMemo(() => {
-    if (!categories || categories.length === 0) return new Map();
+    if (!isDataReady) return new Map();
     return new Map(categories.map((cat) => [cat.id, cat]));
-  }, [categories]);
+  }, [isDataReady, categories]);
 
   const filterByDateRange = (items: (Expense | Income)[], customDateRange?: DateRange) => {
      const range = customDateRange || date;
@@ -181,8 +184,9 @@ export default function DashboardPage({
   const filteredIncomes = React.useMemo(() => filterByDateRange(incomes) as Income[], [incomes, date]);
 
   const savingsCategoryId = React.useMemo(() => {
+    if (!isDataReady) return undefined;
     return categories.find(c => c.name === "Tabungan & Investasi")?.id;
-  }, [categories]);
+  }, [isDataReady, categories]);
 
   const totalSavings = React.useMemo(() => {
     if (!savingsCategoryId) return 0;
@@ -206,12 +210,12 @@ export default function DashboardPage({
   }, [date]);
 
   const totalFilteredExpenses = React.useMemo(() => filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0), [filteredExpenses]);
-  const totalFilteredIncomes = React.useMemo(() => filteredIncomes.reduce((sum, inc) => sum + inc.amount, 0), [incomes, date]);
+  const totalFilteredIncomes = React.useMemo(() => filteredIncomes.reduce((sum, inc) => sum + inc.amount, 0), [filteredIncomes]);
 
   const remainingBudget = income - totalFilteredExpenses;
 
   const expensesByCategory = React.useMemo(() => {
-      if (categories.length === 0) return [];
+      if (!isDataReady) return [];
       const dataMap = new Map((categories || []).filter(Boolean).map((cat) => [cat.id, { ...cat, spent: 0 }]));
       for (const expense of filteredExpenses) {
           if (expense.isSplit && expense.splits) {
@@ -229,7 +233,7 @@ export default function DashboardPage({
           }
       }
       return Array.from(dataMap.values());
-  }, [filteredExpenses, categories]);
+  }, [filteredExpenses, categories, isDataReady]);
 
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
@@ -406,6 +410,15 @@ export default function DashboardPage({
   const detailDebt = expenseDetail ? debts.find(d => d.id === expenseDetail.debtId) : null;
   const detailWallet = expenseDetail?.walletId ? wallets.find(w => w.id === expenseDetail.walletId) : null;
   const DetailCategoryIcon = detailCategory?.icon ? iconMap[detailCategory.icon] : null;
+  
+  if (!isDataReady) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center bg-secondary">
+              <div className="text-lg font-semibold text-primary">Memuat Dasbor...</div>
+          </div>
+      );
+  }
+
 
   return (
     <>
