@@ -159,112 +159,78 @@ export default function ClientPage() {
     }
 
   }, [toast]);
-
-  const loadData = React.useCallback(() => {
+  
+  const loadData = React.useCallback(async () => {
     if (!uid) return;
     setIsLoading(true);
 
     const userDocRef = doc(db, 'users', uid);
     
     // Check for user document first to handle new users.
-    getDoc(userDocRef).then(userSnap => {
-        if (!userSnap.exists()) {
-            setIsDataSetup(false);
-            setIsLoading(false);
-            return; // Stop execution for new users. They go to onboarding.
-        }
+    const userSnap = await getDoc(userDocRef);
 
-        setIsDataSetup(true);
-        let unsubscribes: (() => void)[] = [];
+    if (!userSnap.exists()) {
+        setIsDataSetup(false);
+        setIsLoading(false);
+        return; // Stop execution for new users. They go to onboarding.
+    }
 
-        // --- SAFE CATEGORY LOADING ---
-        const categoriesUnsubscribe = onSnapshot(query(collection(db, 'users', uid, 'categories')), (categoriesSnap) => {
-            let loadedCategories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
+    setIsDataSetup(true);
+    const unsubscribes: (() => void)[] = [];
 
-            const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
+    // --- SAFE CATEGORY LOADING ---
+    const categoriesUnsubscribe = onSnapshot(query(collection(db, 'users', uid, 'categories')), (categoriesSnap) => {
+        let loadedCategories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
+        setCategories(loadedCategories);
+    }, (error) => {
+        console.error("Error loading categories data:", error);
+        toast({ title: 'Gagal Memuat Kategori', variant: 'destructive' });
+    });
+    unsubscribes.push(categoriesUnsubscribe);
 
-            const setupBudgetListener = (finalCategories: Category[]) => {
-                setCategories(finalCategories);
-
-                const budgetUnsubscribe = onSnapshot(budgetDocRef, async (budgetSnap) => {
-                    if (budgetSnap.exists()) {
-                        const budgetData = convertTimestamps(budgetSnap.data());
-
-                        // Sync categories for older accounts if missing in budget doc
-                        if ((!budgetData.categories || budgetData.categories.length === 0) && finalCategories.length > 0) {
-                            const syncedCategories = finalCategories.map(masterCat => ({...masterCat, budget: 0}));
-                            await updateDoc(budgetDocRef, { categories: syncedCategories });
-                            budgetData.categories = syncedCategories;
-                        }
-                        
-                        // Process recurring transactions
-                        const recurringResult = await processRecurringTransactions(
-                            uid, 
-                            budgetData.expenses || [],
-                            budgetData.incomes || [],
-                        );
-                        
-                        const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
-                        const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
-
-                        if (recurringResult) {
-                            toast({
-                                title: "Transaksi Otomatis Ditambahkan",
-                                description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
-                            });
-                        }
-                        
-                        setIncome(budgetData.income || 0);
-                        setExpenses(finalExpenses);
-                        setIncomes(finalIncomes);
-                    }
-                    setIsLoading(false);
-                }, (error) => {
-                    console.error("Error loading budget data:", error);
-                    setIsLoading(false);
-                });
-                unsubscribes.push(budgetUnsubscribe);
-            };
+    const budgetUnsubscribe = onSnapshot(doc(db, 'users', uid, 'budgets', 'current'), async (budgetSnap) => {
+        if (budgetSnap.exists()) {
+            const budgetData = convertTimestamps(budgetSnap.data());
             
-            if (loadedCategories.length > 0) {
-                setupBudgetListener(loadedCategories);
-            } else {
-                // Fallback for older accounts: check budget doc for categories
-                getDoc(doc(db, 'users', uid, 'budgets', 'current')).then(async budgetSnap => {
-                    if (budgetSnap.exists() && budgetSnap.data().categories?.length > 0) {
-                        const budgetCategories = budgetSnap.data().categories as Category[];
-                        // Re-populate the main categories collection from budget doc (one-time fix)
-                        const batch = writeBatch(db);
-                        budgetCategories.forEach(cat => {
-                            const catRef = doc(db, 'users', uid, 'categories', cat.id);
-                            batch.set(catRef, { name: cat.name, icon: cat.icon, isEssential: cat.isEssential || false, isDebtCategory: cat.isDebtCategory || false });
-                        });
-                        await batch.commit();
-                        setupBudgetListener(budgetCategories); // Use these categories to setup listener
-                    } else {
-                        setIsLoading(false); // No categories found anywhere
-                    }
+            // Process recurring transactions
+            const recurringResult = await processRecurringTransactions(
+                uid, 
+                budgetData.expenses || [],
+                budgetData.incomes || [],
+            );
+            
+            const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
+            const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
+
+            if (recurringResult) {
+                toast({
+                    title: "Transaksi Otomatis Ditambahkan",
+                    description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
                 });
             }
-        }, (error) => {
-            console.error("Error loading categories data:", error);
-            setIsLoading(false);
-        });
-        unsubscribes.push(categoriesUnsubscribe);
-
-        // Load other data in parallel
-        const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), (snap) => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
-        const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), (snap) => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
-        const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), (snap) => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
-        
-        unsubscribes.push(walletsUnsubscribe, goalsUnsubscribe, recurringUnsubscribe);
-        
-        // Return a cleanup function
-        return () => {
-          unsubscribes.forEach(unsub => unsub());
-        };
+            
+            setIncome(budgetData.income || 0);
+            setExpenses(finalExpenses);
+            setIncomes(finalIncomes);
+        }
+        setIsLoading(false); // Set loading false after budget is processed
+    }, (error) => {
+        console.error("Error loading budget data:", error);
+        setIsLoading(false);
+        toast({ title: 'Gagal Memuat Anggaran', variant: 'destructive' });
     });
+    unsubscribes.push(budgetUnsubscribe);
 
+    // Load other data in parallel
+    const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), (snap) => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
+    const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), (snap) => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
+    const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), (snap) => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
+    
+    unsubscribes.push(walletsUnsubscribe, goalsUnsubscribe, recurringUnsubscribe);
+    
+    return () => {
+      unsubscribes.forEach(unsub => unsub());
+    };
   }, [uid, processRecurringTransactions, toast]);
 
   React.useEffect(() => {
@@ -273,12 +239,13 @@ export default function ClientPage() {
       router.push('/login');
       return;
     }
-    const cleanup = loadData();
-    // This return is for when the component unmounts
+    const cleanupPromise = loadData();
     return () => {
-        if (cleanup instanceof Function) {
-            cleanup();
-        }
+        cleanupPromise.then(cleanup => {
+            if (cleanup) {
+                cleanup();
+            }
+        });
     };
   }, [uid, authLoading, router, loadData]);
 
