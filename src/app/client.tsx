@@ -165,50 +165,60 @@ export default function ClientPage() {
       setIsLoading(true);
 
       try {
-          // Check if main user document exists. This determines if it's a new or existing user.
           const userDocRef = doc(db, 'users', uid);
           const userDocSnap = await getDoc(userDocRef);
 
           if (!userDocSnap.exists()) {
-              // This is a new user who hasn't completed onboarding.
               setIsDataSetup(false);
               setIsLoading(false);
               return;
           }
 
-          // User exists, proceed to load all their data.
+          // 1. Load all master data first
           const categoriesQuery = query(collection(db, 'users', uid, 'categories'));
           const walletsQuery = query(collection(db, 'users', uid, 'wallets'));
           const goalsQuery = query(collection(db, 'users', uid, 'savingGoals'));
           const recurringQuery = query(collection(db, 'users', uid, 'recurringTransactions'));
-          const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
 
-          const [categoriesSnap, walletsSnap, goalsSnap, recurringSnap, budgetSnap] = await Promise.all([
+          const [categoriesSnap, walletsSnap, goalsSnap, recurringSnap] = await Promise.all([
               getDocs(categoriesQuery),
               getDocs(walletsQuery),
               getDocs(goalsQuery),
               getDocs(recurringQuery),
-              getDoc(budgetDocRef),
           ]);
           
-          const loadedCategories = categoriesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Category);
-          const loadedWallets = walletsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Wallet);
-
+          const loadedCategories = categoriesSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
+          const loadedWallets = walletsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Wallet);
+          const loadedGoals = goalsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as SavingGoal);
+          const loadedRecurring = recurringSnap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction);
+          
           setCategories(loadedCategories);
           setWallets(loadedWallets);
-          setSavingGoals(goalsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }) as SavingGoal));
-          setRecurringTxs(recurringSnap.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as RecurringTransaction));
+          setSavingGoals(loadedGoals);
+          setRecurringTxs(loadedRecurring);
+
+          // 2. Now load budget document
+          const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
+          const budgetSnap = await getDoc(budgetDocRef);
 
           if (budgetSnap.exists()) {
-              const data = convertTimestamps(budgetSnap.data());
+              const budgetData = convertTimestamps(budgetSnap.data());
+
+              // Ensure budget document has categories (for older accounts)
+              if (!budgetData.categories || budgetData.categories.length === 0) {
+                  await updateDoc(budgetDocRef, {
+                      categories: loadedCategories.map(c => ({...c, budget: 0}))
+                  });
+              }
+
               const recurringResult = await processRecurringTransactions(
                   uid, 
-                  data.expenses || [],
-                  data.incomes || [],
+                  budgetData.expenses || [],
+                  budgetData.incomes || [],
               );
               
-              const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (data.expenses || []);
-              const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (data.incomes || []);
+              const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
+              const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
 
               if (recurringResult) {
                   toast({
@@ -217,12 +227,11 @@ export default function ClientPage() {
                   });
               }
 
-              setIncome(data.income || 0);
+              setIncome(budgetData.income || 0);
               setExpenses(finalExpenses);
               setIncomes(finalIncomes);
           } else {
-              // Edge case: user exists but budget doc is missing. Create a default one.
-               await setDoc(budgetDocRef, {
+              await setDoc(budgetDocRef, {
                   income: 0,
                   categories: loadedCategories.map(c => ({...c, budget: 0})),
                   expenses: [],
@@ -244,6 +253,7 @@ export default function ClientPage() {
           setIsLoading(false);
       }
   }, [uid, processRecurringTransactions, toast]);
+
 
   React.useEffect(() => {
     if (authLoading) return;
@@ -336,7 +346,7 @@ export default function ClientPage() {
     let updatedIncomes;
 
     if (isEditing) {
-      updatedIncomes = incomes.map(i => i.id === incomeData.id ? incomeData : i);
+      updatedIncomes = incomes.map(inc => inc.id === incomeData.id ? incomeData : inc);
     } else {
       updatedIncomes = [...incomes, incomeData];
     }
@@ -412,13 +422,13 @@ export default function ClientPage() {
 
         // Calculate final balances and prepare wallet updates
         wallets.forEach(wallet => {
-            const totalIncome = currentIncomes
+            const totalIncomeForWallet = currentIncomes
                 .filter(i => i.walletId === wallet.id)
-                .reduce((sum, i) => sum + i.amount, 0);
-            const totalExpense = currentExpenses
+                .reduce((sum, inc) => sum + inc.amount, 0);
+            const totalExpenseForWallet = currentExpenses
                 .filter(e => e.walletId === wallet.id)
                 .reduce((sum, e) => sum + e.amount, 0);
-            const finalBalance = wallet.initialBalance + totalIncome - totalExpense;
+            const finalBalance = wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
 
             const walletDocRef = doc(db, 'users', user.uid, 'wallets', wallet.id);
             batch.update(walletDocRef, { initialBalance: finalBalance });
@@ -445,10 +455,8 @@ export default function ClientPage() {
             const archiveDocRef = doc(collection(db, 'users', user.uid, 'archivedBudgets'));
             batch.set(archiveDocRef, archivedPeriod);
             
-            // Instead of deleting, we reset the budget document for the new period
-             const newBudgetData = {
-                income: 0,
-                categories: categories.map(c => ({...c, budget: 0})),
+            const newBudgetData = {
+                ...currentData,
                 expenses: [],
                 incomes: [],
                 periodStart: new Date().toISOString(),
@@ -525,6 +533,7 @@ export default function ClientPage() {
             wallets={wallets}
             expenses={expenses}
             incomes={incomes}
+            categories={categories}
         />
         <AlertDialog open={!!incomeToDelete} onOpenChange={(open) => !open && setIncomeToDelete(null)}>
             <AlertDialogContent>
@@ -591,3 +600,4 @@ export default function ClientPage() {
     </>
   );
 }
+
