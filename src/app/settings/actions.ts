@@ -60,7 +60,7 @@ export async function deleteUserAccount(token: string): Promise<ActionResult> {
         // 1. Delete Firestore Data
         // This is complex because we have to delete subcollections recursively.
         // We will delete subcollections first, then the main user document.
-        const subcollections = ['achievements', 'archivedBudgets', 'assets', 'budgets', 'debts', 'notifications', 'recurringTransactions', 'reminders', 'savingGoals', 'wallets'];
+        const subcollections = ['achievements', 'archivedBudgets', 'assets', 'budgets', 'categories', 'debts', 'notifications', 'notes', 'recurringTransactions', 'reminders', 'savingGoals', 'wallets'];
         
         for (const subcollection of subcollections) {
             await deleteCollection(`users/${uid}/${subcollection}`, 50);
