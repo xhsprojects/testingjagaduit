@@ -16,7 +16,10 @@ import {
   Lightbulb,
   Rocket,
   BarChart3,
-  Mail
+  Mail,
+  AreaChart,
+  CodeXml,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -43,6 +46,21 @@ const StatCard = ({ icon, value, label, colorClass }: { icon: React.ReactNode, v
         <p className="text-sm text-slate-600">{label}</p>
     </div>
 );
+
+const AllocationCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
+    <div className="bg-white/90 backdrop-blur-sm p-6 rounded-3xl border border-gray-200/50 shadow-lg text-left h-full hover:shadow-xl transition-shadow duration-300">
+        <div className="flex items-start gap-4">
+            <div className="p-3 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl">
+                {icon}
+            </div>
+            <div>
+                <h3 className="text-lg font-bold text-slate-800 mb-1">{title}</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{description}</p>
+            </div>
+        </div>
+    </div>
+);
+
 
 export default function InvestorClientPage() {
   const { user } = useAuth();
@@ -76,7 +94,7 @@ export default function InvestorClientPage() {
                     <div className="mt-10">
                         <Button asChild size="lg" className="text-base md:text-lg py-5 md:py-6 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl group">
                             <a href="mailto:jagaduitofficial@gmail.com?subject=Peluang Investasi Jaga Duit" className="flex items-center gap-2">
-                                Hubungi Kami
+                                Hubungi Kami untuk Diskusi
                                 <Mail className="h-5 w-5" />
                             </a>
                         </Button>
@@ -88,10 +106,10 @@ export default function InvestorClientPage() {
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
-                            Traction & Potential
+                            Traksi & Potensi Pertumbuhan
                         </h2>
                         <p className="text-base md:text-xl text-slate-600 max-w-3xl mx-auto">
-                            Kami sedang dalam lintasan pertumbuhan yang kuat dengan metrik yang menjanjikan.
+                            Kami berada di lintasan pertumbuhan yang kuat dengan fondasi pasar yang solid dan metrik yang menjanjikan.
                         </p>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -104,13 +122,13 @@ export default function InvestorClientPage() {
                         <StatCard 
                             icon={<TrendingUp className="h-8 w-8 text-green-600" />}
                             value="25% MoM"
-                            label="Pertumbuhan Pengguna (est.)"
+                            label="Target Pertumbuhan Pengguna"
                             colorClass="bg-green-100"
                         />
                          <StatCard 
                             icon={<Target className="h-8 w-8 text-red-600" />}
                             value="$500M+"
-                            label="Target Pasar (Indonesia)"
+                            label="Target Pasar (Fintech Indonesia)"
                             colorClass="bg-red-100"
                         />
                     </div>
@@ -133,21 +151,21 @@ export default function InvestorClientPage() {
                                 <div className="p-3 bg-white rounded-xl border shadow-sm"><Lightbulb className="h-6 w-6 text-yellow-500" /></div>
                                 <div>
                                     <h4 className="font-bold text-slate-800">Hiper-Personalisasi</h4>
-                                    <p className="text-slate-600">AI yang belajar dari setiap pengguna untuk memberikan saran yang relevan dan tepat waktu.</p>
+                                    <p className="text-slate-600">AI yang belajar dari setiap pengguna untuk memberikan saran relevan, seperti mengingatkan potensi over-budget atau merekomendasikan strategi pelunasan utang.</p>
                                 </div>
                             </li>
                              <li className="flex items-start gap-4">
                                 <div className="p-3 bg-white rounded-xl border shadow-sm"><ShieldCheck className="h-6 w-6 text-green-600" /></div>
                                 <div>
                                     <h4 className="font-bold text-slate-800">Ekosistem Terintegrasi</h4>
-                                    <p className="text-slate-600">Menghubungkan Jaga Duit dengan produk investasi dan perbankan untuk otomatisasi penuh.</p>
+                                    <p className="text-slate-600">Roadmap mencakup integrasi dengan produk investasi, platform perbankan, dan layanan finansial lainnya untuk otomatisasi penuh dan pengalaman yang mulus.</p>
                                 </div>
                             </li>
                              <li className="flex items-start gap-4">
                                 <div className="p-3 bg-white rounded-xl border shadow-sm"><BarChart3 className="h-6 w-6 text-indigo-600" /></div>
                                 <div>
-                                    <h4 className="font-bold text-slate-800">Literasi Finansial</h4>
-                                    <p className="text-slate-600">Menjadi platform edukasi utama yang meningkatkan kecerdasan finansial pengguna.</p>
+                                    <h4 className="font-bold text-slate-800">Pusat Literasi Finansial</h4>
+                                    <p className="text-slate-600">Menjadi platform edukasi utama yang tidak hanya melacak, tetapi juga meningkatkan kecerdasan finansial pengguna melalui konten dan simulasi interaktif.</p>
                                 </div>
                             </li>
                         </ul>
@@ -164,6 +182,36 @@ export default function InvestorClientPage() {
                 </div>
             </section>
             
+            <section className="px-6 py-20 bg-white">
+                <div className="max-w-6xl mx-auto">
+                    <div className="text-center mb-16">
+                         <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+                           Peluang Investasi & Alokasi Dana
+                         </h2>
+                         <p className="text-base md:text-xl text-slate-600 max-w-3xl mx-auto">
+                           Kami mencari pendanaan awal (seed funding) untuk mengakselerasi pertumbuhan dan pengembangan produk. Dana akan dialokasikan secara strategis untuk:
+                         </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <AllocationCard 
+                            icon={<AreaChart className="h-7 w-7 text-blue-600"/>}
+                            title="Akuisisi Pengguna (40%)"
+                            description="Kampanye pemasaran digital yang agresif, kemitraan dengan influencer keuangan, dan program rujukan untuk memperluas basis pengguna secara eksponensial."
+                        />
+                        <AllocationCard 
+                            icon={<CodeXml className="h-7 w-7 text-indigo-600"/>}
+                            title="Pengembangan Produk (35%)"
+                            description="Mempercepat roadmap pengembangan fitur premium, memperkuat infrastruktur AI, dan meningkatkan keamanan serta pengalaman pengguna."
+                        />
+                        <AllocationCard 
+                            icon={<Globe className="h-7 w-7 text-green-600"/>}
+                            title="Tim & Ekspansi (25%)"
+                            description="Merekrut talenta kunci di bidang teknik dan pemasaran, serta mempersiapkan fondasi untuk ekspansi ke pasar Asia Tenggara lainnya."
+                        />
+                    </div>
+                </div>
+            </section>
+            
             <section className="px-6 py-20 bg-slate-950 text-white">
               <div className="max-w-4xl mx-auto text-center">
                 <h2 className="text-3xl md:text-4xl font-bold mb-6">
@@ -174,7 +222,7 @@ export default function InvestorClientPage() {
                 </p>
                 <Button asChild size="lg" className="text-base md:text-lg py-5 md:py-6 px-8 bg-white text-blue-600 hover:bg-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl group">
                   <a href="mailto:jagaduitofficial@gmail.com?subject=Peluang Investasi Jaga Duit" className="flex items-center gap-2">
-                    Kontak Tim Kami
+                    Kontak Tim Kami untuk Pitch Deck
                     <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </a>
                 </Button>
