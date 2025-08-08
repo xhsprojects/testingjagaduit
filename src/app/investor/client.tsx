@@ -19,8 +19,6 @@ import {
   Mail
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
 
 const Logo = () => (
     <Link href="/" className="flex items-center gap-3 group">
@@ -48,21 +46,6 @@ const StatCard = ({ icon, value, label, colorClass }: { icon: React.ReactNode, v
 
 export default function InvestorClientPage() {
   const { user } = useAuth();
-  const [totalUsers, setTotalUsers] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    const fetchTotalUsers = async () => {
-        try {
-            const usersCollection = collection(db, 'users');
-            const userSnapshot = await getDocs(usersCollection);
-            setTotalUsers(userSnapshot.size);
-        } catch (error) {
-            console.error("Error fetching total users:", error);
-            setTotalUsers(0);
-        }
-    };
-    fetchTotalUsers();
-  }, []);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -114,7 +97,7 @@ export default function InvestorClientPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         <StatCard 
                             icon={<Users className="h-8 w-8 text-blue-600" />}
-                            value={totalUsers !== null ? `~${totalUsers.toLocaleString()}` : "..."}
+                            value="100+"
                             label="Pengguna Terdaftar"
                             colorClass="bg-blue-100"
                         />
