@@ -11,7 +11,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/savings',
     '/debts',
     '/wallets',
-    '/budget'
+    '/budget',
+    '/investor',
   ];
 
   const routes = staticRoutes.map((route) => ({

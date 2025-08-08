@@ -57,7 +57,8 @@ import {
   LifeBuoy,
   MessageSquare,
   Info,
-  Loader2
+  Loader2,
+  Rocket
 } from 'lucide-react';
 import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
 import { SupportDialog } from '@/components/SupportDialog';
@@ -484,7 +485,7 @@ export default function LandingClientPage() {
 
       <footer className="relative z-10 px-6 pt-16 pb-8 bg-slate-950 text-slate-300">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
             <div className="lg:col-span-1">
               <div className="mb-6">
                  <Logo titleColor="text-white" subtitleColor="text-slate-300" />
@@ -494,7 +495,7 @@ export default function LandingClientPage() {
               </p>
             </div>
 
-            <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-8">
+            <div className="lg:col-span-3 grid grid-cols-2 md:grid-cols-4 gap-8">
               <div>
                 <h4 className="font-semibold text-white mb-4">Produk</h4>
                 <ul className="space-y-3 text-slate-400 text-sm md:text-base">
@@ -507,7 +508,7 @@ export default function LandingClientPage() {
                 <h4 className="font-semibold text-white mb-4">Perusahaan</h4>
                 <ul className="space-y-3 text-slate-400 text-sm md:text-base">
                   <li><button onClick={() => handleInfoClick('Tentang Kami', legalContent.about)} className="hover:text-white transition-colors text-left">Tentang Kami</button></li>
-                  <li><button onClick={() => handleInfoClick('Blog', 'Blog kami akan segera hadir!')} className="hover:text-white transition-colors text-left">Blog</button></li>
+                  <li><Link href="/investor" className="hover:text-white transition-colors">Investor</Link></li>
                   <li><button onClick={() => handleInfoClick('Karir', 'Saat ini belum ada lowongan tersedia.')} className="hover:text-white transition-colors text-left">Karir</button></li>
                 </ul>
               </div>
@@ -519,23 +520,26 @@ export default function LandingClientPage() {
                   <li><button onClick={() => handleInfoClick('Status Layanan', 'Semua sistem beroperasi normal.')} className="hover:text-white transition-colors text-left">Status</button></li>
                 </ul>
               </div>
+               <div>
+                <h4 className="font-semibold text-white mb-4">Legal</h4>
+                <ul className="space-y-3 text-slate-400 text-sm md:text-base">
+                  <li><button onClick={() => handleInfoClick('Kebijakan Privasi', legalContent.privacy)} className="hover:text-white transition-colors">Kebijakan Privasi</button></li>
+                  <li><button onClick={() => handleInfoClick('Syarat & Ketentuan', legalContent.terms)} className="hover:text-white transition-colors">Syarat & Ketentuan</button></li>
+                </ul>
+              </div>
             </div>
           </div>
 
           <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-8">
-             <div className="flex gap-6 text-sm text-slate-400">
-                <button onClick={() => handleInfoClick('Kebijakan Privasi', legalContent.privacy)} className="hover:text-white transition-colors">Kebijakan Privasi</button>
-                <button onClick={() => handleInfoClick('Syarat & Ketentuan', legalContent.terms)} className="hover:text-white transition-colors">Syarat & Ketentuan</button>
-            </div>
             <div className="flex gap-4">
               <Link href="https://www.instagram.com/jagaduit.top/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors"><Instagram className="h-5 w-5" /></Link>
               <Link href="#" className="text-slate-400 hover:text-white transition-colors"><Facebook className="h-5 w-5" /></Link>
               <Link href="#" className="text-slate-400 hover:text-white transition-colors"><Linkedin className="h-5 w-5" /></Link>
             </div>
-          </div>
-           <p className="text-slate-500 text-sm text-center mt-8">
+            <p className="text-slate-500 text-sm text-center md:text-right">
               &copy; {new Date().getFullYear()} Jaga Duit. Semua Hak Cipta Dilindungi.
             </p>
+          </div>
         </div>
       </footer>
       
