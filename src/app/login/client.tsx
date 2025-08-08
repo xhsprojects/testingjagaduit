@@ -17,10 +17,8 @@ import {
   Sparkles, 
   Users, 
   Star,
-  DollarSign,
   Coins,
   PiggyBank,
-  Wallet,
   Terminal,
   Info,
 } from 'lucide-react';
@@ -105,7 +103,7 @@ export default function LoginClientPage() {
           <div className="relative">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             <div className="absolute inset-0 m-auto flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-green-600 animate-pulse" />
+              <Coins className="h-4 w-4 text-green-600 animate-pulse" />
             </div>
           </div>
           <div className="text-lg font-semibold text-slate-700">Memproses...</div>
@@ -124,7 +122,7 @@ export default function LoginClientPage() {
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-indigo-50 px-6 py-12 relative overflow-hidden">
       {/* Subtle Money Background - Clean */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <DollarSign className="absolute top-20 right-8 h-6 w-6 text-green-200 animate-pulse opacity-20" />
+        <Coins className="absolute top-20 right-8 h-6 w-6 text-green-200 animate-pulse opacity-20" />
         <Coins className="absolute bottom-32 left-6 h-6 w-6 text-yellow-200 animate-pulse opacity-15" style={{ animationDelay: '1s' }} />
         <PiggyBank className="absolute top-1/2 right-4 h-5 w-5 text-pink-200 animate-pulse opacity-10" style={{ animationDelay: '2s' }} />
       </div>
@@ -137,10 +135,6 @@ export default function LoginClientPage() {
             <div className="flex items-center gap-3">
                 <div className="relative p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl shadow-lg">
                 <HandCoins className="h-12 w-12 text-white" />
-                {/* Single elegant money accent */}
-                <div className="absolute -top-1 -right-1 p-1 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-md">
-                    <DollarSign className="h-4 w-4 text-white" />
-                </div>
                 </div>
                 <h1 className="font-bold text-5xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight pb-2">
                 Jaga Duit
@@ -166,8 +160,6 @@ export default function LoginClientPage() {
           <div className="flex items-center space-x-4 p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-sm">
             <div className="relative p-3 bg-blue-100 rounded-xl">
               <TrendingUp className="h-6 w-6 text-blue-600" />
-              {/* Single money accent */}
-              <DollarSign className="absolute -top-1 -right-1 h-3 w-3 text-green-600" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-slate-800">Analisis Keuangan</p>
@@ -178,8 +170,6 @@ export default function LoginClientPage() {
           <div className="flex items-center space-x-4 p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-sm">
             <div className="relative p-3 bg-green-100 rounded-xl">
               <Shield className="h-6 w-6 text-green-600" />
-              {/* Single money accent */}
-              <Coins className="absolute -top-1 -right-1 h-3 w-3 text-yellow-600" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-slate-800">Keamanan Terjamin</p>
@@ -190,8 +180,6 @@ export default function LoginClientPage() {
           <div className="flex items-center space-x-4 p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-sm">
             <div className="relative p-3 bg-purple-100 rounded-xl">
               <Sparkles className="h-6 w-6 text-purple-600" />
-              {/* Single money accent */}
-              <PiggyBank className="absolute -top-1 -right-1 h-3 w-3 text-pink-600" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-slate-800">Smart Insights</p>
@@ -201,7 +189,7 @@ export default function LoginClientPage() {
         </div>
 
         {/* Sign In Button */}
-        <div className="w-full max-w-sm space-y-6">
+        <div className="w-full max-w-sm space-y-3">
           <Button 
             className="w-full h-16 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl" 
             onClick={handleSignIn} 
@@ -218,8 +206,6 @@ export default function LoginClientPage() {
                   <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 23.4 172.9 61.9l-76.2 76.2C327.3 113.8 290.5 96 248 96c-88.8 0-160.1 71.9-160.1 160.1s71.3 160.1 160.1 160.1c98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"></path>
                 </svg>
                 Masuk dengan Google
-                {/* Simple money accent */}
-                <DollarSign className="ml-auto h-5 w-5 opacity-60" />
               </>
             )}
           </Button>
@@ -263,8 +249,6 @@ export default function LoginClientPage() {
           <div className="flex items-center space-x-2 text-slate-500">
             <div className="relative">
               <Sparkles className="h-5 w-5 text-purple-500" />
-              {/* Single subtle money accent */}
-              <DollarSign className="absolute -top-1 -right-1 h-2 w-2 text-green-500" />
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-slate-700">99%</p>
