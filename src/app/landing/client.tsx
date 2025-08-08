@@ -509,7 +509,7 @@ export default function LandingClientPage() {
                 <ul className="space-y-3 text-slate-400 text-sm md:text-base">
                   <li><button onClick={() => handleInfoClick('Tentang Kami', legalContent.about)} className="hover:text-white transition-colors text-left">Tentang Kami</button></li>
                   <li><Link href="/investor" className="hover:text-white transition-colors">Investor</Link></li>
-                  <li><button onClick={() => handleInfoClick('Karir', 'Saat ini belum ada lowongan tersedia.')} className="hover:text-white transition-colors text-left">Karir</button></li>
+                  <li><Link href="/sponsor" className="hover:text-white transition-colors">Sponsor</Link></li>
                 </ul>
               </div>
               <div>
