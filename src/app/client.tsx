@@ -176,60 +176,70 @@ export default function ClientPage() {
     }
 
     setIsDataSetup(true);
-    const unsubscribes: (() => void)[] = [];
-
-    const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), snap => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
-    const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), snap => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
-    const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), snap => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
     
-    unsubscribes.push(walletsUnsubscribe, goalsUnsubscribe, recurringUnsubscribe);
-    
-    const budgetsQuery = query(collection(db, 'users', uid, 'budgets'));
-    const archivedBudgetsQuery = query(collection(db, 'users', uid, 'archivedBudgets'));
-    
-    const allBudgetsUnsubscribe = onSnapshot(query(collection(db, 'users', uid, 'budgets')), async () => {
-        const currentSnap = await getDoc(doc(db, 'users', uid, 'budgets', 'current'));
-        const archivedSnaps = await getDocs(query(collection(db, 'users', uid, 'archivedBudgets')));
+    // This listener will react to changes in both current budget and archived budgets.
+    const setupListeners = () => {
+      const unsubscribes: (() => void)[] = [];
 
-        let allAggregatedExpenses: Expense[] = [];
-        let allAggregatedIncomes: Income[] = [];
-        let allAggregatedCategories = new Map<string, Category>();
+      const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), snap => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
+      const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), snap => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
+      const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), snap => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
+      
+      unsubscribes.push(walletsUnsubscribe, goalsUnsubscribe, recurringUnsubscribe);
+      
+      const budgetCollectionGroupQuery = query(collection(db, 'users', uid, 'budgets'));
+      const archivedBudgetsCollectionQuery = query(collection(db, 'users', uid, 'archivedBudgets'));
 
-        if (currentSnap.exists()) {
-            const currentData = convertTimestamps(currentSnap.data()) as BudgetPeriod;
-            setCurrentBudget(currentData);
-            allAggregatedExpenses.push(...(currentData.expenses || []));
-            allAggregatedIncomes.push(...(currentData.incomes || []));
-            (currentData.categories || []).forEach(cat => allAggregatedCategories.set(cat.id, cat));
-        }
-        
-        archivedSnaps.forEach(docSnap => {
-            const archivedData = convertTimestamps(docSnap.data()) as BudgetPeriod;
-            allAggregatedExpenses.push(...(archivedData.expenses || []));
-            allAggregatedIncomes.push(...(archivedData.incomes || []));
-            (archivedData.categories || []).forEach(cat => {
-                if (!allAggregatedCategories.has(cat.id)) {
-                    allAggregatedCategories.set(cat.id, cat);
-                }
-            });
-        });
-        
-        setAllExpenses(allAggregatedExpenses);
-        setAllIncomes(allAggregatedIncomes);
-        setCategories(Array.from(allAggregatedCategories.values()));
+      const handleSnapshots = async () => {
+          const [currentSnap, archivedSnaps] = await Promise.all([
+              getDoc(doc(db, 'users', uid, 'budgets', 'current')),
+              getDocs(archivedBudgetsCollectionQuery)
+          ]);
+          
+          let allAggregatedExpenses: Expense[] = [];
+          let allAggregatedIncomes: Income[] = [];
+          const categoryMap = new Map<string, Category>();
 
-        if (currentSnap.exists()) {
-            await processRecurringTransactions(uid, currentSnap.data().expenses || [], currentSnap.data().incomes || []);
-        }
+          if (currentSnap.exists()) {
+              const currentData = convertTimestamps(currentSnap.data()) as BudgetPeriod;
+              setCurrentBudget(currentData);
+              allAggregatedExpenses.push(...(currentData.expenses || []));
+              allAggregatedIncomes.push(...(currentData.incomes || []));
+              (currentData.categories || []).forEach(cat => categoryMap.set(cat.id, cat));
+          }
 
-        setIsLoading(false);
-    });
-    unsubscribes.push(allBudgetsUnsubscribe);
-    
-    return () => {
-      unsubscribes.forEach(unsub => unsub());
+          archivedSnaps.forEach(docSnap => {
+              const archivedData = convertTimestamps(docSnap.data()) as BudgetPeriod;
+              allAggregatedExpenses.push(...(archivedData.expenses || []));
+              allAggregatedIncomes.push(...(archivedData.incomes || []));
+              (archivedData.categories || []).forEach(cat => {
+                  if (!categoryMap.has(cat.id)) {
+                      categoryMap.set(cat.id, cat);
+                  }
+              });
+          });
+          
+          setAllExpenses(allAggregatedExpenses);
+          setAllIncomes(allAggregatedIncomes);
+          setCategories(Array.from(categoryMap.values()));
+
+          if (currentSnap.exists()) {
+              await processRecurringTransactions(uid, currentSnap.data().expenses || [], currentSnap.data().incomes || []);
+          }
+          
+          setIsLoading(false);
+      };
+
+      const budgetUnsub = onSnapshot(budgetCollectionGroupQuery, handleSnapshots);
+      const archiveUnsub = onSnapshot(archivedBudgetsCollectionQuery, handleSnapshots);
+      
+      unsubscribes.push(budgetUnsub, archiveUnsub);
+
+      return () => unsubscribes.forEach(unsub => unsub());
     };
-  }, [uid, processRecurringTransactions, toast]);
+    
+    return setupListeners();
+  }, [uid, processRecurringTransactions]);
 
   React.useEffect(() => {
     if (authLoading) return;

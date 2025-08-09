@@ -119,7 +119,15 @@ const PeriodCard = ({ period, id, onDelete }: {
             autoTable(doc, {
                 head: [['Kategori', 'Anggaran', 'Realisasi', 'Sisa']],
                 body: (period.categories || []).map(c => {
-                    const spent = expenses.filter(e => e.categoryId === c.id).reduce((s, e) => s + e.amount, 0);
+                    const spent = expenses.reduce((sum, exp) => {
+                        if (exp.isSplit) {
+                            return sum + (exp.splits || []).filter(s => s.categoryId === c.id).reduce((splitSum, s) => splitSum + s.amount, 0);
+                        }
+                        if (exp.categoryId === c.id) {
+                            return sum + exp.amount;
+                        }
+                        return sum;
+                    }, 0);
                     return [
                         c.name,
                         formatCurrency(c.budget),
@@ -276,7 +284,11 @@ export default function HistoryPage() {
             setArchivedPeriods(archives);
             archives.forEach(arch => {
                 allBudgetPeriods.push(arch);
-                allCats.push(...(arch.categories || []));
+                (arch.categories || []).forEach(cat => {
+                    if (!allCats.find(c => c.id === cat.id)) {
+                        allCats.push(cat);
+                    }
+                });
             });
             setAllCategories(allCats);
             
@@ -403,7 +415,7 @@ export default function HistoryPage() {
             // Add summary rows
             rows.push(''); // blank line
             rows.push(`"Total Pemasukan",${totalIncome}`);
-            rows.push(`"Total Pengeluaran",${totalExpense}`);
+            rows.push(`"Total Pengeluaran",${-totalExpense}`);
             rows.push(`"Arus Kas Bersih",${netFlow}`);
             
             const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
