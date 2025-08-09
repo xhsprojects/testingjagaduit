@@ -105,5 +105,3 @@ export async function updateTransaction(token: string, periodId: string, transac
         return { success: false, message: `Gagal memperbarui transaksi: ${error.message}` };
     }
 }
-
-    

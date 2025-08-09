@@ -60,10 +60,21 @@ const PeriodCard = ({ period, id, onDelete }: {
         ? `${format(new Date(period.periodStart), "d MMM yyyy", { locale: idLocale })} - Sekarang`
         : `Total ${(period.expenses || []).length + (period.incomes || []).length} transaksi`;
 
-    const totalAddedIncomes = (period.incomes || []).reduce((sum, i) => sum + i.amount, 0);
-    const totalExpenses = (period.expenses || []).reduce((sum, e) => sum + e.amount, 0);
-    // remaining budget should still include the base budget
-    const remaining = (period.income || 0) + totalAddedIncomes - totalExpenses;
+    const summary = React.useMemo(() => {
+        if (period.totalIncome !== undefined && period.totalExpenses !== undefined && period.remainingBudget !== undefined) {
+            // It's a new, properly archived period
+            return {
+                totalAddedIncomes: period.totalIncome - period.income,
+                totalExpenses: period.totalExpenses,
+                remaining: period.remainingBudget,
+            }
+        }
+        // It's an old/manual archive or the current period, recalculate
+        const totalAddedIncomes = (period.incomes || []).reduce((sum, i) => sum + i.amount, 0);
+        const totalExpenses = (period.expenses || []).reduce((sum, e) => sum + e.amount, 0);
+        const remaining = (period.income || 0) + totalAddedIncomes - totalExpenses;
+        return { totalAddedIncomes, totalExpenses, remaining };
+    }, [period]);
 
     const handleExport = (type: 'csv' | 'pdf') => {
         const periodName = `periode_${format(new Date(period.periodStart), "yyyy-MM-dd")}`;
@@ -88,9 +99,9 @@ const PeriodCard = ({ period, id, onDelete }: {
             
             // Add summary rows
             rows.push(''); // blank line
-            rows.push(`"Total Pemasukan Tambahan",${totalAddedIncomes}`);
-            rows.push(`"Total Pengeluaran",${-totalExpenses}`);
-            rows.push(`"Sisa Anggaran",${remaining}`);
+            rows.push(`"Total Pemasukan Tambahan",${summary.totalAddedIncomes}`);
+            rows.push(`"Total Pengeluaran",${-summary.totalExpenses}`);
+            rows.push(`"Sisa Anggaran",${summary.remaining}`);
 
             const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
             const encodedUri = encodeURI(csvContent);
@@ -125,9 +136,9 @@ const PeriodCard = ({ period, id, onDelete }: {
                 startY: finalY + 10,
                 head: [['Ringkasan', 'Jumlah']],
                 body: [
-                    ['Pemasukan Tambahan', formatCurrency(totalAddedIncomes)],
-                    ['Total Pengeluaran', formatCurrency(totalExpenses)],
-                    ['Sisa Anggaran', formatCurrency(remaining)],
+                    ['Pemasukan Tambahan', formatCurrency(summary.totalAddedIncomes)],
+                    ['Total Pengeluaran', formatCurrency(summary.totalExpenses)],
+                    ['Sisa Anggaran', formatCurrency(summary.remaining)],
                 ],
                 theme: 'striped',
                 headStyles: { fillColor: [41, 128, 185] }
@@ -163,7 +174,7 @@ const PeriodCard = ({ period, id, onDelete }: {
                     </div>
                     <div>
                         <p className="text-muted-foreground">Pemasukan Tambahan</p>
-                        <p className="font-bold">{formatCurrency(totalAddedIncomes)}</p>
+                        <p className="font-bold">{formatCurrency(summary.totalAddedIncomes)}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -172,7 +183,7 @@ const PeriodCard = ({ period, id, onDelete }: {
                     </div>
                     <div>
                         <p className="text-muted-foreground">Pengeluaran</p>
-                        <p className="font-bold">{formatCurrency(totalExpenses)}</p>
+                        <p className="font-bold">{formatCurrency(summary.totalExpenses)}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -181,7 +192,7 @@ const PeriodCard = ({ period, id, onDelete }: {
                     </div>
                     <div>
                         <p className="text-muted-foreground">Sisa</p>
-                        <p className="font-bold">{formatCurrency(remaining)}</p>
+                        <p className="font-bold">{formatCurrency(summary.remaining)}</p>
                     </div>
                 </div>
             </CardContent>

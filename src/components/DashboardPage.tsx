@@ -37,7 +37,6 @@ import { Badge } from './ui/badge';
 import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
-import BudgetVsSpendingChart from '@/components/charts/BudgetVsSpendingChart';
 import { Separator } from './ui/separator';
 import { BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, ResponsiveContainer } from 'recharts';
 import { Alert, AlertTitle } from './ui/alert';
@@ -481,18 +480,14 @@ export default function DashboardPage({
                         <BudgetChart data={expensesByCategory} />
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Anggaran vs Realisasi</CardTitle>
-                        <CardDescription>Perbandingan alokasi dan realisasi per kategori.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-2">
-                        <BudgetVsSpendingChart data={expensesByCategory} />
-                    </CardContent>
-                </Card>
+                 <WalletsSummaryCard
+                    wallets={wallets}
+                    expenses={expenses}
+                    incomes={incomes}
+                />
             </div>
           <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
-              <div className="lg:col-span-4">
+              <div className="lg:col-span-7">
                   <Tabs defaultValue="expenses" className="w-full">
                       <TabsList className="grid w-full grid-cols-2">
                           <TabsTrigger value="expenses">Pengeluaran</TabsTrigger>
@@ -585,13 +580,6 @@ export default function DashboardPage({
                           </Card>
                       </TabsContent>
                   </Tabs>
-              </div>
-              <div className="lg:col-span-3">
-                  <WalletsSummaryCard
-                      wallets={wallets}
-                      expenses={expenses}
-                      incomes={incomes}
-                  />
               </div>
           </div>
           
