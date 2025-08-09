@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import type { BudgetPeriod, Category, Debt, Expense, Income } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { addDays, addMonths, endOfDay, endOfMonth, endOfWeek, format, startOfDay, startOfMonth, startOfWeek, subDays, subWeeks } from 'date-fns';
@@ -45,47 +45,80 @@ export default function ReportsPage() {
     const router = useRouter();
     const { toast } = useToast();
 
-    const [data, setData] = React.useState<any>(null);
+    const [allExpenses, setAllExpenses] = React.useState<Expense[]>([]);
+    const [allIncomes, setAllIncomes] = React.useState<Income[]>([]);
+    const [allCategories, setAllCategories] = React.useState<Category[]>([]);
+    const [allDebts, setAllDebts] = React.useState<Debt[]>([]);
+    const [currentBudget, setCurrentBudget] = React.useState<BudgetPeriod | null>(null);
+
     const [isLoading, setIsLoading] = React.useState(true);
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
         from: startOfMonth(new Date()),
         to: endOfMonth(new Date())
     });
 
-    // Fetch all necessary data
+    // Fetch all necessary data from all periods
     React.useEffect(() => {
-        if (!user) return;
-        if (!authLoading && !user) {
-            router.push('/login');
-            return;
-        }
+        if (!user || authLoading) return;
 
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
-                const budgetSnap = await getDoc(budgetDocRef);
-                const budget = budgetSnap.exists() ? convertTimestamps(budgetSnap.data()) : null;
+                // Fetch current and archived periods concurrently
+                const currentBudgetPromise = getDoc(doc(db, 'users', user.uid, 'budgets', 'current'));
+                const archivedBudgetsPromise = getDocs(query(collection(db, 'users', user.uid, 'archivedBudgets'), orderBy('periodStart', 'desc')));
+                const debtsPromise = getDocs(collection(db, 'users', user.uid, 'debts'));
+                
+                const [currentBudgetSnap, archivedBudgetsSnap, debtsSnap] = await Promise.all([
+                    currentBudgetPromise,
+                    archivedBudgetsPromise,
+                    debtsPromise
+                ]);
 
-                const debtsSnap = await getDocs(collection(db, 'users', user.uid, 'debts'));
-                const debts = debtsSnap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }));
+                const allPeriods: BudgetPeriod[] = [];
+                if (currentBudgetSnap.exists()) {
+                    const currentData = convertTimestamps(currentBudgetSnap.data()) as BudgetPeriod;
+                    allPeriods.push(currentData);
+                    setCurrentBudget(currentData);
+                }
+                archivedBudgetsSnap.forEach(doc => {
+                    allPeriods.push(convertTimestamps(doc.data()) as BudgetPeriod);
+                });
 
-                setData({ budget, debts });
+                // Aggregate all data from all periods
+                const expenses: Expense[] = [];
+                const incomes: Income[] = [];
+                const categories: Category[] = [];
+                const categoryMap = new Map<string, Category>();
+
+                for (const period of allPeriods) {
+                    expenses.push(...(period.expenses || []));
+                    incomes.push(...(period.incomes || []));
+                    (period.categories || []).forEach(cat => {
+                        if (!categoryMap.has(cat.id)) {
+                            categoryMap.set(cat.id, cat);
+                        }
+                    });
+                }
+                
+                setAllExpenses(expenses);
+                setAllIncomes(incomes);
+                setAllCategories(Array.from(categoryMap.values()));
+                setAllDebts(debtsSnap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) as Debt })));
+
             } catch (error) {
                 console.error("Failed to load report data:", error);
-                toast({ title: 'Gagal memuat data', variant: 'destructive' });
+                toast({ title: 'Gagal memuat data komprehensif', variant: 'destructive' });
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchData();
-    }, [user, authLoading, router, toast]);
+    }, [user, authLoading, toast]);
 
-    // Memoized filtered data
+    // Memoized filtered data based on dateRange
     const filteredData = React.useMemo(() => {
-        if (!data?.budget) return null;
-        
         const filterItems = <T extends { date: Date }>(items: T[]): T[] => {
             if (!dateRange?.from) return items;
             const from = startOfDay(dateRange.from);
@@ -97,10 +130,10 @@ export default function ReportsPage() {
         };
 
         return {
-            expenses: filterItems(data.budget.expenses),
-            incomes: filterItems(data.budget.incomes),
+            expenses: filterItems(allExpenses),
+            incomes: filterItems(allIncomes),
         };
-    }, [data, dateRange]);
+    }, [allExpenses, allIncomes, dateRange]);
 
 
     const ReportHeader = () => (
@@ -130,14 +163,14 @@ export default function ReportsPage() {
         );
     }
     
-    if (!data?.budget) {
+    if (allExpenses.length === 0 && allIncomes.length === 0) {
         return (
             <div className="flex min-h-screen w-full flex-col bg-muted/40">
                 <ReportHeader />
                 <main className="flex-1 flex items-center justify-center p-4">
                     <div className="text-center space-y-4">
-                        <p className="text-lg font-semibold">Data Anggaran Tidak Ditemukan</p>
-                        <p className="text-muted-foreground max-w-sm">Anda perlu mengatur anggaran terlebih dahulu di dasbor untuk dapat melihat laporan.</p>
+                        <p className="text-lg font-semibold">Data Transaksi Tidak Ditemukan</p>
+                        <p className="text-muted-foreground max-w-sm">Anda perlu mencatat transaksi terlebih dahulu untuk dapat melihat laporan.</p>
                         <Button asChild>
                             <Link href="/">Kembali ke Dasbor</Link>
                         </Button>
@@ -151,15 +184,16 @@ export default function ReportsPage() {
     const DateFilter = () => (
         <div className="flex flex-wrap gap-2">
             <Button size="sm" variant={dateRange?.from === startOfDay(subDays(new Date(), 6)) ? 'default' : 'outline'} onClick={() => setDateRange({ from: subDays(new Date(), 6), to: new Date() })}>7 Hari Terakhir</Button>
-            <Button size="sm" variant={dateRange?.from === startOfDay(subDays(new Date(), 13)) ? 'default' : 'outline'} onClick={() => setDateRange({ from: subDays(new Date(), 13), to: new Date() })}>2 Minggu Terakhir</Button>
+            <Button size="sm" variant={dateRange?.from === startOfDay(subDays(new Date(), 29)) ? 'default' : 'outline'} onClick={() => setDateRange({ from: subDays(new Date(), 29), to: new Date() })}>30 Hari Terakhir</Button>
             <Button size="sm" variant={dateRange?.from === startOfMonth(new Date()) ? 'default' : 'outline'} onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}>Bulan Ini</Button>
+            <Button size="sm" variant={dateRange?.from === startOfMonth(subMonths(new Date(), 1)) ? 'default' : 'outline'} onClick={() => setDateRange({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })}>Bulan Lalu</Button>
             <DateRangePicker date={dateRange} onDateChange={setDateRange} />
         </div>
     );
     
     // TAB: Laporan Content
     const LaporanTab = () => {
-        const expenseByCategory = (data.budget.categories || []).filter(Boolean).map((cat: Category) => {
+        const expenseByCategory = (allCategories || []).filter(Boolean).map((cat: Category) => {
             const spent = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
                 if (e.isSplit) {
                     return sum + (e.splits || []).filter(s => s.categoryId === cat.id).reduce((splitSum, s) => splitSum + s.amount, 0);
@@ -174,7 +208,7 @@ export default function ReportsPage() {
         
         const totalAddedIncomes = filteredData?.incomes.reduce((sum, i) => sum + i.amount, 0) || 0;
         const totalExpenses = filteredData?.expenses.reduce((sum, e) => sum + e.amount, 0) || 0;
-        const savingsCategoryId = data.budget.categories.find((c: Category) => c.name === "Tabungan & Investasi")?.id;
+        const savingsCategoryId = allCategories.find((c: Category) => c.name === "Tabungan & Investasi")?.id;
         const totalSavings = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
             if (e.isSplit) {
                 return sum + (e.splits || []).filter(s => s.categoryId === savingsCategoryId).reduce((splitSum, s) => splitSum + s.amount, 0);
@@ -240,7 +274,7 @@ export default function ReportsPage() {
                      <CardHeader><CardTitle className="font-headline">Pengeluaran Berdasarkan Kategori</CardTitle></CardHeader>
                      <CardContent>
                         <Accordion type="single" collapsible className="w-full">
-                            {(data.budget.categories || []).filter(Boolean).map((cat: Category) => {
+                            {(allCategories || []).filter(Boolean).map((cat: Category) => {
                                 const spent = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
                                     if (e.isSplit) {
                                         return sum + (e.splits || []).filter(s => s.categoryId === cat.id).reduce((splitSum, s) => splitSum + s.amount, 0);
@@ -250,7 +284,9 @@ export default function ReportsPage() {
                                     }
                                     return sum;
                                 }, 0);
-                                const progress = cat.budget > 0 ? (spent / cat.budget) * 100 : 0;
+                                // Use the budget from the current period for comparison
+                                const currentCategoryBudget = currentBudget?.categories.find(c => c.id === cat.id)?.budget || 0;
+                                const progress = currentCategoryBudget > 0 ? (spent / currentCategoryBudget) * 100 : 0;
                                 if (spent === 0) return null;
 
                                 return (
@@ -258,7 +294,7 @@ export default function ReportsPage() {
                                         <AccordionTrigger>
                                             <div className="w-full text-left">
                                                 <div className="flex justify-between items-center"><span>{cat.name}</span><span className="font-bold">{formatCurrency(spent)}</span></div>
-                                                <Progress value={progress} className="mt-2 h-2" />
+                                                {currentCategoryBudget > 0 && <Progress value={progress} className="mt-2 h-2" />}
                                             </div>
                                         </AccordionTrigger>
                                         <AccordionContent>
@@ -291,7 +327,7 @@ export default function ReportsPage() {
     
     // TAB: Insight Content
     const InsightTab = () => {
-        const categoryMap = new Map(data.budget.categories.map((c: Category) => [c.id, c.name]));
+        const categoryMap = new Map(allCategories.map((c: Category) => [c.id, c.name]));
         const topSpendingCategory = (filteredData?.expenses || []).reduce((acc: Record<string, number>, exp: Expense) => {
             if (exp.isSplit) {
                 (exp.splits || []).forEach(s => {
@@ -311,14 +347,14 @@ export default function ReportsPage() {
                 const start = subWeeks(new Date(), i + 1);
                 return {
                     name: `Minggu ${4 - i}`,
-                    Pemasukan: (data.budget.incomes || []).filter((inc: Income) => new Date(inc.date) > start && new Date(inc.date) <= end).reduce((sum: number, inc: Income) => sum + inc.amount, 0),
-                    Pengeluaran: (data.budget.expenses || []).filter((exp: Expense) => new Date(exp.date) > start && new Date(exp.date) <= end).reduce((sum: number, exp: Expense) => sum + exp.amount, 0)
+                    Pemasukan: allIncomes.filter((inc: Income) => new Date(inc.date) > start && new Date(inc.date) <= end).reduce((sum: number, inc: Income) => sum + inc.amount, 0),
+                    Pengeluaran: allExpenses.filter((exp: Expense) => new Date(exp.date) > start && new Date(exp.date) <= end).reduce((sum: number, exp: Expense) => sum + exp.amount, 0)
                 };
             }).reverse();
             return weeks;
-        }, [data.budget]);
+        }, [allIncomes, allExpenses]);
         
-        const insightSpentByCategory = (data.budget.categories || []).filter(Boolean).map((c: Category) => {
+        const insightSpentByCategory = (currentBudget?.categories || []).filter(Boolean).map((c: Category) => {
             const spent = (filteredData?.expenses || []).reduce((sum: number, e: Expense) => {
                 if (e.isSplit) {
                     return sum + (e.splits || []).filter(s => s.categoryId === c.id).reduce((splitSum, s) => splitSum + s.amount, 0);
@@ -335,8 +371,8 @@ export default function ReportsPage() {
              <div className="space-y-6">
                  <FinancialReport
                     expenses={filteredData?.expenses || []}
-                    categories={data.budget.categories}
-                    baseBudget={data.budget.income}
+                    categories={currentBudget?.categories || []}
+                    baseBudget={currentBudget?.income || 0}
                     additionalIncomes={filteredData?.incomes || []}
                     periodLabel={format(dateRange?.from ?? new Date(), "d MMM yyyy")}
                 />
@@ -353,8 +389,8 @@ export default function ReportsPage() {
                             <p className="text-2xl font-bold text-primary">{(filteredData?.expenses.length || 0) + (filteredData?.incomes.length || 0)}</p>
                         </div>
                         <div className="p-4 bg-secondary rounded-lg">
-                            <p className="text-sm text-muted-foreground">Sisa Anggaran</p>
-                            <p className="text-2xl font-bold text-primary">{formatCurrency((data.budget.income || 0) + (filteredData?.incomes.reduce((s: number,i: Income) => s+i.amount, 0) || 0) - (filteredData?.expenses.reduce((s:number,e:Expense) => s+e.amount, 0) || 0))}</p>
+                            <p className="text-sm text-muted-foreground">Arus Kas Bersih</p>
+                            <p className="text-2xl font-bold text-primary">{formatCurrency((filteredData?.incomes.reduce((s: number,i: Income) => s+i.amount, 0) || 0) - (filteredData?.expenses.reduce((s:number,e:Expense) => s+e.amount, 0) || 0))}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -366,7 +402,7 @@ export default function ReportsPage() {
                             <ComposedChart data={last4WeeksData}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" />
-                                <YAxis tickFormatter={(value) => formatCurrency(value).replace('Rp\u00A0', 'Rp')} />
+                                <YAxis tickFormatter={(value) => formatCurrency(value).replace('Rp\u00A0', 'Rp')} width={80} tickLine={false} axisLine={false} />
                                 <Tooltip formatter={(value: number) => formatCurrency(value)} />
                                 <Legend />
                                 <Bar dataKey="Pemasukan" barSize={20} fill="#4CAF50" />
@@ -377,7 +413,7 @@ export default function ReportsPage() {
                 </Card>
 
                  <Card>
-                    <CardHeader><CardTitle className="font-headline">Pengeluaran vs Anggaran</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="font-headline">Pengeluaran vs Anggaran (Bulan Ini)</CardTitle></CardHeader>
                     <CardContent>
                         <BudgetVsSpendingChart data={insightSpentByCategory} />
                     </CardContent>
@@ -388,8 +424,8 @@ export default function ReportsPage() {
 
     // TAB: Utang Content
     const UtangTab = () => {
-        const debtsWithBalance = (data.debts || []).map((debt: Debt) => {
-            const paid = (data.budget.expenses || [])
+        const debtsWithBalance = (allDebts || []).map((debt: Debt) => {
+            const paid = (allExpenses || [])
                 .filter((e: Expense) => e.debtId === debt.id)
                 .reduce((sum: number, e: Expense) => sum + e.amount, 0);
             return { ...debt, remainingBalance: debt.totalAmount - paid };
