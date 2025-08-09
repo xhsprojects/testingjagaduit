@@ -6,11 +6,10 @@ import { useRouter } from 'next/navigation';
 import type { Category, Expense, SavingGoal, BudgetPeriod, Income, Reminder, Wallet, RecurringTransaction } from '@/lib/types';
 import DashboardPage from '@/components/DashboardPage';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
 import { doc, getDoc, setDoc, updateDoc, collection, addDoc, deleteDoc, getDocs, writeBatch, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { awardAchievement } from '@/lib/achievements-manager';
-import { format } from 'date-fns';
+import { format, isSameMonth } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -54,13 +53,12 @@ export default function ClientPage() {
 
   const [isDataSetup, setIsDataSetup] = React.useState(true);
   const [categories, setCategories] = React.useState<Category[]>([]);
-  const [expenses, setExpenses] = React.useState<Expense[]>([]);
-  const [incomes, setIncomes] = React.useState<Income[]>([]);
+  const [allExpenses, setAllExpenses] = React.useState<Expense[]>([]);
+  const [allIncomes, setAllIncomes] = React.useState<Income[]>([]);
   const [savingGoals, setSavingGoals] = React.useState<SavingGoal[]>([]);
   const [recurringTxs, setRecurringTxs] = React.useState<RecurringTransaction[]>([]);
   const [wallets, setWallets] = React.useState<Wallet[]>([]);
-  const [income, setIncome] = React.useState(0);
-  const [budgetPeriod, setBudgetPeriod] = React.useState<BudgetPeriod | null>(null);
+  const [currentBudget, setCurrentBudget] = React.useState<BudgetPeriod | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   
   // State for Income CRUD
@@ -69,6 +67,7 @@ export default function ClientPage() {
   const [incomeToDelete, setIncomeToDelete] = React.useState<string | null>(null);
   const [detailIncome, setDetailIncome] = React.useState<Income | null>(null);
   const [hasShownReminderToast, setHasShownReminderToast] = React.useState(false);
+  const [showArchiveAlert, setShowArchiveAlert] = React.useState(false);
 
   const uid = user?.uid;
 
@@ -172,72 +171,59 @@ export default function ClientPage() {
     if (!userSnap.exists()) {
         setIsDataSetup(false);
         setIsLoading(false);
-        return; // Stop execution for new users. They go to onboarding.
+        return; 
     }
 
     setIsDataSetup(true);
     const unsubscribes: (() => void)[] = [];
 
-    // Attach listeners for realtime updates
-    const categoriesUnsubscribe = onSnapshot(collection(db, 'users', uid, 'categories'), async (categoriesSnapshot) => {
-        let loadedCategories = categoriesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Category);
-
-        const budgetDocRef = doc(db, 'users', uid, 'budgets', 'current');
-        if (loadedCategories.length === 0) {
-            const budgetSnap = await getDoc(budgetDocRef);
-            if (budgetSnap.exists() && budgetSnap.data().categories?.length > 0) {
-                const budgetCategories = budgetSnap.data().categories as Category[];
-                loadedCategories = budgetCategories;
-                const batch = writeBatch(db);
-                budgetCategories.forEach(cat => {
-                    const catRef = doc(collection(db, 'users', uid, 'categories'), cat.id);
-                    batch.set(catRef, cat);
-                });
-                await batch.commit();
-            }
-        }
-        setCategories(loadedCategories);
-
-        const budgetUnsubscribe = onSnapshot(budgetDocRef, async (budgetSnap) => {
-            if (budgetSnap.exists()) {
-                const budgetData = convertTimestamps(budgetSnap.data());
-                setBudgetPeriod(budgetData); // Save the whole period data
-                
-                const recurringResult = await processRecurringTransactions(
-                    uid, 
-                    budgetData.expenses || [],
-                    budgetData.incomes || [],
-                );
-                
-                const finalExpenses = recurringResult ? recurringResult.updatedExpenses : (budgetData.expenses || []);
-                const finalIncomes = recurringResult ? recurringResult.updatedIncomes : (budgetData.incomes || []);
-
-                if (recurringResult) {
-                    toast({
-                        title: "Transaksi Otomatis Ditambahkan",
-                        description: "Beberapa transaksi berulang telah ditambahkan ke anggaran Anda."
-                    });
-                }
-                
-                setIncome(budgetData.income || 0);
-                setExpenses(finalExpenses);
-                setIncomes(finalIncomes);
-            }
-            setIsLoading(false);
-        }, (error) => {
-            console.error("Error loading budget data:", error);
-            setIsLoading(false);
-            toast({ title: 'Gagal Memuat Anggaran', variant: 'destructive' });
-        });
-        unsubscribes.push(budgetUnsubscribe);
-    });
-    unsubscribes.push(categoriesUnsubscribe);
-
-    const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), (snap) => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
-    const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), (snap) => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
-    const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), (snap) => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
+    const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), snap => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
+    const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), snap => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
+    const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), snap => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
     
     unsubscribes.push(walletsUnsubscribe, goalsUnsubscribe, recurringUnsubscribe);
+    
+    const budgetsQuery = query(collection(db, 'users', uid, 'budgets'));
+    const archivedBudgetsQuery = query(collection(db, 'users', uid, 'archivedBudgets'));
+    
+    const allBudgetsUnsubscribe = onSnapshot(query(collection(db, 'users', uid, 'budgets')), async () => {
+        const currentSnap = await getDoc(doc(db, 'users', uid, 'budgets', 'current'));
+        const archivedSnaps = await getDocs(query(collection(db, 'users', uid, 'archivedBudgets')));
+
+        let allAggregatedExpenses: Expense[] = [];
+        let allAggregatedIncomes: Income[] = [];
+        let allAggregatedCategories = new Map<string, Category>();
+
+        if (currentSnap.exists()) {
+            const currentData = convertTimestamps(currentSnap.data()) as BudgetPeriod;
+            setCurrentBudget(currentData);
+            allAggregatedExpenses.push(...(currentData.expenses || []));
+            allAggregatedIncomes.push(...(currentData.incomes || []));
+            (currentData.categories || []).forEach(cat => allAggregatedCategories.set(cat.id, cat));
+        }
+        
+        archivedSnaps.forEach(docSnap => {
+            const archivedData = convertTimestamps(docSnap.data()) as BudgetPeriod;
+            allAggregatedExpenses.push(...(archivedData.expenses || []));
+            allAggregatedIncomes.push(...(archivedData.incomes || []));
+            (archivedData.categories || []).forEach(cat => {
+                if (!allAggregatedCategories.has(cat.id)) {
+                    allAggregatedCategories.set(cat.id, cat);
+                }
+            });
+        });
+        
+        setAllExpenses(allAggregatedExpenses);
+        setAllIncomes(allAggregatedIncomes);
+        setCategories(Array.from(allAggregatedCategories.values()));
+
+        if (currentSnap.exists()) {
+            await processRecurringTransactions(uid, currentSnap.data().expenses || [], currentSnap.data().incomes || []);
+        }
+
+        setIsLoading(false);
+    });
+    unsubscribes.push(allBudgetsUnsubscribe);
     
     return () => {
       unsubscribes.forEach(unsub => unsub());
@@ -261,9 +247,21 @@ export default function ClientPage() {
   }, [uid, authLoading, router, loadData]);
 
   React.useEffect(() => {
+    if (currentBudget?.periodStart) {
+        const today = new Date();
+        const periodStartDate = new Date(currentBudget.periodStart);
+        if (today.getDate() === 1 && !isSameMonth(today, periodStartDate)) {
+            setShowArchiveAlert(true);
+        } else {
+            setShowArchiveAlert(false);
+        }
+    }
+  }, [currentBudget]);
+
+  React.useEffect(() => {
       if (reminders.length > 0 && !hasShownReminderToast) {
           const today = new Date();
-          today.setHours(23, 59, 59, 999); // Check for anything due by the end of today
+          today.setHours(23, 59, 59, 999); 
           
           const dueReminders = reminders.filter(r => !r.isPaid && new Date(r.dueDate) <= today);
 
@@ -278,25 +276,21 @@ export default function ClientPage() {
                   ),
                   duration: 8000,
               });
-              setHasShownReminderToast(true); // Ensure it only shows once per session
+              setHasShownReminderToast(true); 
           }
       }
   }, [reminders, hasShownReminderToast, toast, router]);
   
   const handleExpensesUpdate = async (updatedExpenses: Expense[]) => {
-    if (!user) return;
-    const isNewExpense = updatedExpenses.length > expenses.length;
+    if (!user || !currentBudget) return;
+    const isNewExpense = updatedExpenses.length > (currentBudget.expenses?.length || 0);
     
-    // Part 1: Critical Path - Save to DB and update local state
     try {
         const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
         const sortedExpenses = updatedExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
         await updateDoc(budgetDocRef, { expenses: sortedExpenses });
-        // No need to set state here, onSnapshot will do it
-
-        // Part 2: Non-critical gamification.
-        // This runs in the background and won't block the UI or crash the main flow.
+        
         if (isNewExpense && idToken) {
             const tokenForGamification = idToken;
             
@@ -304,7 +298,7 @@ export default function ClientPage() {
                 try {
                     await awardUserXp(50, tokenForGamification);
                     
-                    const newExpense = sortedExpenses.find(e => !expenses.some(old => old.id === e.id));
+                    const newExpense = sortedExpenses.find(e => !(currentBudget.expenses || []).some(old => old.id === e.id));
                     const savingsCategoryId = categories.find(c => c.name === "Tabungan & Investasi")?.id;
                     const hasSavingsAchievement = achievements.some(a => a.badgeId === 'investor-rookie');
 
@@ -319,7 +313,6 @@ export default function ClientPage() {
                     if (expenseCount >= 100) await awardAchievement(user.uid, 'hundred-expenses', achievements, tokenForGamification);
                 } catch (error) {
                     console.error("Gamification background task failed:", error);
-                    // This error is caught silently and won't affect the user experience.
                 }
             })();
         }
@@ -334,17 +327,17 @@ export default function ClientPage() {
     const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
     const sortedIncomes = updatedIncomes.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     await updateDoc(budgetDocRef, { incomes: sortedIncomes });
-    // No need to set state here, onSnapshot will do it
   };
 
   const handleSaveIncome = async (incomeData: Income) => {
-    const isEditing = incomes.some(i => i.id === incomeData.id);
+    const incomesInCurrentPeriod = currentBudget?.incomes || [];
+    const isEditing = incomesInCurrentPeriod.some(i => i.id === incomeData.id);
     let updatedIncomes;
 
     if (isEditing) {
-      updatedIncomes = incomes.map(inc => inc.id === incomeData.id ? incomeData : inc);
+      updatedIncomes = incomesInCurrentPeriod.map(inc => inc.id === incomeData.id ? incomeData : inc);
     } else {
-      updatedIncomes = [...incomes, incomeData];
+      updatedIncomes = [...incomesInCurrentPeriod, incomeData];
     }
     
     await handleIncomesUpdate(updatedIncomes);
@@ -365,7 +358,8 @@ export default function ClientPage() {
 
   const confirmDeleteIncome = async () => {
     if (!incomeToDelete) return;
-    const updatedIncomes = incomes.filter(i => i.id !== incomeToDelete);
+    const incomesInCurrentPeriod = currentBudget?.incomes || [];
+    const updatedIncomes = incomesInCurrentPeriod.filter(i => i.id !== incomeToDelete);
     await handleIncomesUpdate(updatedIncomes);
     toast({ title: "Sukses", description: "Pemasukan berhasil dihapus." });
     setIncomeToDelete(null);
@@ -395,7 +389,6 @@ export default function ClientPage() {
     });
 
     await batch.commit();
-    // No need to set state here, onSnapshot will do it
     
     if (isNewGoal) {
       await awardAchievement(user.uid, 'first-goal', achievements, idToken);
@@ -411,6 +404,7 @@ export default function ClientPage() {
     const result = await resetBudgetPeriod(idToken);
     if (result.success) {
       toast({ title: "Sukses!", description: result.message });
+      setShowArchiveAlert(false); // Hide the alert after resetting
     } else {
       toast({ title: "Gagal", description: result.message, variant: "destructive" });
     }
@@ -418,11 +412,11 @@ export default function ClientPage() {
   
   const totalWalletBalance = React.useMemo(() => {
     return wallets.reduce((total, wallet) => {
-        const totalIncomeForWallet = (incomes || []).filter(inc => inc.walletId === wallet.id).reduce((sum, inc) => sum + inc.amount, 0);
-        const totalExpenseForWallet = (expenses || []).filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
+        const totalIncomeForWallet = (allIncomes || []).filter(inc => inc.walletId === wallet.id).reduce((sum, inc) => sum + inc.amount, 0);
+        const totalExpenseForWallet = (allExpenses || []).filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
         return total + wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
     }, 0);
-  }, [wallets, incomes, expenses]);
+  }, [wallets, allIncomes, allExpenses]);
 
 
   if (authLoading || isLoading) {
@@ -445,21 +439,24 @@ export default function ClientPage() {
   }
 
   const detailIncomeWallet = detailIncome?.walletId ? wallets.find(w => w.id === detailIncome.walletId) : null;
+  const expensesInCurrentPeriod = currentBudget?.expenses || [];
+  const incomesInCurrentPeriod = currentBudget?.incomes || [];
+  const incomeInCurrentPeriod = currentBudget?.income || 0;
 
   return (
     <>
         <DashboardPage 
-            key={JSON.stringify(categories) + income + JSON.stringify(savingGoals) + JSON.stringify(wallets) + JSON.stringify(incomes)} 
+            key={JSON.stringify(categories) + JSON.stringify(savingGoals) + JSON.stringify(wallets) + JSON.stringify(allIncomes) + JSON.stringify(allExpenses)} 
             categories={categories} 
-            expenses={expenses}
-            income={income}
-            incomes={incomes}
+            expenses={expensesInCurrentPeriod}
+            income={incomeInCurrentPeriod}
+            incomes={incomesInCurrentPeriod}
             totalWalletBalance={totalWalletBalance}
             savingGoals={savingGoals}
             reminders={reminders}
             recurringTxs={recurringTxs}
             wallets={wallets}
-            budgetPeriod={budgetPeriod}
+            budgetPeriod={currentBudget}
             onExpensesUpdate={handleExpensesUpdate}
             onReset={handleReset}
             onSavingGoalsUpdate={handleSavingGoalsUpdate}
@@ -467,6 +464,7 @@ export default function ClientPage() {
             onDeleteIncome={handleDeleteIncomeRequest}
             onViewIncome={setDetailIncome}
             onAddIncomeClick={() => setIsAddIncomeFormOpen(true)}
+            showArchiveAlert={showArchiveAlert}
         />
         <AddIncomeForm 
             isOpen={isAddIncomeFormOpen}
@@ -474,8 +472,8 @@ export default function ClientPage() {
             onSubmit={handleSaveIncome}
             incomeToEdit={editingIncome}
             wallets={wallets}
-            expenses={expenses}
-            incomes={incomes}
+            expenses={allExpenses}
+            incomes={allIncomes}
             categories={categories}
         />
         <AlertDialog open={!!incomeToDelete} onOpenChange={(open) => !open && setIncomeToDelete(null)}>
@@ -543,5 +541,3 @@ export default function ClientPage() {
     </>
   );
 }
-
-    
