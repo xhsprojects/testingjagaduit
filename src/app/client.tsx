@@ -21,6 +21,7 @@ import { ToastAction } from '@/components/ui/toast';
 import OnboardingPage from './onboarding/page';
 import { Loader2 } from 'lucide-react';
 import { resetBudgetPeriod } from './budget/actions';
+import { useAuth } from '@/context/AuthContext';
 
 // Helper to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {
@@ -464,7 +465,6 @@ export default function ClientPage() {
             onDeleteIncome={handleDeleteIncomeRequest}
             onViewIncome={setDetailIncome}
             onAddIncomeClick={() => setIsAddIncomeFormOpen(true)}
-            showArchiveAlert={showArchiveAlert}
         />
         <AddIncomeForm 
             isOpen={isAddIncomeFormOpen}
