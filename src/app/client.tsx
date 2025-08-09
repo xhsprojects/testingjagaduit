@@ -450,8 +450,10 @@ export default function ClientPage() {
   }
 
   const detailIncomeWallet = detailIncome?.walletId ? wallets.find(w => w.id === detailIncome.walletId) : null;
-  const expensesInCurrentPeriod = currentBudget?.expenses || [];
-  const incomesInCurrentPeriod = currentBudget?.incomes || [];
+  
+  // Use allExpenses and allIncomes for display, but use currentBudget for mutation logic.
+  const expensesInCurrentPeriod = allExpenses;
+  const incomesInCurrentPeriod = allIncomes;
   const incomeInCurrentPeriod = currentBudget?.income || 0;
 
   return (
