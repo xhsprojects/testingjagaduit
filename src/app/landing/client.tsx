@@ -58,7 +58,8 @@ import {
   MessageSquare,
   Info,
   Loader2,
-  Rocket
+  Rocket,
+  Users2
 } from 'lucide-react';
 import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
 import { SupportDialog } from '@/components/SupportDialog';
@@ -376,6 +377,16 @@ export default function LandingClientPage() {
               <FeatureCard icon={<CreditCard className="h-7 w-7 text-red-600" />} title="Manajemen Utang" description="Pantau semua utang Anda, catat setiap pembayaran, dan lihat sisa utang secara real-time dengan strategi pelunasan yang optimal." />
               <FeatureCard icon={<BarChart3 className="h-7 w-7 text-violet-600" />} title="Laporan Visual" description="Pahami ke mana uang Anda pergi dengan grafik dan bagan yang mudah dibaca, interaktif, dan memberikan wawasan mendalam." />
               <FeatureCard icon={<BookMarked className="h-7 w-7 text-cyan-600" />} title="Riwayat & Arsip" description="Akses riwayat lengkap semua transaksi dan periode anggaran yang telah berlalu kapan saja dengan pencarian yang canggih." />
+              <FeatureCard 
+                icon={<BrainCircuit className="h-7 w-7 text-blue-600" />} 
+                title="Analisis Laporan AI" 
+                description="Dapatkan ringkasan, wawasan, dan pengeluaran teratas untuk periode yang Anda pilih secara gratis." 
+              />
+              <FeatureCard 
+                icon={<Users2 className="h-7 w-7 text-orange-500" />} 
+                title="Bagi Tagihan (Split Bill)" 
+                description="Alat praktis untuk menghitung dan membagi tagihan secara adil dengan teman, lengkap dengan fitur pembagian via WhatsApp." 
+              />
             </div>
           </div>
         </section>
