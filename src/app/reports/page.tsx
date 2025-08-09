@@ -8,7 +8,7 @@ import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, query, orderBy } from 'firebase/firestore';
 import type { BudgetPeriod, Category, Debt, Expense, Income } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { addDays, addMonths, endOfDay, endOfMonth, endOfWeek, format, startOfDay, startOfMonth, startOfWeek, subDays, subWeeks } from 'date-fns';
+import { addDays, addMonths, endOfDay, endOfMonth, endOfWeek, format, startOfDay, startOfMonth, startOfWeek, subDays, subWeeks, subMonths } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import Link from 'next/link';
