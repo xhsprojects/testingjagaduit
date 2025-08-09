@@ -49,6 +49,8 @@ import {
   Users2,
   BookOpen,
   HandCoins,
+  FilePenLine,
+  Mic,
 } from 'lucide-react';
 
 export const iconMap = {
@@ -101,6 +103,8 @@ export const iconMap = {
   Users2,
   BookOpen,
   HandCoins,
+  FilePenLine,
+  Mic,
 };
 
 export type IconName = keyof typeof iconMap;

@@ -59,7 +59,9 @@ import {
   Info,
   Loader2,
   Rocket,
-  Users2
+  Users2,
+  FilePenLine,
+  Mic
 } from 'lucide-react';
 import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
 import { SupportDialog } from '@/components/SupportDialog';
@@ -371,22 +373,25 @@ export default function LandingClientPage() {
               <FeatureCard icon={<LayoutGrid className="h-7 w-7 text-blue-600" />} title="Dasbor Interaktif" description="Ringkasan keuangan, grafik pengeluaran, dan perbandingan anggaran vs. realisasi dalam satu tampilan yang indah dan mudah dipahami." />
               <FeatureCard icon={<WalletIcon className="h-7 w-7 text-green-600" />} title="Manajemen Dompet" description="Atur semua sumber dana Anda (tunai, rekening bank, e-wallet) dan catat transfer antar dompet dengan mudah dan akurat." />
               <FeatureCard icon={<PiggyBank className="h-7 w-7 text-pink-600" />} title="Anggaran Fleksibel" description="Buat kategori pengeluaran yang sesuai dengan gaya hidup Anda dan alokasikan dana untuk masing-masing dengan sistem yang adaptif." />
+              <FeatureCard icon={<Mic className="h-7 w-7 text-orange-600" />} title="Input Suara Cepat" description="Catat transaksi hanya dengan berbicara. Ucapkan 'Makan siang 50 ribu' dan biarkan kami yang mengisi form untuk Anda." />
               <FeatureCard icon={<Repeat className="h-7 w-7 text-indigo-600" />} title="Transaksi Berulang" description="Otomatiskan pencatatan untuk transaksi rutin seperti gaji, tagihan bulanan, atau cicilan untuk menghemat waktu Anda." />
               <FeatureCard icon={<BellRing className="h-7 w-7 text-amber-600" />} title="Pengingat Pembayaran" description="Jangan pernah lagi telat bayar tagihan. Dapatkan notifikasi cerdas untuk semua jatuh tempo yang akan datang." />
               <FeatureCard icon={<Target className="h-7 w-7 text-teal-600" />} title="Tujuan Menabung" description="Buat tujuan finansial (dana darurat, liburan, gadget baru) dan lacak progres Anda hingga tercapai dengan visualisasi yang menarik." />
               <FeatureCard icon={<CreditCard className="h-7 w-7 text-red-600" />} title="Manajemen Utang" description="Pantau semua utang Anda, catat setiap pembayaran, dan lihat sisa utang secara real-time dengan strategi pelunasan yang optimal." />
-              <FeatureCard icon={<BarChart3 className="h-7 w-7 text-violet-600" />} title="Laporan Visual" description="Pahami ke mana uang Anda pergi dengan grafik dan bagan yang mudah dibaca, interaktif, dan memberikan wawasan mendalam." />
-              <FeatureCard icon={<BookMarked className="h-7 w-7 text-cyan-600" />} title="Riwayat & Arsip" description="Akses riwayat lengkap semua transaksi dan periode anggaran yang telah berlalu kapan saja dengan pencarian yang canggih." />
+              <FeatureCard icon={<BookMarked className="h-7 w-7 text-violet-600" />} title="Riwayat & Arsip" description="Akses riwayat lengkap semua transaksi dan periode anggaran yang telah berlalu kapan saja dengan pencarian yang canggih." />
               <FeatureCard 
                 icon={<BrainCircuit className="h-7 w-7 text-blue-600" />} 
                 title="Analisis Laporan AI" 
-                description="Dapatkan ringkasan, wawasan, dan pengeluaran teratas untuk periode yang Anda pilih secara gratis." 
+                description="Dapatkan ringkasan, wawasan, dan pengeluaran teratas untuk periode yang Anda pilih secara gratis."
+                customLabel={{ text: "BARU", className: "bg-gradient-to-r from-green-500 to-blue-500" }} 
               />
               <FeatureCard 
                 icon={<Users2 className="h-7 w-7 text-orange-500" />} 
                 title="Bagi Tagihan (Split Bill)" 
-                description="Alat praktis untuk menghitung dan membagi tagihan secara adil dengan teman, lengkap dengan fitur pembagian via WhatsApp." 
+                description="Alat praktis untuk menghitung dan membagi tagihan secara adil dengan teman, lengkap dengan fitur pembagian via WhatsApp."
+                customLabel={{ text: "BARU", className: "bg-gradient-to-r from-green-500 to-blue-500" }} 
               />
+              <FeatureCard icon={<FilePenLine className="h-7 w-7 text-cyan-600" />} title="Catatan Pribadi" description="Simpan ide, rencana, atau daftar tugas finansial Anda langsung di dalam aplikasi, terpisah dari transaksi harian." />
             </div>
           </div>
         </section>
@@ -458,12 +463,7 @@ export default function LandingClientPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                <FeatureCard icon={<Bot className="h-7 w-7 text-purple-600" />} title="Asisten Keuangan Personal" description="Mengobrol dengan chatbot AI untuk mendapatkan jawaban atas pertanyaan keuangan atau meminta tips menabung yang dipersonalisasi." isPremium={true} />
-               <FeatureCard 
-                 icon={<BarChart3 className="h-7 w-7 text-blue-600" />} 
-                 title="Laporan Analisis AI" 
-                 description="Dapatkan laporan mendalam tentang aktivitas keuangan Anda, lengkap dengan ringkasan, wawasan, dan rekomendasi yang cerdas." 
-                 customLabel={{ text: "Free AI", className: "bg-gradient-to-r from-blue-500 to-green-500" }} 
-               />
+               <FeatureCard icon={<Mic className="h-7 w-7 text-purple-600" />} title="Input Suara Cerdas (AI)" description="Ucapkan transaksi Anda, dan biarkan AI tidak hanya mencatat, tapi juga secara cerdas menyarankan kategori dan dompet yang paling relevan." isPremium={true} />
                <FeatureCard icon={<TrendingUp className="h-7 w-7 text-purple-600" />} title="Peramalan Anggaran AI" description="AI menganalisis pola belanja Anda dan memberikan peringatan dini jika Anda berisiko melebihi anggaran." isPremium={true} />
                <FeatureCard icon={<ScanLine className="h-7 w-7 text-purple-600" />} title="Pindai Struk dengan AI" description="Hemat waktu dengan memfoto struk belanja. AI akan secara otomatis membaca total belanja, nama toko, dan mengkategorikan." isPremium={true} />
                <FeatureCard icon={<Upload className="h-7 w-7 text-purple-600" />} title="Impor Transaksi CSV" description="Unggah mutasi rekening dari e-banking dan biarkan AI mengkategorikan transaksi secara otomatis dengan akurasi tinggi." isPremium={true}/>
