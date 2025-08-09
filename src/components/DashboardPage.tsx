@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import type { Category, Expense, SavingGoal, Debt, Income, Reminder, Wallet, RecurringTransaction } from '@/lib/types';
+import type { Category, Expense, SavingGoal, Debt, Income, Reminder, Wallet, RecurringTransaction, BudgetPeriod } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
@@ -14,13 +14,13 @@ import { AddExpenseForm } from './AddExpenseForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { DateRange } from 'react-day-picker';
 import { DateRangePicker } from './DateRangePicker';
-import { startOfMonth, endOfMonth, format, endOfDay, subDays } from 'date-fns';
+import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -40,6 +40,7 @@ import BudgetChart from '@/components/charts/BudgetChart';
 import BudgetVsSpendingChart from '@/components/charts/BudgetVsSpendingChart';
 import { Separator } from './ui/separator';
 import { BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, ResponsiveContainer } from 'recharts';
+import { Alert, AlertTitle } from './ui/alert';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -51,6 +52,7 @@ interface DashboardPageProps {
   reminders: Reminder[];
   recurringTxs: RecurringTransaction[];
   wallets: Wallet[];
+  budgetPeriod: BudgetPeriod | null;
   onExpensesUpdate: (expenses: Expense[]) => Promise<void>;
   onSavingGoalsUpdate: (goals: SavingGoal[]) => Promise<void>;
   onReset: () => Promise<void>;
@@ -87,6 +89,7 @@ export default function DashboardPage({
   reminders,
   recurringTxs,
   wallets,
+  budgetPeriod,
   onExpensesUpdate, 
   onReset, 
   onSavingGoalsUpdate,
@@ -111,6 +114,7 @@ export default function DashboardPage({
   const uid = user?.uid;
 
   const [hasShownReminderToast, setHasShownReminderToast] = React.useState(false);
+  const [showArchiveAlert, setShowArchiveAlert] = React.useState(false);
   
   // Data loading guard: Wait until categories are properly populated.
   const isDataReady = categories && categories.length > 0;
@@ -132,6 +136,19 @@ export default function DashboardPage({
 
     return dueReminders + dueRecurring;
   }, [reminders, recurringTxs]);
+
+  React.useEffect(() => {
+    if (budgetPeriod?.periodStart) {
+        const today = new Date();
+        const periodStartDate = new Date(budgetPeriod.periodStart);
+        // Show alert on the 1st day of the month if the budget hasn't been reset this month.
+        if (today.getDate() === 1 && !isSameMonth(today, periodStartDate)) {
+            setShowArchiveAlert(true);
+        } else {
+            setShowArchiveAlert(false);
+        }
+    }
+  }, [budgetPeriod]);
 
   React.useEffect(() => {
       if ((reminders || []).length > 0 && !hasShownReminderToast && dueEventsCount > 0) {
@@ -425,6 +442,21 @@ export default function DashboardPage({
       <div className="flex min-h-screen w-full flex-col">
         <Header />
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+            {showArchiveAlert && (
+                <Alert variant="destructive" className="animate-in fade-in-50">
+                    <Info className="h-4 w-4" />
+                    <AlertTitle className="font-bold">Saatnya Memulai Periode Anggaran Baru!</AlertTitle>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-1">
+                        <p className="text-sm">
+                            Arsipkan data bulan lalu untuk memulai pencatatan bulan ini dengan segar.
+                        </p>
+                        <Button size="sm" className="mt-2 sm:mt-0" onClick={() => setIsResetConfirmOpen(true)}>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Mulai Periode Baru
+                        </Button>
+                    </div>
+                </Alert>
+            )}
           <div className='flex justify-between items-center flex-wrap gap-2'>
               <div className="flex items-center gap-2">
               </div>

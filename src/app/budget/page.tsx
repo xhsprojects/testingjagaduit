@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -17,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, getDoc, collection, writeBatch, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { saveBudget } from './actions';
+import { saveBudget, resetBudgetPeriod } from './actions';
 import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import jsPDF from 'jspdf';
@@ -45,6 +46,8 @@ export default function BudgetPage() {
     const { toast } = useToast();
     const [isLoadingData, setIsLoadingData] = React.useState(true);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isResetting, setIsResetting] = React.useState(false);
+    const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
     const [expenses, setExpenses] = React.useState<Expense[]>([]);
     
     const form = useForm<BudgetFormValues>({
@@ -121,6 +124,19 @@ export default function BudgetPage() {
         }
         setIsSubmitting(false);
     };
+
+    const handleReset = async () => {
+        if (!idToken) return;
+        setIsResetting(true);
+        const result = await resetBudgetPeriod(idToken);
+        if (result.success) {
+            toast({ title: 'Sukses!', description: result.message });
+        } else {
+            toast({ title: 'Gagal', description: result.message, variant: 'destructive' });
+        }
+        setIsResetting(false);
+        setIsResetConfirmOpen(false);
+    }
 
     if (authLoading || isLoadingData) {
         return (
@@ -213,12 +229,12 @@ export default function BudgetPage() {
                         <div className="lg:col-span-1">
                             <Card className="sticky top-20">
                                 <CardHeader>
-                                    <CardTitle>Ringkasan Anggaran</CardTitle>
+                                    <CardTitle>Ringkasan & Aksi</CardTitle>
                                     <CardDescription>
-                                        Total alokasi dana untuk periode ini.
+                                        Total alokasi dana dan aksi penting lainnya.
                                     </CardDescription>
                                 </CardHeader>
-                                <CardContent>
+                                <CardContent className="space-y-4">
                                     <div className="p-4 bg-secondary rounded-lg flex justify-between items-center text-lg">
                                         <span className="font-bold font-headline flex items-center gap-2">
                                         <Wallet className="h-5 w-5 text-primary" />
@@ -226,7 +242,11 @@ export default function BudgetPage() {
                                         </span>
                                         <span className="font-bold font-headline text-primary">{formatCurrency(totalAllocated)}</span>
                                     </div>
-                                    <p className="text-xs text-muted-foreground mt-2">Ini akan menjadi total anggaran bulanan Anda. Pemasukan tambahan dapat dicatat di Dasbor.</p>
+                                    <p className="text-xs text-muted-foreground">Ini akan menjadi total anggaran bulanan Anda. Pemasukan tambahan dapat dicatat di Dasbor.</p>
+                                     <Button variant="outline" className="w-full" onClick={() => setIsResetConfirmOpen(true)}>
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                        Mulai Periode Baru
+                                    </Button>
                                 </CardContent>
                                 <CardFooter>
                                     <Button type="submit" className="w-full text-lg py-6" disabled={isSubmitting}>
@@ -239,6 +259,23 @@ export default function BudgetPage() {
                     </div>
                 </form>
                 </Form>
+                 <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Mulai Periode Anggaran Baru?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Tindakan ini akan mengarsipkan semua data dari periode saat ini (pemasukan, pengeluaran, dll.) dan mengatur ulang dasbor Anda. Saldo dompet akan diperbarui. Apakah Anda yakin?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleReset} disabled={isResetting}>
+                                {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Ya, Mulai Periode Baru
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </main>
         </div>
     );

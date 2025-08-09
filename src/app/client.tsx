@@ -21,6 +21,7 @@ import { awardUserXp } from './achievements/actions';
 import { ToastAction } from '@/components/ui/toast';
 import OnboardingPage from './onboarding/page';
 import { Loader2 } from 'lucide-react';
+import { resetBudgetPeriod } from './budget/actions';
 
 // Helper to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {
@@ -59,6 +60,7 @@ export default function ClientPage() {
   const [recurringTxs, setRecurringTxs] = React.useState<RecurringTransaction[]>([]);
   const [wallets, setWallets] = React.useState<Wallet[]>([]);
   const [income, setIncome] = React.useState(0);
+  const [budgetPeriod, setBudgetPeriod] = React.useState<BudgetPeriod | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   
   // State for Income CRUD
@@ -199,6 +201,7 @@ export default function ClientPage() {
         const budgetUnsubscribe = onSnapshot(budgetDocRef, async (budgetSnap) => {
             if (budgetSnap.exists()) {
                 const budgetData = convertTimestamps(budgetSnap.data());
+                setBudgetPeriod(budgetData); // Save the whole period data
                 
                 const recurringResult = await processRecurringTransactions(
                     uid, 
@@ -401,72 +404,15 @@ export default function ClientPage() {
   }
 
   const handleReset = async () => {
-    if (!user || !idToken) return;
-
-    const budgetDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
-    const budgetDocSnap = await getDoc(budgetDocRef);
-
-    if (budgetDocSnap.exists()) {
-        const currentData = budgetDocSnap.data() as BudgetPeriod;
-        const currentExpenses = currentData.expenses || [];
-        const currentIncomes = currentData.incomes || [];
-
-        const batch = writeBatch(db);
-
-        // Calculate final balances and prepare wallet updates
-        wallets.forEach(wallet => {
-            const totalIncomeForWallet = currentIncomes
-                .filter(inc => inc.walletId === wallet.id)
-                .reduce((sum, inc) => sum + inc.amount, 0);
-            const totalExpenseForWallet = currentExpenses
-                .filter(e => e.walletId === wallet.id)
-                .reduce((sum, e) => sum + e.amount, 0);
-            const finalBalance = wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
-
-            const walletDocRef = doc(db, 'users', user.uid, 'wallets', wallet.id);
-            batch.update(walletDocRef, { initialBalance: finalBalance });
-        });
-
-        const totalExpensesValue = currentExpenses.reduce((sum: number, exp: Expense) => sum + exp.amount, 0);
-        const totalAddedIncomes = currentIncomes.reduce((sum: number, inc: Income) => sum + inc.amount, 0);
-        const totalIncomeValue = currentData.income + totalAddedIncomes;
-        const remainingBudgetValue = totalIncomeValue - totalExpensesValue;
-
-        const archivedPeriod = {
-            ...currentData,
-            periodEnd: new Date().toISOString(),
-            totalIncome: totalIncomeValue,
-            totalExpenses: totalExpensesValue,
-            remainingBudget: remainingBudgetValue,
-        };
-
-        if (currentData.income > 0 && (remainingBudgetValue / currentData.income) >= 0.2) {
-            await awardAchievement(user.uid, 'super-saver', achievements, idToken);
-        }
-        
-        try {
-            const archiveDocRef = doc(collection(db, 'users', user.uid, 'archivedBudgets'));
-            batch.set(archiveDocRef, archivedPeriod);
-            
-            const newBudgetData = {
-                ...currentData,
-                expenses: [],
-                incomes: [],
-                periodStart: new Date().toISOString(),
-                periodEnd: null,
-            };
-
-            batch.set(budgetDocRef, newBudgetData);
-
-            await batch.commit();
-            
-            // Data will be reloaded automatically by onSnapshot listeners
-            
-            toast({ title: 'Periode Baru Dimulai', description: 'Saldo dompet telah diperbarui dan data lama diarsipkan.' });
-        } catch (error) {
-             console.error("Error resetting budget:", error);
-            toast({ title: 'Error', description: 'Gagal mengarsipkan data dan memulai periode baru.', variant: 'destructive' });
-        }
+    if (!idToken) {
+      toast({ title: "Sesi tidak valid", variant: "destructive" });
+      return;
+    }
+    const result = await resetBudgetPeriod(idToken);
+    if (result.success) {
+      toast({ title: "Sukses!", description: result.message });
+    } else {
+      toast({ title: "Gagal", description: result.message, variant: "destructive" });
     }
   };
   
@@ -513,6 +459,7 @@ export default function ClientPage() {
             reminders={reminders}
             recurringTxs={recurringTxs}
             wallets={wallets}
+            budgetPeriod={budgetPeriod}
             onExpensesUpdate={handleExpensesUpdate}
             onReset={handleReset}
             onSavingGoalsUpdate={handleSavingGoalsUpdate}
