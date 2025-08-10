@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from 'react';
@@ -18,9 +19,9 @@ import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from
 import { id as idLocale } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn, parseSpokenAmount } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, Mic, Loader2, Gem } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -40,6 +41,7 @@ import BudgetChart from '@/components/charts/BudgetChart';
 import { Separator } from './ui/separator';
 import { BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, ResponsiveContainer } from 'recharts';
 import { Alert, AlertTitle } from './ui/alert';
+import { parseTransactionByVoice } from '@/ai/flows/parse-transaction-by-voice-flow';
 
 interface DashboardPageProps {
   categories: Category[];
