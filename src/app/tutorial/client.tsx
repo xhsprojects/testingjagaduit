@@ -11,18 +11,17 @@ import Link from 'next/link';
 
 const tutorialSections = [
   {
-    icon: HandCoins,
-    title: 'Langkah 1: Pengaturan Anggaran Pertama Anda',
+    icon: PiggyBank,
+    title: 'Langkah 1: Mengatur Anggaran Bulanan',
     content: (
       <div className="space-y-4">
-        <p>Langkah paling penting untuk memulai adalah dengan mengatur anggaran bulanan Anda. Ini akan menjadi fondasi untuk semua pelacakan dan laporan.</p>
+        <p>Setelah menyelesaikan pengaturan awal, langkah selanjutnya adalah menetapkan budget untuk setiap kategori pengeluaran Anda. Ini akan menjadi fondasi untuk semua pelacakan dan laporan.</p>
         <ol className="list-decimal list-inside space-y-2">
-          <li>Saat pertama kali masuk, Anda akan disambut oleh halaman <strong>"Atur Anggaran Bulanan Anda"</strong>.</li>
-          <li>Kami telah menyediakan beberapa kategori umum seperti 'Makan Harian' dan 'Kebutuhan Lain'.</li>
-          <li>Masukkan jumlah dana yang ingin Anda alokasikan untuk setiap kategori di kolom anggaran.</li>
-          <li>Anda bisa mengubah nama kategori, ikon, atau bahkan menambah kategori baru dengan tombol <strong>"Tambah Kategori Baru"</strong>.</li>
-          <li>Total dari semua alokasi ini akan secara otomatis menjadi <strong>Total Anggaran Bulanan</strong> Anda. Kategori yang anggarannya nol tidak akan dihitung.</li>
-          <li>Setelah selesai, klik <strong>"Simpan Anggaran & Mulai"</strong>. Anda akan diarahkan ke halaman Riwayat.</li>
+          <li>Buka halaman <strong>Anggaran</strong> dari menu navigasi di bagian bawah.</li>
+          <li>Di sana, Anda akan melihat semua kategori yang telah Anda siapkan.</li>
+          <li>Masukkan jumlah dana yang ingin Anda alokasikan untuk setiap kategori di kolom yang tersedia.</li>
+          <li>Total dari semua alokasi ini akan secara otomatis menjadi <strong>Total Anggaran Bulanan</strong> Anda.</li>
+          <li>Jangan lupa klik <strong>"Simpan Perubahan Anggaran"</strong> di bagian bawah setelah selesai.</li>
         </ol>
         <Button asChild variant="outline" size="sm"><Link href="/budget">Buka Halaman Anggaran</Link></Button>
       </div>
