@@ -177,7 +177,7 @@ export default function InvestorClientPage() {
                     </div>
                      <div className="mt-8 lg:mt-0">
                         <Image
-                            src="https://portofolio-smoky-five.vercel.app/jg3.webp"
+                            src="https://portofolio-smoky-five.vercel.app/jg.webp"
                             alt="Jaga Duit App Vision"
                             width={1200}
                             height={750}
