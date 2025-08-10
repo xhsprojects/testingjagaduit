@@ -91,12 +91,17 @@ export default function InvestorClientPage() {
                     <p className="mt-6 text-base md:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
                         Jaga Duit lebih dari sekadar aplikasi; ini adalah gerakan untuk memberdayakan individu dengan alat AI canggih untuk mencapai kebebasan finansial. Kami mencari mitra investor untuk mengakselerasi pertumbuhan kami.
                     </p>
-                    <div className="mt-10">
+                    <div className="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
                         <Button asChild size="lg" className="text-base md:text-lg py-5 md:py-6 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl group">
                             <a href="mailto:jagaduitofficial@gmail.com?subject=Peluang Investasi Jaga Duit" className="flex items-center gap-2">
                                 Hubungi Kami untuk Diskusi
                                 <Mail className="h-5 w-5" />
                             </a>
+                        </Button>
+                        <Button asChild size="lg" variant="outline" className="text-base md:text-lg py-5 md:py-6 px-8 bg-white/50 border-slate-300 hover:bg-white transition-all duration-300 rounded-2xl group">
+                            <Link href="/landing">
+                                Lihat Semua Fitur Aplikasi
+                            </Link>
                         </Button>
                     </div>
                 </div>
