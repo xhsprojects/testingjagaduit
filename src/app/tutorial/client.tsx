@@ -11,25 +11,8 @@ import Link from 'next/link';
 
 const tutorialSections = [
   {
-    icon: PiggyBank,
-    title: 'Langkah 1: Mengatur Anggaran Bulanan',
-    content: (
-      <div className="space-y-4">
-        <p>Setelah menyelesaikan pengaturan awal, langkah selanjutnya adalah menetapkan budget untuk setiap kategori pengeluaran Anda. Ini akan menjadi fondasi untuk semua pelacakan dan laporan.</p>
-        <ol className="list-decimal list-inside space-y-2">
-          <li>Buka halaman <strong>Anggaran</strong> dari menu navigasi di bagian bawah.</li>
-          <li>Di sana, Anda akan melihat semua kategori yang telah Anda siapkan.</li>
-          <li>Masukkan jumlah dana yang ingin Anda alokasikan untuk setiap kategori di kolom yang tersedia.</li>
-          <li>Total dari semua alokasi ini akan secara otomatis menjadi <strong>Total Anggaran Bulanan</strong> Anda.</li>
-          <li>Jangan lupa klik <strong>"Simpan Perubahan Anggaran"</strong> di bagian bawah setelah selesai.</li>
-        </ol>
-        <Button asChild variant="outline" size="sm"><Link href="/budget">Buka Halaman Anggaran</Link></Button>
-      </div>
-    ),
-  },
-  {
     icon: LayoutGrid,
-    title: 'Memahami Dasbor Utama',
+    title: 'Langkah 1: Memahami Dasbor Utama',
     content: (
        <div className="space-y-4">
         <p>Dasbor adalah pusat kendali keuangan Anda. Di sini Anda bisa melihat ringkasan, mencatat transaksi, dan mengakses semua fitur utama dengan cepat.</p>
@@ -40,6 +23,23 @@ const tutorialSections = [
             <li><strong>Menu Navigasi:</strong> Semua halaman utama seperti Laporan, Pengingat, dan lainnya dapat diakses dari dasbor.</li>
         </ul>
         <Button asChild variant="outline" size="sm"><Link href="/">Kembali ke Dasbor</Link></Button>
+      </div>
+    ),
+  },
+  {
+    icon: PiggyBank,
+    title: 'Langkah 2: Mengatur Anggaran Bulanan',
+    content: (
+      <div className="space-y-4">
+        <p>Setelah memahami dasbor, langkah selanjutnya adalah menetapkan budget untuk setiap kategori pengeluaran Anda. Ini akan menjadi fondasi untuk semua pelacakan dan laporan.</p>
+        <ol className="list-decimal list-inside space-y-2">
+          <li>Buka halaman <strong>Anggaran</strong> dari menu navigasi di bagian bawah.</li>
+          <li>Di sana, Anda akan melihat semua kategori yang telah Anda siapkan.</li>
+          <li>Masukkan jumlah dana yang ingin Anda alokasikan untuk setiap kategori di kolom yang tersedia.</li>
+          <li>Total dari semua alokasi ini akan secara otomatis menjadi <strong>Total Anggaran Bulanan</strong> Anda.</li>
+          <li>Jangan lupa klik <strong>"Simpan Perubahan Anggaran"</strong> di bagian bawah setelah selesai.</li>
+        </ol>
+        <Button asChild variant="outline" size="sm"><Link href="/budget">Buka Halaman Anggaran</Link></Button>
       </div>
     ),
   },
