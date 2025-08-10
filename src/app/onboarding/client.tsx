@@ -18,6 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { saveOnboardingData } from './actions';
 import { formatCurrency } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 type OnboardingStage = 'wallets' | 'categories';
 
@@ -50,6 +51,7 @@ interface OnboardingClientPageProps {
 
 export default function OnboardingClientPage({ onSetupComplete }: OnboardingClientPageProps) {
     const { user, idToken } = useAuth();
+    const router = useRouter();
     const { toast } = useToast();
     const [stage, setStage] = React.useState<OnboardingStage>('wallets');
     const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -83,12 +85,12 @@ export default function OnboardingClientPage({ onSetupComplete }: OnboardingClie
         setIsSubmitting(true);
         const result = await saveOnboardingData(idToken, data.wallets, data.categories as Category[]);
         if (result.success) {
-            toast({ title: "Pengaturan Selesai!", description: "Selamat datang di Jaga Duit. Anda siap memulai!" });
-            onSetupComplete();
+            toast({ title: "Pengaturan Selesai!", description: "Selamat datang di Jaga Duit! Anda akan diarahkan ke panduan singkat." });
+            router.push('/tutorial');
         } else {
             toast({ title: 'Gagal Menyimpan', description: result.message, variant: 'destructive' });
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
     };
 
     return (
