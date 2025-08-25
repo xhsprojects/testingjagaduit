@@ -31,7 +31,7 @@ const InstallPwaPrompt: React.FC = () => {
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     // Check if it's not already in standalone mode
-    const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator.standalone);
+    const isInStandaloneMode = ('standalone' in window.navigator) && ((window.navigator as any).standalone);
 
     if (isIosDevice && !isInStandaloneMode) {
       setIsIos(true);
@@ -73,6 +73,9 @@ const InstallPwaPrompt: React.FC = () => {
                 <h3 className="font-bold">Instal Aplikasi Jaga Duit</h3>
                 <p className="text-sm text-muted-foreground">
                     Tekan tombol Bagikan <Share className="inline-block h-3 w-3" /> lalu pilih "Tambah ke Layar Utama".
+                </p>
+                <p className="text-xs text-muted-foreground/80 mt-1">
+                    (Hanya berfungsi di peramban Safari)
                 </p>
             </div>
             <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleDismiss}>

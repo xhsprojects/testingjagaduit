@@ -561,14 +561,7 @@ export function AddExpenseForm({
                           <FormMessage />
                       </FormItem>
                     )}/>
-                     <FormField control={form.control} name="notes" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Catatan (Opsional)</FormLabel>
-                        <FormControl><Textarea placeholder="Contoh: Makan siang dengan klien" {...field} value={field.value || ''}/></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}/>
-
+                    
                     <div className="border-t pt-4 space-y-2">
                         <FormField control={form.control} name="isSplit" render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-secondary/50">
@@ -617,14 +610,6 @@ export function AddExpenseForm({
                             <FormMessage />
                           </FormItem>
                         )}/>
-                        <div className="flex justify-end -mt-2">
-                            <Button variant="link" size="sm" className="p-0 h-auto text-xs" asChild>
-                                <Link href="/budget">
-                                    <PlusCircle className="mr-1 h-3 w-3" />
-                                    Tambah Kategori Baru
-                                </Link>
-                            </Button>
-                        </div>
                         {showSavingGoals && (<FormField control={form.control} name="savingGoalId" render={({ field }) => (
                           <FormItem>
                               <FormLabel>Alokasikan ke Tujuan (Wajib)</FormLabel>
@@ -641,6 +626,13 @@ export function AddExpenseForm({
                         )}/>)}
                       </div>
                     )}
+                    <FormField control={form.control} name="notes" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Catatan (Opsional)</FormLabel>
+                        <FormControl><Textarea placeholder="Contoh: Makan siang dengan klien" {...field} value={field.value || ''}/></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}/>
                 </div>
             </div>
             <DialogFooter className="mt-auto border-t bg-background p-6">
