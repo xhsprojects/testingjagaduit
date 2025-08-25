@@ -19,6 +19,27 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Jaga Duit',
+  url: 'https://www.jagaduit.top',
+  logo: 'https://www.jagaduit.top/icons/icon-512x512.png',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'jagaduitofficial@gmail.com',
+    contactType: 'Investor Relations',
+  },
+};
+
 export default function InvestorPage() {
-  return <InvestorClientPage />;
+  return (
+    <>
+       <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <InvestorClientPage />
+    </>
+  );
 }
