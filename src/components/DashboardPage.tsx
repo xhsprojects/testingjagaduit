@@ -1,27 +1,21 @@
 
-
 "use client";
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import type { Category, Expense, SavingGoal, Debt, Income, Reminder, Wallet, RecurringTransaction, BudgetPeriod } from '@/lib/types';
+import type { Category, Expense, SavingGoal, Debt, Income, Reminder, Wallet, RecurringTransaction, BudgetPeriod, SplitItem } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ExpenseTable from './ExpenseTable';
-import AiAssistant from './AiAssistant';
 import { AddExpenseForm } from './AddExpenseForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { DateRange } from 'react-day-picker';
 import { DateRangePicker } from './DateRangePicker';
 import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { formatCurrency, cn, parseSpokenAmount } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, FileDown, FileType2, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, Mic, Loader2, Gem } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -33,15 +27,10 @@ import { collection, getDocs } from 'firebase/firestore';
 import FinancialChatbot from './FinancialChatbot';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Badge } from './ui/badge';
 import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
-import { Separator } from './ui/separator';
-import { BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar, ResponsiveContainer } from 'recharts';
 import { Alert, AlertTitle } from './ui/alert';
-import { parseTransactionByVoice } from '@/ai/flows/parse-transaction-by-voice-flow';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -63,6 +52,10 @@ interface DashboardPageProps {
   onAddIncomeClick: () => void;
 }
 
+type UnifiedTransaction = (Expense | Income) & {
+  type: 'expense' | 'income';
+};
+
 const ActionCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { disabled?: boolean }>(
   ({ className, children, disabled, ...props }, ref) => (
     <div
@@ -79,6 +72,53 @@ const ActionCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
   )
 );
 ActionCard.displayName = "ActionCard";
+
+const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: { 
+    transaction: UnifiedTransaction; 
+    categoryMap: Map<string, Category>; 
+    walletMap: Map<string, Wallet>;
+    onClick: () => void;
+}) => {
+    const isExpense = transaction.type === 'expense';
+    const isTransfer = categoryMap.get((transaction as Expense).categoryId || '')?.name === 'Transfer Antar Dompet';
+    let Icon = isExpense ? Tag : TrendingUp;
+    let title = transaction.notes || (isExpense ? 'Pengeluaran' : 'Pemasukan');
+    let subtitle = walletMap.get(transaction.walletId || '')?.name || 'Tanpa Dompet';
+    const amount = transaction.baseAmount ?? transaction.amount;
+    
+    if (isExpense) {
+        const expense = transaction as Expense;
+        if (expense.isSplit && expense.splits && expense.splits.length > 0) {
+            Icon = GitCommitHorizontal;
+            title = expense.notes || `Split ke ${expense.splits.length} kategori`;
+        } else if (expense.categoryId) {
+            const category = categoryMap.get(expense.categoryId);
+            if (category) {
+                Icon = iconMap[category.icon] || Tag;
+                title = expense.notes || category.name;
+            }
+        }
+    }
+     if (isTransfer) {
+        Icon = ArrowLeftRight;
+        title = transaction.notes || "Transfer Antar Dompet"
+    }
+
+    return (
+        <div onClick={onClick} className="flex items-center gap-4 py-3 cursor-pointer border-b last:border-b-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+                <Icon className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1">
+                <p className="font-semibold truncate">{title}</p>
+                <p className="text-xs text-muted-foreground">{subtitle}</p>
+            </div>
+            <div className={cn("text-right font-bold", isExpense ? "text-foreground" : "text-green-600")}>
+                {isExpense ? '-' : '+'} {formatCurrency(amount)}
+            </div>
+        </div>
+    );
+};
 
 export default function DashboardPage({ 
   categories, 
@@ -103,11 +143,10 @@ export default function DashboardPage({
   const router = useRouter();
   const [isAddExpenseFormOpen, setIsAddExpenseFormOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
-  const [expenseToDelete, setExpenseToDelete] = React.useState<string | null>(null);
   const [isSupportDialogOpen, setIsSupportDialogOpen] = React.useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
   const [date, setDate] = React.useState<DateRange | undefined>();
-  const [expenseDetail, setExpenseDetail] = React.useState<Expense | null>(null);
+  const [detailItem, setDetailItem] = React.useState<UnifiedTransaction | null>(null);
   const [debts, setDebts] = React.useState<Debt[]>([]);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
   const [isResetting, setIsResetting] = React.useState(false);
@@ -185,6 +224,12 @@ export default function DashboardPage({
     return new Map(categories.map((cat) => [cat.id, cat]));
   }, [isDataReady, categories]);
 
+  const walletMap = React.useMemo(() => {
+    if (!wallets) return new Map();
+    return new Map(wallets.map((w) => [w.id, w]));
+  }, [wallets]);
+  
+
   const filterByDateRange = (items: (Expense | Income)[], customDateRange?: DateRange) => {
      const range = customDateRange || date;
      return items.filter(item => {
@@ -231,6 +276,15 @@ export default function DashboardPage({
   const totalFilteredIncomes = React.useMemo(() => filteredIncomes.reduce((sum, inc) => sum + inc.amount, 0), [filteredIncomes]);
 
   const remainingBudget = income - totalFilteredExpenses;
+  
+  const unifiedTransactions = React.useMemo(() => {
+      const combined = [
+          ...expenses.map(e => ({ ...e, type: 'expense' as const })),
+          ...incomes.map(i => ({ ...i, type: 'income' as const })),
+      ];
+      return combined.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [expenses, incomes]);
+
 
   const expensesByCategory = React.useMemo(() => {
       if (!isDataReady) return [];
@@ -253,27 +307,6 @@ export default function DashboardPage({
       return Array.from(dataMap.values());
   }, [filteredExpenses, categories, isDataReady]);
 
-  const handleEdit = (expense: Expense) => {
-    setEditingExpense(expense);
-    setIsAddExpenseFormOpen(true);
-  };
-  
-  const handleDeleteRequest = (expenseId: string) => {
-    setExpenseToDelete(expenseId);
-  };
-
-  const handleViewDetails = (expense: Expense) => {
-    setExpenseDetail(expense);
-  };
-
-  const confirmDelete = async () => {
-    if (!expenseToDelete) return;
-    const updatedExpenses = expenses.filter(e => e.id !== expenseToDelete);
-    await onExpensesUpdate(updatedExpenses);
-    toast({ title: "Sukses", description: "Transaksi berhasil dihapus." });
-    setExpenseToDelete(null);
-  };
-
   const handleSaveExpense = async (expenseData: Expense) => {
     const isEditing = expenses.some(e => e.id === expenseData.id);
     let updatedExpenses;
@@ -290,120 +323,11 @@ export default function DashboardPage({
     setIsAddExpenseFormOpen(false);
     setEditingExpense(null);
   };
-
-  const handleAddExpenseFormOpenChange = (open: boolean) => {
-    if (!open) {
-      setEditingExpense(null);
-    }
-    setIsAddExpenseFormOpen(open);
+  
+  const handleViewDetails = (transaction: UnifiedTransaction) => {
+    setDetailItem(transaction);
   };
   
-  const handleExportCSV = () => {
-    const headers = ['Tanggal', 'Kategori', 'Jumlah', 'Catatan'];
-    let rows = filteredExpenses.map(e => [
-      new Date(e.date).toLocaleDateString('en-CA'),
-      categoryMap.get(e.categoryId)?.name || 'N/A',
-      e.amount,
-      `"${e.notes?.replace(/"/g, '""') || ''}"`
-    ].join(','));
-    
-    rows.push('');
-    rows.push(`"Total",,"${totalFilteredExpenses}"`);
-    
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "jagaduit_expenses.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(20);
-    doc.text("Laporan Pengeluaran - Jaga Duit", 14, 22);
-    
-    const tableData = filteredExpenses.map(e => {
-        const category = categoryMap.get(e.categoryId);
-        return [
-            new Date(e.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-            category?.name || 'N/A',
-            e.notes || '',
-            formatCurrency(e.amount),
-        ];
-    });
-
-    autoTable(doc, {
-        head: [['Tanggal', 'Kategori', 'Catatan', 'Jumlah']],
-        body: tableData,
-        startY: 30,
-        headStyles: { fillColor: [41, 128, 185] }, // Primary color
-        didDrawPage: (data) => {
-            // Footer
-            const aT = doc as any;
-            const startY = aT.lastAutoTable.finalY + 10;
-            doc.setFontSize(10);
-            doc.text(`Total Pengeluaran: ${formatCurrency(totalFilteredExpenses)}`, data.settings.margin.left, startY);
-        }
-    });
-
-    doc.save("jagaduit_expenses.pdf");
-  };
-
-  const handleExportIncomesCSV = () => {
-    const headers = ['Tanggal', 'Jumlah', 'Catatan'];
-    let rows = filteredIncomes.map(i => [
-      new Date(i.date).toLocaleDateString('en-CA'),
-      i.amount,
-      `"${i.notes?.replace(/"/g, '""') || ''}"`
-    ].join(','));
-    
-    rows.push('');
-    rows.push(`"Total",${totalFilteredIncomes}`);
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "jagaduit_incomes.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleExportIncomesPDF = () => {
-    const doc = new jsPDF();
-    
-    doc.setFontSize(20);
-    doc.text("Laporan Pemasukan Tambahan - Jaga Duit", 14, 22);
-    
-    const tableData = filteredIncomes.map(i => {
-        return [
-            new Date(i.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-            i.notes || '',
-            formatCurrency(i.amount),
-        ];
-    });
-
-    autoTable(doc, {
-        head: [['Tanggal', 'Catatan', 'Jumlah']],
-        body: tableData,
-        startY: 30,
-        headStyles: { fillColor: [41, 128, 185] },
-        didDrawPage: (data) => {
-            const aT = doc as any;
-            const startY = aT.lastAutoTable.finalY + 10;
-            doc.setFontSize(10);
-            doc.text(`Total Pemasukan Tambahan: ${formatCurrency(totalFilteredIncomes)}`, data.settings.margin.left, startY);
-        }
-    });
-
-    doc.save("jagaduit_incomes.pdf");
-  };
-
   const handleResetClick = async () => {
     setIsResetting(true);
     await onReset();
@@ -423,10 +347,10 @@ export default function DashboardPage({
     }
   };
 
-  const detailCategory = expenseDetail ? categoryMap.get(expenseDetail.categoryId) : null;
-  const detailSavingGoal = expenseDetail ? savingGoals.find(g => g.id === expenseDetail.savingGoalId) : null;
-  const detailDebt = expenseDetail ? debts.find(d => d.id === expenseDetail.debtId) : null;
-  const detailWallet = expenseDetail?.walletId ? wallets.find(w => w.id === expenseDetail.walletId) : null;
+  const detailCategory = detailItem?.type === 'expense' ? categoryMap.get((detailItem as Expense).categoryId) : null;
+  const detailSavingGoal = detailItem?.type === 'expense' ? savingGoals.find(g => g.id === (detailItem as Expense).savingGoalId) : null;
+  const detailDebt = detailItem?.type === 'expense' ? debts.find(d => d.id === (detailItem as Expense).debtId) : null;
+  const detailWallet = detailItem?.walletId ? wallets.find(w => w.id === detailItem.walletId) : null;
   const DetailCategoryIcon = detailCategory?.icon ? iconMap[detailCategory.icon] : null;
   
   if (!isDataReady) {
@@ -458,11 +382,6 @@ export default function DashboardPage({
                     </div>
                 </Alert>
             )}
-          <div className='flex justify-between items-center flex-wrap gap-2'>
-              <div className="flex items-center gap-2">
-              </div>
-              <DateRangePicker date={date} onDateChange={setDate} />
-          </div>
           <StatsCards
             totalIncome={totalFilteredIncomes}
             totalExpenses={totalFilteredExpenses}
@@ -488,102 +407,36 @@ export default function DashboardPage({
                     incomes={incomes}
                 />
             </div>
-          <div className="grid grid-cols-1 lg:grid-cols-7 gap-4 md:gap-8">
-              <div className="lg:col-span-7">
-                  <Tabs defaultValue="expenses" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2">
-                          <TabsTrigger value="expenses">Pengeluaran</TabsTrigger>
-                          <TabsTrigger value="incomes">Pemasukan</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="expenses" className="mt-4">
-                          <ExpenseTable 
-                              expenses={filteredExpenses} 
-                              categories={categories} 
-                              onExportCSV={handleExportCSV}
-                              onExportPDF={handleExportPDF}
-                              onEdit={handleEdit}
-                              onDelete={handleDeleteRequest}
-                              onRowClick={handleViewDetails}
-                              title="Riwayat Pengeluaran"
-                              description="Daftar pengeluaran pada rentang tanggal yang dipilih."
-                               headerAction={
-                                  <Button asChild variant="link" className="text-sm">
-                                      <Link href="/history/current">Lihat Semua</Link>
-                                  </Button>
-                              }
-                          />
-                      </TabsContent>
-                      <TabsContent value="incomes" className="mt-4">
-                          <Card>
-                               <CardHeader>
-                                  <div className="flex justify-between items-start">
-                                      <div>
-                                          <CardTitle className="font-headline">Riwayat Pemasukan</CardTitle>
-                                          <CardDescription>Daftar pemasukan tambahan pada rentang tanggal yang dipilih.</CardDescription>
-                                      </div>
-                                      <Button asChild variant="link" className="text-sm">
-                                          <Link href="/history/current">Lihat Semua</Link>
-                                      </Button>
-                                  </div>
-                              </CardHeader>
-                              <CardContent>
-                                 <div className="max-h-[360px] overflow-auto">
-                                      <Table>
-                                          <TableHeader className="sticky top-0 bg-card">
-                                              <TableRow>
-                                                  <TableHead>Tanggal</TableHead>
-                                                  <TableHead>Catatan</TableHead>
-                                                  <TableHead className="text-right">Jumlah</TableHead>
-                                                  <TableHead className="text-right">Aksi</TableHead>
-                                              </TableRow>
-                                          </TableHeader>
-                                          <TableBody>
-                                              {filteredIncomes.length > 0 ? (
-                                                  filteredIncomes.map(inc => (
-                                                      <TableRow key={inc.id} onClick={() => onViewIncome(inc)} className="cursor-pointer">
-                                                          <TableCell>{format(new Date(inc.date), "d MMM yyyy, HH:mm", { locale: idLocale })}</TableCell>
-                                                          <TableCell>{inc.notes}</TableCell>
-                                                          <TableCell className="text-right text-green-600 font-medium">{formatCurrency(inc.amount)}</TableCell>
-                                                          <TableCell>
-                                                            <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditIncome(inc)}>
-                                                                    <Pencil className="h-4 w-4" />
-                                                                    <span className="sr-only">Ubah</span>
-                                                                </Button>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteIncome(inc.id)}>
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                    <span className="sr-only">Hapus</span>
-                                                                </Button>
-                                                            </div>
-                                                          </TableCell>
-                                                      </TableRow>
-                                                  ))
-                                              ) : (
-                                                  <TableRow>
-                                                      <TableCell colSpan={4} className="text-center h-24">
-                                                          Belum ada pemasukan tambahan pada periode ini.
-                                                      </TableCell>
-                                                  </TableRow>
-                                              )}
-                                          </TableBody>
-                                      </Table>
-                                 </div>
-                              </CardContent>
-                               <CardFooter className="justify-end gap-2">
-                                  <Button variant="outline" size="sm" onClick={handleExportIncomesCSV} disabled={filteredIncomes.length === 0}>
-                                      <FileDown className="mr-2 h-4 w-4" />
-                                      Ekspor CSV
-                                  </Button>
-                                  <Button variant="outline" size="sm" onClick={handleExportIncomesPDF} disabled={filteredIncomes.length === 0}>
-                                      <FileType2 className="mr-2 h-4 w-4" />
-                                      Ekspor PDF
-                                  </Button>
-                              </CardFooter>
-                          </Card>
-                      </TabsContent>
-                  </Tabs>
-              </div>
-          </div>
+             <Card>
+                 <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="font-headline">Riwayat Transaksi</CardTitle>
+                        <CardDescription>Daftar transaksi terbaru Anda.</CardDescription>
+                    </div>
+                    <Button asChild variant="ghost" size="sm">
+                        <Link href="/history/current">
+                            Lihat Semua <ChevronRight className="h-4 w-4" />
+                        </Link>
+                    </Button>
+                 </CardHeader>
+                 <CardContent>
+                    {unifiedTransactions.length > 0 ? (
+                        unifiedTransactions.slice(0, 5).map((transaction) => (
+                           <TransactionItem 
+                                key={transaction.id}
+                                transaction={transaction}
+                                categoryMap={categoryMap}
+                                walletMap={walletMap}
+                                onClick={() => handleViewDetails(transaction)}
+                           />
+                        ))
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                            Belum ada transaksi.
+                        </div>
+                    )}
+                 </CardContent>
+             </Card>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                <Link href="/reports">
@@ -662,7 +515,6 @@ export default function DashboardPage({
               categories={categories}
               dateRange={date}
           />
-          <AiAssistant />
         </main>
 
         <SpeedDial mainIcon={<MessageSquare className="h-6 w-6" />} position="bottom-left">
@@ -689,7 +541,7 @@ export default function DashboardPage({
         />
         <AddExpenseForm
           isOpen={isAddExpenseFormOpen}
-          onOpenChange={handleAddExpenseFormOpenChange}
+          onOpenChange={(open) => { if (!open) setEditingExpense(null); setIsAddExpenseFormOpen(open); }}
           categories={categories}
           savingGoals={savingGoals}
           debts={debts}
@@ -713,24 +565,43 @@ export default function DashboardPage({
           </DialogContent>
         </Dialog>
         
-         <Dialog open={!!expenseDetail} onOpenChange={(open) => !open && setExpenseDetail(null)}>
+         <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Detail Transaksi</DialogTitle>
                 </DialogHeader>
-                {expenseDetail && (
+                {detailItem && (
                     <div className="space-y-4 py-2">
                         <div className="rounded-lg bg-secondary p-4">
                           <p className="text-sm text-muted-foreground">Jumlah</p>
-                          <p className="text-2xl font-bold">{formatCurrency(expenseDetail.amount)}</p>
-                          {expenseDetail.adminFee && expenseDetail.adminFee > 0 && (
+                          <p className={cn("text-2xl font-bold", detailItem.type === 'income' ? 'text-green-600' : 'text-destructive')}>{formatCurrency(detailItem.amount)}</p>
+                          {detailItem.adminFee && detailItem.adminFee > 0 && (
                               <p className="text-xs text-muted-foreground mt-1">
-                                  (Pokok: {formatCurrency(expenseDetail.baseAmount || 0)} + Admin: {formatCurrency(expenseDetail.adminFee)})
+                                  {detailItem.type === 'expense' 
+                                    ? `(Pokok: ${formatCurrency(detailItem.baseAmount || 0)} + Admin: ${formatCurrency(detailItem.adminFee)})`
+                                    : `(Pokok: ${formatCurrency(detailItem.baseAmount || 0)} - Potongan: ${formatCurrency(detailItem.adminFee)})`
+                                  }
                               </p>
                           )}
                         </div>
                         <div className="space-y-3 pt-2">
-                            {expenseDetail.isSplit ? (
+                            <div className="flex items-start gap-3">
+                                <Calendar className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
+                                <div>
+                                    <p className="text-xs text-muted-foreground">Tanggal</p>
+                                    <p className="font-medium">{format(new Date(detailItem.date), "EEEE, d MMMM yyyy, HH:mm", { locale: idLocale })}</p>
+                                </div>
+                            </div>
+                            {detailWallet && (
+                              <div className="flex items-start gap-3">
+                                  <WalletIcon className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
+                                  <div>
+                                      <p className="text-xs text-muted-foreground">{detailItem.type === 'expense' ? 'Dibayar dari' : 'Masuk ke'}</p>
+                                      <p className="font-medium">{detailWallet.name}</p>
+                                  </div>
+                              </div>
+                            )}
+                             {detailItem.type === 'expense' && (detailItem as Expense).isSplit ? (
                                 <>
                                   <div className="flex items-start gap-3">
                                       <Tag className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
@@ -740,7 +611,7 @@ export default function DashboardPage({
                                       </div>
                                   </div>
                                   <div className="pl-7 space-y-2">
-                                    {(expenseDetail.splits || []).map((split, index) => (
+                                    {((detailItem as Expense).splits || []).map((split, index) => (
                                         <div key={index} className="flex justify-between items-center text-sm border-b pb-1">
                                             <span>{categoryMap.get(split.categoryId)?.name || 'N/A'}</span>
                                             <span className="font-semibold">{formatCurrency(split.amount)}</span>
@@ -753,26 +624,9 @@ export default function DashboardPage({
                                     <Tag className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
                                     <div>
                                         <p className="text-xs text-muted-foreground">Kategori</p>
-                                        <p className="font-medium">{detailCategory?.name || 'Tidak ada kategori'}</p>
+                                        <p className="font-medium">{detailCategory?.name || 'Pemasukan'}</p>
                                     </div>
                                 </div>
-                            )}
-                            <Separator/>
-                            <div className="flex items-start gap-3">
-                                <Calendar className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Tanggal</p>
-                                    <p className="font-medium">{format(new Date(expenseDetail.date), "EEEE, d MMMM yyyy, HH:mm", { locale: idLocale })}</p>
-                                </div>
-                            </div>
-                            {detailWallet && (
-                              <div className="flex items-start gap-3">
-                                  <WalletIcon className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                  <div>
-                                      <p className="text-xs text-muted-foreground">Dibayar dari</p>
-                                      <p className="font-medium">{detailWallet.name}</p>
-                                  </div>
-                              </div>
                             )}
                             {detailSavingGoal && (
                                   <div className="flex items-start gap-3">
@@ -792,12 +646,12 @@ export default function DashboardPage({
                                     </div>
                                 </div>
                             )}
-                            {expenseDetail.notes && (
+                            {detailItem.notes && (
                                 <div className="flex items-start gap-3">
                                     <FileText className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
                                     <div>
                                         <p className="text-xs text-muted-foreground">Catatan</p>
-                                        <p className="font-medium whitespace-pre-wrap">{expenseDetail.notes}</p>
+                                        <p className="font-medium whitespace-pre-wrap">{detailItem.notes}</p>
                                     </div>
                                 </div>
                             )}
@@ -821,22 +675,6 @@ export default function DashboardPage({
                       {isResetting ? 'Mengarsipkan...' : 'Ya, Mulai Periode Baru'}
                   </AlertDialogAction>
               </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-
-        <AlertDialog open={!!expenseToDelete} onOpenChange={(open) => !open && setExpenseToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Apakah Anda Yakin?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tindakan ini tidak dapat dibatalkan. Ini akan menghapus transaksi secara permanen.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setExpenseToDelete(null)}>Batal</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDelete}>Hapus</AlertDialogAction>
-            </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
