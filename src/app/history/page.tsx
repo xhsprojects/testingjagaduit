@@ -601,21 +601,21 @@ export default function HistoryPage() {
                     <TabsContent value="all-transactions" className="mt-6 space-y-4">
                         <div className="space-y-4 rounded-lg border bg-card p-4">
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                <Input
-                                    type="search"
-                                    placeholder="Cari berdasarkan catatan atau kategori..."
-                                    className="pl-8"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                 <div className="relative md:hidden">
+                                <div className="relative">
                                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                 </div>
+                                     <Input
+                                        type="search"
+                                        placeholder="Cari berdasarkan catatan atau kategori..."
+                                        className="w-full pl-8"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                     />
+                                </div>
                                 <DateRangePicker date={dateRange} onDateChange={setDateRange} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder="Semua Tipe" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Semua Tipe</SelectItem>
                                         <SelectItem value="expense">Pengeluaran</SelectItem>
@@ -623,7 +623,7 @@ export default function HistoryPage() {
                                     </SelectContent>
                                 </Select>
                                 <Select value={walletFilter} onValueChange={setWalletFilter}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectTrigger><SelectValue placeholder="Semua Dompet" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Semua Dompet</SelectItem>
                                         {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
@@ -656,7 +656,7 @@ export default function HistoryPage() {
                                             key={item.id}
                                             transaction={item}
                                             categoryMap={categoryMap}
-                                            walletMap={new Map(wallets.map(w => [w.id, w]))}
+                                            walletMap={new Map(wallets.map(w => [w.id, w.name]))}
                                             onClick={() => setDetailItem(item)}
                                         />
                                    ))
@@ -829,4 +829,3 @@ export default function HistoryPage() {
         </div>
     );
 }
-

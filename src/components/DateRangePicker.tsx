@@ -35,30 +35,35 @@ export function DateRangePicker({
 
   const handlePresetChange = (value: Preset) => {
       const today = new Date();
+      let newRange: DateRange | undefined;
       switch (value) {
           case 'today':
-              onDateChange({ from: startOfDay(today), to: endOfDay(today) });
+              newRange = { from: startOfDay(today), to: endOfDay(today) };
               break;
           case 'yesterday':
               const yesterday = subDays(today, 1);
-              onDateChange({ from: startOfDay(yesterday), to: endOfDay(yesterday) });
+              newRange = { from: startOfDay(yesterday), to: endOfDay(yesterday) };
               break;
           case 'last7':
-              onDateChange({ from: startOfDay(subDays(today, 6)), to: endOfDay(today) });
+              newRange = { from: startOfDay(subDays(today, 6)), to: endOfDay(today) };
               break;
           case 'last30':
-              onDateChange({ from: startOfDay(subDays(today, 29)), to: endOfDay(today) });
+              newRange = { from: startOfDay(subDays(today, 29)), to: endOfDay(today) };
               break;
           case 'thisMonth':
-              onDateChange({ from: startOfMonth(today), to: endOfMonth(today) });
+              newRange = { from: startOfMonth(today), to: endOfMonth(today) };
               break;
           case 'lastMonth':
               const lastMonthStart = startOfMonth(subMonths(today, 1));
               const lastMonthEnd = endOfMonth(subMonths(today, 1));
-              onDateChange({ from: lastMonthStart, to: lastMonthEnd });
+              newRange = { from: lastMonthStart, to: lastMonthEnd };
               break;
           default:
+              newRange = undefined;
               break;
+      }
+      if (newRange) {
+        onDateChange(newRange);
       }
       if (value !== 'custom') {
           setIsOpen(false);
