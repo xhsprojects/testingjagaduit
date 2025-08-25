@@ -59,12 +59,13 @@ export function DateRangePicker({
               newRange = { from: lastMonthStart, to: lastMonthEnd };
               break;
           default:
-              newRange = undefined;
+              newRange = date; // Keep current custom range if custom is selected
               break;
       }
       if (newRange) {
         onDateChange(newRange);
       }
+      // Keep the popover open only if 'custom' is chosen, otherwise close it.
       if (value !== 'custom') {
           setIsOpen(false);
       }
