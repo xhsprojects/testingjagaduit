@@ -89,6 +89,12 @@ export function AddExpenseForm({
   const [showFeeInput, setShowFeeInput] = React.useState(false);
   const [isListening, setIsListening] = React.useState(false);
   const recognitionRef = React.useRef<any>(null);
+  const [isIosDevice, setIsIosDevice] = React.useState(false);
+
+  React.useEffect(() => {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    setIsIosDevice(/iphone|ipad|ipod/.test(userAgent));
+  }, []);
 
   const savingsCategoryId = React.useMemo(() => categories.find(c => c.name === "Tabungan & Investasi")?.id, [categories]);
   const debtPaymentCategory = React.useMemo(() => categories.find(c => c.isDebtCategory), [categories]);
@@ -454,35 +460,39 @@ export function AddExpenseForm({
                     </div>
                     <div className="flex justify-between items-center">
                         <FormLabel>Isi Manual Jumlah</FormLabel>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative"
-                                        onClick={handleVoiceInput}
-                                        disabled={!recognitionRef.current}
-                                    >
-                                        {isListening ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Mic className="h-4 w-4" />
-                                        )}
-                                        {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p className="font-semibold">Isi dengan Suara</p>
-                                    {isPremium ? (
-                                        <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
-                                    ) : (
-                                        <p className="text-xs">Upgrade ke Premium untuk tebak kategori/dompet.</p>
-                                    )}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        {isIosDevice ? (
+                          <span className="text-xs text-muted-foreground">(Tidak didukung di iOS)</span>
+                        ) : (
+                          <TooltipProvider>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative"
+                                          onClick={handleVoiceInput}
+                                          disabled={!recognitionRef.current}
+                                      >
+                                          {isListening ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                              <Mic className="h-4 w-4" />
+                                          )}
+                                          {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                      <p className="font-semibold">Isi dengan Suara</p>
+                                      {isPremium ? (
+                                          <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
+                                      ) : (
+                                          <p className="text-xs">Upgrade ke Premium untuk tebak kategori/dompet.</p>
+                                      )}
+                                  </TooltipContent>
+                              </Tooltip>
+                          </TooltipProvider>
+                        )}
                     </div>
                     <FormField
                       control={form.control}
@@ -610,6 +620,13 @@ export function AddExpenseForm({
                             <FormMessage />
                           </FormItem>
                         )}/>
+                         <FormField control={form.control} name="notes" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Catatan (Opsional)</FormLabel>
+                            <FormControl><Textarea placeholder="Contoh: Makan siang dengan klien" {...field} value={field.value || ''}/></FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}/>
                         {showSavingGoals && (<FormField control={form.control} name="savingGoalId" render={({ field }) => (
                           <FormItem>
                               <FormLabel>Alokasikan ke Tujuan (Wajib)</FormLabel>
@@ -626,13 +643,7 @@ export function AddExpenseForm({
                         )}/>)}
                       </div>
                     )}
-                    <FormField control={form.control} name="notes" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Catatan (Opsional)</FormLabel>
-                        <FormControl><Textarea placeholder="Contoh: Makan siang dengan klien" {...field} value={field.value || ''}/></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}/>
+                   
                 </div>
             </div>
             <DialogFooter className="mt-auto border-t bg-background p-6">

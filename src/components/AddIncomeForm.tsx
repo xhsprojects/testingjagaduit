@@ -57,6 +57,12 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
   const { toast } = useToast();
   const [isListening, setIsListening] = React.useState(false);
   const recognitionRef = React.useRef<any>(null);
+  const [isIosDevice, setIsIosDevice] = React.useState(false);
+
+  React.useEffect(() => {
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    setIsIosDevice(/iphone|ipad|ipod/.test(userAgent));
+  }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -232,35 +238,39 @@ export function AddIncomeForm({ isOpen, onOpenChange, wallets, categories, expen
                     )}
                     <div className="flex justify-between items-center">
                         <FormLabel>Jumlah Pemasukan</FormLabel>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative"
-                                        onClick={handleVoiceInput}
-                                        disabled={!recognitionRef.current}
-                                    >
-                                        {isListening ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Mic className="h-4 w-4" />
-                                        )}
-                                        {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p className="font-semibold">Isi dengan Suara</p>
-                                    {isPremium ? (
-                                        <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
-                                    ) : (
-                                        <p className="text-xs">Upgrade ke Premium untuk tebak dompet otomatis.</p>
-                                    )}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                         {isIosDevice ? (
+                          <span className="text-xs text-muted-foreground">(Tidak didukung di iOS)</span>
+                        ) : (
+                          <TooltipProvider>
+                              <Tooltip>
+                                  <TooltipTrigger asChild>
+                                      <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative"
+                                          onClick={handleVoiceInput}
+                                          disabled={!recognitionRef.current}
+                                      >
+                                          {isListening ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                              <Mic className="h-4 w-4" />
+                                          )}
+                                          {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                      </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                      <p className="font-semibold">Isi dengan Suara</p>
+                                      {isPremium ? (
+                                          <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
+                                      ) : (
+                                          <p className="text-xs">Upgrade ke Premium untuk tebak dompet otomatis.</p>
+                                      )}
+                                  </TooltipContent>
+                              </Tooltip>
+                          </TooltipProvider>
+                        )}
                     </div>
                     <FormField
                     control={form.control}
