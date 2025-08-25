@@ -12,7 +12,7 @@ import { Calendar as CalendarIcon, Camera, Loader2, Gem, PlusCircle, Info, Mic, 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-import { cn, formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency, parseSpokenAmount } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
@@ -24,11 +24,14 @@ import { Textarea } from '@/components/ui/textarea'
 import type { Category, Expense, SavingGoal, Debt, Wallet, Income, SplitItem } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { scanReceipt } from '@/ai/flows/scan-receipt-flow'
+import { parseTransactionByVoice } from '@/ai/flows/parse-transaction-by-voice-flow'
 import { useAuth } from '@/context/AuthContext'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from './ui/alert'
 import { Checkbox } from './ui/checkbox'
 import { Switch } from './ui/switch'
+import { ToastAction } from './ui/toast'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip'
 
 const splitItemSchema = z.object({
   id: z.string(),
@@ -85,6 +88,8 @@ export function AddExpenseForm({
   const [isScanning, setIsScanning] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [showFeeInput, setShowFeeInput] = React.useState(false);
+  const [isListening, setIsListening] = React.useState(false);
+  const recognitionRef = React.useRef<any>(null);
 
   const savingsCategoryId = React.useMemo(() => categories.find(c => c.name === "Tabungan & Investasi")?.id, [categories]);
   const debtPaymentCategory = React.useMemo(() => categories.find(c => c.isDebtCategory), [categories]);
@@ -164,6 +169,87 @@ export function AddExpenseForm({
     const totalExpense = (expenses).filter(e => e.walletId === watchedWalletId).reduce((sum, e) => sum + e.amount, 0);
     return wallet.initialBalance + totalIncome - totalExpense;
   }, [watchedWalletId, wallets, expenses, incomes]);
+
+  const setupSpeechRecognition = React.useCallback(() => {
+    const SpeechRecognitionAPI = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      console.warn("Speech recognition not supported in this browser.");
+      return null;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.continuous = false;
+    recognition.lang = 'id-ID';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    
+    recognition.onerror = (event: any) => {
+      let errorMessage = "Terjadi kesalahan saat pengenalan suara.";
+      if (event.error === 'no-speech') errorMessage = "Tidak ada suara terdeteksi. Silakan coba lagi.";
+      else if (event.error === 'audio-capture') errorMessage = "Mikrofon tidak ditemukan atau tidak berfungsi.";
+      else if (event.error === 'not-allowed') errorMessage = "Izin akses mikrofon ditolak.";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+      console.error("Speech recognition error:", event.error);
+    };
+
+    recognition.onresult = async (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      toast({ title: "Teks Dikenali", description: `Anda mengucapkan: "${transcript}".` });
+      
+      if (isPremium) {
+        const categoriesJSON = JSON.stringify((categories || []).map(({id, name}) => ({id, name})));
+        const walletsJSON = JSON.stringify(wallets.map(({id, name}) => ({id, name})));
+        
+        const result = await parseTransactionByVoice({ query: transcript, categoriesJSON, walletsJSON });
+
+        if ('error' in result) {
+            toast({ title: "Gagal Memproses", description: result.error, variant: 'destructive' });
+        } else if (result.isIncome) {
+            toast({ title: "Pemasukan Terdeteksi", description: "Silakan gunakan form tambah pemasukan.", variant: "destructive" });
+        } else {
+            if (result.amount) form.setValue('baseAmount', result.amount, { shouldValidate: true, shouldTouch: true });
+            if (result.notes) form.setValue('notes', result.notes, { shouldValidate: true, shouldTouch: true });
+            if (result.suggestedWalletId) form.setValue('walletId', result.suggestedWalletId, { shouldValidate: true, shouldTouch: true });
+            if (result.suggestedCategoryId) form.setValue('categoryId', result.suggestedCategoryId, { shouldValidate: true, shouldTouch: true });
+            toast({ title: "Sukses! (Premium)", description: "Form telah diisi otomatis oleh AI." });
+        }
+      } else {
+        const { amount, description } = parseSpokenAmount(transcript);
+        if (amount > 0) form.setValue('baseAmount', amount, { shouldValidate: true, shouldTouch: true });
+        form.setValue('notes', description, { shouldValidate: true, shouldTouch: true });
+        
+        toast({ 
+            title: "Tips: Upgrade untuk AI Cerdas!", 
+            description: "AI bisa otomatis menebak kategori dan dompet.",
+            action: (<ToastAction altText="Upgrade" onClick={() => router.push('/premium')}>Upgrade</ToastAction>),
+        });
+      }
+    };
+    
+    return recognition;
+  }, [isPremium, categories, wallets, form, toast, router]);
+
+  React.useEffect(() => {
+    recognitionRef.current = setupSpeechRecognition();
+  }, [setupSpeechRecognition]);
+  
+  const handleVoiceInput = () => {
+    if (recognitionRef.current && !isListening) {
+      recognitionRef.current.start();
+    } else if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+       toast({
+        title: "Fitur Tidak Tersedia",
+        description: "Pengenalan suara tidak didukung di browser ini.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   React.useEffect(() => {
     if (isOpen) {
@@ -367,7 +453,38 @@ export function AddExpenseForm({
                         <span className="text-xs text-muted-foreground">ATAU</span>
                         <div className="flex-grow border-t"></div>
                     </div>
-                    <FormLabel>Isi Manual Jumlah</FormLabel>
+                    <div className="flex justify-between items-center">
+                        <FormLabel>Isi Manual Jumlah</FormLabel>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10 relative"
+                                        onClick={handleVoiceInput}
+                                        disabled={!recognitionRef.current}
+                                    >
+                                        {isListening ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Mic className="h-4 w-4" />
+                                        )}
+                                        {isPremium && <Gem className="absolute h-2 w-2 -top-0.5 -right-0.5 text-yellow-500" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="font-semibold">Isi dengan Suara</p>
+                                    {isPremium ? (
+                                        <p className="text-xs">Anda menggunakan mode AI cerdas.</p>
+                                    ) : (
+                                        <p className="text-xs">Upgrade ke Premium untuk tebak kategori/dompet.</p>
+                                    )}
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                     <FormField
                       control={form.control}
                       name="baseAmount"
