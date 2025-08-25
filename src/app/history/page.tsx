@@ -7,8 +7,8 @@ import type { BudgetPeriod, Category, Debt, Expense, Income, SavingGoal, Wallet 
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Archive, ChevronRight, TrendingUp, TrendingDown, Wallet as WalletIcon, Loader2, Trash2, FileDown, FileType2, Search, Tag, Coins, FileText, Calendar, Landmark, CreditCard, Pencil, ArrowLeft } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { Archive, ChevronRight, TrendingUp, TrendingDown, Wallet as WalletIcon, Loader2, Trash2, FileDown, FileType2, Search, Tag, Coins, FileText, Calendar, Landmark, CreditCard, Pencil, ArrowLeft, GitCommitHorizontal } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, endOfDay } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -20,7 +20,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import type { DateRange } from 'react-day-picker';
 import { DateRangePicker } from '@/components/DateRangePicker';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { iconMap } from '@/lib/icons';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import jsPDF from 'jspdf';
@@ -28,6 +27,7 @@ import autoTable from 'jspdf-autotable';
 import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { AddIncomeForm } from '@/components/AddIncomeForm';
 import { updateTransaction, deleteTransaction } from './actions';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 const convertTimestamps = (data: any): any => {
   if (!data) return data;
@@ -46,7 +46,57 @@ type UnifiedTransaction = (Expense | Income) & {
   categoryIcon?: React.ElementType;
 };
 
-// Component for a single period card
+// --- Sub-components ---
+const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: { 
+    transaction: UnifiedTransaction; 
+    categoryMap: Map<string, Category>; 
+    walletMap: Map<string, Wallet>;
+    onClick: () => void;
+}) => {
+    const isExpense = transaction.type === 'expense';
+    const isTransfer = categoryMap.get((transaction as Expense).categoryId || '')?.name === 'Transfer Antar Dompet';
+    let Icon = isExpense ? Tag : TrendingUp;
+    let title = transaction.notes || (isExpense ? 'Pengeluaran' : 'Pemasukan');
+    const walletName = walletMap.get(transaction.walletId || '')?.name || 'Tanpa Dompet';
+    const amount = transaction.baseAmount ?? transaction.amount;
+    
+    if (isExpense) {
+        const expense = transaction as Expense;
+        if (expense.isSplit && expense.splits && expense.splits.length > 0) {
+            Icon = GitCommitHorizontal;
+            title = expense.notes || `Split ke ${expense.splits.length} kategori`;
+        } else if (expense.categoryId) {
+            const category = categoryMap.get(expense.categoryId);
+            if (category) {
+                Icon = iconMap[category.icon] || Tag;
+                title = expense.notes || category.name;
+            }
+        }
+    }
+     if (isTransfer) {
+        Icon = ArrowLeftRight;
+        title = transaction.notes || "Transfer Antar Dompet"
+    }
+
+    return (
+        <div onClick={onClick} className="flex items-start gap-4 py-3 cursor-pointer border-b last:border-b-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary flex-shrink-0">
+                <Icon className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="flex-1 grid grid-cols-1">
+                 <p className="font-semibold truncate pr-2">{title}</p>
+                 <div className='flex justify-between items-baseline'>
+                     <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm")}</p>
+                     <p className={cn("font-bold text-lg", isExpense ? "text-foreground" : "text-green-600")}>
+                        {isExpense ? '-' : '+'} {formatCurrency(amount)}
+                    </p>
+                 </div>
+                 <p className="text-xs text-muted-foreground text-right -mt-1">{walletName}</p>
+            </div>
+        </div>
+    );
+};
+
 const PeriodCard = ({ period, id, onDelete }: { 
     period: BudgetPeriod, 
     id: string, 
@@ -62,14 +112,12 @@ const PeriodCard = ({ period, id, onDelete }: {
 
     const summary = React.useMemo(() => {
         if (period.totalIncome !== undefined && period.totalExpenses !== undefined && period.remainingBudget !== undefined) {
-            // It's a new, properly archived period
             return {
                 totalAddedIncomes: period.totalIncome - period.income,
                 totalExpenses: period.totalExpenses,
                 remaining: period.remainingBudget,
             }
         }
-        // It's an old/manual archive or the current period, recalculate
         const totalAddedIncomes = (period.incomes || []).reduce((sum, i) => sum + i.amount, 0);
         const totalExpenses = (period.expenses || []).reduce((sum, e) => sum + e.amount, 0);
         const remaining = (period.income || 0) + totalAddedIncomes - totalExpenses;
@@ -97,8 +145,7 @@ const PeriodCard = ({ period, id, onDelete }: {
                 `"${t.notes?.replace(/"/g, '""') || ''}"`
             ].join(','));
             
-            // Add summary rows
-            rows.push(''); // blank line
+            rows.push('');
             rows.push(`"Total Pemasukan Tambahan",${summary.totalAddedIncomes}`);
             rows.push(`"Total Pengeluaran",${-summary.totalExpenses}`);
             rows.push(`"Sisa Anggaran",${summary.remaining}`);
@@ -138,7 +185,6 @@ const PeriodCard = ({ period, id, onDelete }: {
                 startY: 30,
             });
 
-            // Add summary table
             const finalY = (doc as any).lastAutoTable.finalY || 100;
             autoTable(doc, {
                 startY: finalY + 10,
@@ -224,6 +270,7 @@ const PeriodCard = ({ period, id, onDelete }: {
 };
 
 
+// --- Main Component ---
 export default function HistoryPage() {
     const { user, idToken, loading: authLoading } = useAuth();
     const router = useRouter();
@@ -238,8 +285,10 @@ export default function HistoryPage() {
     // State for All Transactions Tab
     const [allTransactions, setAllTransactions] = React.useState<UnifiedTransaction[]>([]);
     const [searchQuery, setSearchQuery] = React.useState("");
-    const [dateRange, setDateRange] = React.useState<DateRange | undefined>({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) });
+    const [dateRange, setDateRange] = React.useState<DateRange | undefined>({ from: startOfMonth(new Date()), to: endOfDay(new Date()) });
     const [detailItem, setDetailItem] = React.useState<UnifiedTransaction | null>(null);
+    const [typeFilter, setTypeFilter] = React.useState<'all' | 'income' | 'expense'>('all');
+    const [walletFilter, setWalletFilter] = React.useState<string>('all');
     
     // Shared state
     const [allCategories, setAllCategories] = React.useState<Category[]>([]);
@@ -261,7 +310,6 @@ export default function HistoryPage() {
             const allBudgetPeriods: (BudgetPeriod & {id: string})[] = [];
             let allCats: Category[] = [];
 
-            // Fetch current budget
             const currentDocRef = doc(db, 'users', user.uid, 'budgets', 'current');
             const currentDocSnap = await getDoc(currentDocRef);
             if (currentDocSnap.exists()) {
@@ -275,7 +323,6 @@ export default function HistoryPage() {
                 setCurrentPeriod(null);
             }
 
-            // Fetch archived budgets
             const archiveQuery = query(collection(db, 'users', user.uid, 'archivedBudgets'), orderBy('periodStart', 'desc'));
             const archiveSnapshot = await getDocs(archiveQuery);
             const archives = archiveSnapshot.docs
@@ -292,7 +339,6 @@ export default function HistoryPage() {
             });
             setAllCategories(allCats);
             
-            // Fetch shared data
             const walletsSnapshot = await getDocs(collection(db, 'users', user.uid, 'wallets'));
             setWallets(walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Wallet[]);
             const goalsSnapshot = await getDocs(collection(db, 'users', user.uid, 'savingGoals'));
@@ -300,7 +346,6 @@ export default function HistoryPage() {
             const debtsSnapshot = await getDocs(collection(db, 'users', user.uid, 'debts'));
             setDebts(debtsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Debt[]);
             
-            // Compile all transactions
             const unifiedTransactions: UnifiedTransaction[] = [];
             const categoryMap = new Map(allCats.map(c => [c.id, c]));
 
@@ -353,7 +398,7 @@ export default function HistoryPage() {
             await deleteDoc(archiveDocRef);
             toast({ title: "Sukses", description: "Arsip berhasil dihapus." });
             setArchiveToDelete(null);
-            loadData(); // Reload all data after deletion
+            loadData();
         } catch (error) {
             console.error("Error deleting archive:", error);
             toast({ title: 'Gagal Menghapus Arsip', variant: 'destructive' });
@@ -377,16 +422,25 @@ export default function HistoryPage() {
             });
         }
         
+        if (typeFilter !== 'all') {
+            filtered = filtered.filter(item => item.type === typeFilter);
+        }
+
+        if (walletFilter !== 'all') {
+            filtered = filtered.filter(item => item.walletId === walletFilter);
+        }
+        
         if (searchQuery) {
+            const lowercasedQuery = searchQuery.toLowerCase();
             filtered = filtered.filter(item =>
-                item.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.categoryName?.toLowerCase().includes(searchQuery.toLowerCase())
+                item.notes?.toLowerCase().includes(lowercasedQuery) ||
+                item.categoryName?.toLowerCase().includes(lowercasedQuery)
             );
         }
 
         return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    }, [allTransactions, dateRange, searchQuery]);
+    }, [allTransactions, dateRange, searchQuery, typeFilter, walletFilter]);
 
     const handleExport = (type: 'csv' | 'pdf') => {
         if (filteredTransactions.length === 0) {
@@ -412,8 +466,7 @@ export default function HistoryPage() {
                 `"${t.notes?.replace(/"/g, '""') || ''}"`
             ].join(','));
             
-            // Add summary rows
-            rows.push(''); // blank line
+            rows.push('');
             rows.push(`"Total Pemasukan",${totalIncome}`);
             rows.push(`"Total Pengeluaran",${-totalExpense}`);
             rows.push(`"Arus Kas Bersih",${netFlow}`);
@@ -448,8 +501,7 @@ export default function HistoryPage() {
                 headStyles: { fillColor: [41, 128, 185] },
             });
             
-             // Add summary table
-            const finalY = (doc as any).lastAutoTable.finalY || 100;
+             const finalY = (doc as any).lastAutoTable.finalY || 100;
             autoTable(doc, {
                 startY: finalY + 10,
                 head: [['Ringkasan', 'Jumlah']],
@@ -507,7 +559,6 @@ export default function HistoryPage() {
         setEditingItem(null);
     };
 
-    // Detail Dialog Data
     const categoryMap = new Map(allCategories.map(c => [c.id, c]));
     const detailWallet = detailItem?.walletId ? wallets.find(w => w.id === detailItem.walletId) : null;
     const expenseData = detailItem?.type === 'expense' ? (detailItem as Expense) : null;
@@ -547,9 +598,8 @@ export default function HistoryPage() {
                     </TabsList>
                     
                     <TabsContent value="all-transactions" className="mt-6 space-y-4">
-                        <div className="flex flex-col md:flex-row gap-4 items-center">
-                            <div className="relative flex-1 w-full">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <div className="space-y-4 rounded-lg border bg-card p-4">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                                 <Input
                                     type="search"
                                     placeholder="Cari berdasarkan catatan atau kategori..."
@@ -557,8 +607,28 @@ export default function HistoryPage() {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
+                                 <div className="relative md:hidden">
+                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                 </div>
+                                <DateRangePicker date={dateRange} onDateChange={setDateRange} />
                             </div>
-                            <DateRangePicker date={dateRange} onDateChange={setDateRange} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Tipe</SelectItem>
+                                        <SelectItem value="expense">Pengeluaran</SelectItem>
+                                        <SelectItem value="income">Pemasukan</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select value={walletFilter} onValueChange={setWalletFilter}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Semua Dompet</SelectItem>
+                                        {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
 
                         <Card>
@@ -579,42 +649,22 @@ export default function HistoryPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Transaksi</TableHead>
-                                            <TableHead className="hidden md:table-cell">Catatan</TableHead>
-                                            <TableHead>Tanggal</TableHead>
-                                            <TableHead className="text-right">Jumlah</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredTransactions.length > 0 ? (
-                                            filteredTransactions.map(item => {
-                                                const Icon = item.categoryIcon || Coins;
-                                                return (
-                                                    <TableRow key={item.id} onClick={() => setDetailItem(item)} className="cursor-pointer">
-                                                        <TableCell>
-                                                            <div className="flex items-center gap-2">
-                                                                <Icon className="h-4 w-4 text-muted-foreground" />
-                                                                <span className="font-medium truncate max-w-[120px] sm:max-w-xs">{item.categoryName || 'Lainnya'}</span>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="hidden md:table-cell max-w-xs truncate">{item.notes}</TableCell>
-                                                        <TableCell>{format(new Date(item.date), "d MMM, HH:mm", { locale: idLocale })}</TableCell>
-                                                        <TableCell className={cn("text-right font-semibold", item.type === 'income' ? 'text-green-600' : 'text-foreground')}>
-                                                            {item.type === 'income' ? '+' : '-'} {formatCurrency(item.amount)}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={4} className="h-24 text-center">Tidak ada transaksi yang cocok dengan filter Anda.</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
+                               {filteredTransactions.length > 0 ? (
+                                   filteredTransactions.map(item => (
+                                        <TransactionItem
+                                            key={item.id}
+                                            transaction={item}
+                                            categoryMap={categoryMap}
+                                            walletMap={new Map(wallets.map(w => [w.id, w]))}
+                                            onClick={() => setDetailItem(item)}
+                                        />
+                                   ))
+                               ) : (
+                                   <div className="h-24 text-center flex flex-col justify-center items-center">
+                                       <p className="font-semibold">Tidak ada transaksi ditemukan.</p>
+                                       <p className="text-sm text-muted-foreground">Coba ubah filter Anda.</p>
+                                   </div>
+                               )}
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -768,7 +818,7 @@ export default function HistoryPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setArchiveToDelete(null)}>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteArchive} disabled={isDeleting}>
+                        <AlertDialogAction onClick={confirmDeleteArchive} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
                             {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                             Hapus
                         </AlertDialogAction>

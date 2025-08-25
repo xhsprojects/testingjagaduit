@@ -105,21 +105,19 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
     }
 
     return (
-        <div onClick={onClick} className="flex items-center gap-4 py-3 cursor-pointer border-b last:border-b-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
+        <div onClick={onClick} className="flex items-start gap-4 py-3 cursor-pointer border-b last:border-b-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary flex-shrink-0">
                 <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="flex-1 grid grid-cols-2 items-center gap-2">
-                <div className="flex-1">
-                    <p className="font-semibold truncate pr-2">{title}</p>
-                    <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm")}</p>
-                </div>
-                <div className="text-right">
-                    <p className={cn("font-bold", isExpense ? "text-foreground" : "text-green-600")}>
+            <div className="flex-1 grid grid-cols-1">
+                 <p className="font-semibold truncate pr-2">{title}</p>
+                 <div className='flex justify-between items-baseline'>
+                     <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm")}</p>
+                     <p className={cn("font-bold text-lg", isExpense ? "text-foreground" : "text-green-600")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
                     </p>
-                    <p className="text-xs text-muted-foreground">{walletName}</p>
-                </div>
+                 </div>
+                 <p className="text-xs text-muted-foreground text-right -mt-1">{walletName}</p>
             </div>
         </div>
     );
@@ -419,7 +417,7 @@ export default function DashboardPage({
                         <CardDescription>Daftar transaksi terbaru Anda.</CardDescription>
                     </div>
                     <Button asChild variant="ghost" size="sm">
-                        <Link href="/history/current">
+                        <Link href="/history">
                             Lihat Semua <ChevronRight className="h-4 w-4" />
                         </Link>
                     </Button>
