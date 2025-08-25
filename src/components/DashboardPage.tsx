@@ -15,7 +15,7 @@ import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -83,7 +83,7 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
     const isTransfer = categoryMap.get((transaction as Expense).categoryId || '')?.name === 'Transfer Antar Dompet';
     let Icon = isExpense ? Tag : TrendingUp;
     let title = transaction.notes || (isExpense ? 'Pengeluaran' : 'Pemasukan');
-    let subtitle = walletMap.get(transaction.walletId || '')?.name || 'Tanpa Dompet';
+    const walletName = walletMap.get(transaction.walletId || '')?.name || 'Tanpa Dompet';
     const amount = transaction.baseAmount ?? transaction.amount;
     
     if (isExpense) {
@@ -109,12 +109,17 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary">
                 <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="flex-1">
-                <p className="font-semibold truncate">{title}</p>
-                <p className="text-xs text-muted-foreground">{subtitle}</p>
-            </div>
-            <div className={cn("text-right font-bold", isExpense ? "text-foreground" : "text-green-600")}>
-                {isExpense ? '-' : '+'} {formatCurrency(amount)}
+            <div className="flex-1 grid grid-cols-2 items-center gap-2">
+                <div className="flex-1">
+                    <p className="font-semibold truncate pr-2">{title}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm")}</p>
+                </div>
+                <div className="text-right">
+                    <p className={cn("font-bold", isExpense ? "text-foreground" : "text-green-600")}>
+                        {isExpense ? '-' : '+'} {formatCurrency(amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{walletName}</p>
+                </div>
             </div>
         </div>
     );
