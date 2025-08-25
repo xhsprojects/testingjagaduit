@@ -30,6 +30,9 @@ export const metadata: Metadata = {
     template: '%s | Jaga Duit',
   },
   description: 'Jaga Duit adalah aplikasi manajemen keuangan pribadi berbasis AI yang membantu Anda mengatur anggaran, mencatat pengeluaran, melacak utang, dan mencapai tujuan finansial. Mulai kelola keuangan Anda dengan cerdas!',
+  verification: {
+    google: 'KODE_UNIK_ANDA_DI_SINI',
+  },
   keywords: [
     'aplikasi keuangan',
     'manajemen keuangan pribadi',
