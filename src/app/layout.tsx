@@ -8,6 +8,7 @@ import { Analytics } from '@vercel/analytics/next';
 const siteUrl = 'https://www.jagaduit.top';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'Jaga Duit - Aplikasi Keuangan & Manajemen Anggaran Cerdas',
     template: '%s | Jaga Duit',
@@ -55,10 +56,6 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   manifest: '/manifest.json',
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f172a' },
-  ],
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon-16x16.png',
@@ -67,7 +64,6 @@ export const metadata: Metadata = {
   alternates: {
     canonical: '/',
   },
-  metadataBase: new URL(siteUrl),
 };
 
 export default function RootLayout({

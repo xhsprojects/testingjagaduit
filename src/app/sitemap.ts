@@ -7,12 +7,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/landing',
     '/login',
     '/premium',
-    '/reminders',
-    '/savings',
-    '/debts',
-    '/wallets',
-    '/budget',
     '/investor',
+    '/sponsor'
   ];
 
   const routes = staticRoutes.map((route) => ({
