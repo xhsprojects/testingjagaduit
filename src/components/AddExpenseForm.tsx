@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import * as React from 'react'
@@ -551,7 +550,7 @@ export function AddExpenseForm({
                     )}/>
                     <FormField control={form.control} name="date" render={({ field }) => (
                       <FormItem>
-                          <FormLabel>Tanggal & Waktu</FormLabel>
+                          <FormLabel>Tanggal &amp; Waktu</FormLabel>
                           <div className="flex items-center gap-2">
                               <Popover>
                                   <PopoverTrigger asChild><FormControl><Button variant={"outline"} className={cn("flex-1 w-full justify-start text-left font-normal", !field.value && "text-muted-foreground")}>{field.value ? format(field.value, "PPP", { locale: idLocale }) : <span>Pilih tanggal</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" /></Button></FormControl></PopoverTrigger>
