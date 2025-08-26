@@ -47,25 +47,21 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
             className={cn(
                 "fixed z-40",
                 position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
-                "pointer-events-none", // Make the outer container non-interactive
                 className
             )}
         >
-          {/* This inner container will re-enable pointer events for its children */}
           <div className={cn(
-              "pointer-events-auto flex flex-col-reverse",
+              "flex flex-col-reverse items-center",
               position === 'bottom-right' ? 'items-end' : 'items-start'
           )}>
               <div
                   className={cn(
                       "flex flex-col-reverse gap-3 transition-all duration-300 ease-in-out",
-                      position === 'bottom-right' ? 'items-end' : 'items-start',
-                      isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+                       isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 hidden"
                   )}
               >
               {React.Children.map(children, child => 
                   React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { 
-                      className: cn(child.props.className, 'mb-3'), // Add margin to each action
                       onClick: () => {
                           if (child.props.onClick) child.props.onClick();
                           setIsOpen(false);
@@ -76,7 +72,7 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
               <Button
                 onClick={() => setIsOpen(!isOpen)}
                 size="icon"
-                className="h-14 w-14 rounded-full shadow-lg"
+                className="h-14 w-14 rounded-full shadow-lg mt-3"
                 aria-expanded={isOpen}
                 aria-label="Toggle Actions"
               >
