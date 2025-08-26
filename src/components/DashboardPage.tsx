@@ -120,7 +120,7 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
                     <p className={cn("font-semibold whitespace-nowrap text-sm", isExpense ? "text-foreground" : "text-green-600")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
                     </p>
-                    <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "HH:mm")}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm", { locale: idLocale })}</p>
                 </div>
             </div>
         </div>
@@ -484,7 +484,7 @@ export default function DashboardPage({
                  </CardContent>
              </Card>
           
-            <Card>
+             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Akses Cepat</CardTitle>
                 </CardHeader>

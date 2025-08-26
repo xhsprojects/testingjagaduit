@@ -79,19 +79,21 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
     }
 
     return (
-        <div onClick={onClick} className="flex items-start gap-4 py-3 cursor-pointer border-b last:border-b-0">
+        <div onClick={onClick} className="flex items-center gap-4 py-3 cursor-pointer border-b last:border-b-0">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary flex-shrink-0">
                 <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="flex-1 grid grid-cols-1">
-                 <p className="font-semibold truncate pr-2">{title}</p>
-                 <div className='flex justify-between items-baseline'>
-                     <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm")}</p>
-                     <p className={cn("font-bold text-lg", isExpense ? "text-foreground" : "text-green-600")}>
+            <div className="flex-1 grid grid-cols-2 items-center gap-2 min-w-0">
+                 <div className="flex-1">
+                    <p className="font-semibold truncate pr-2 text-sm">{title}</p>
+                    <p className="text-xs text-muted-foreground">{walletName}</p>
+                 </div>
+                <div className="text-right">
+                    <p className={cn("font-semibold whitespace-nowrap text-sm", isExpense ? "text-foreground" : "text-green-600")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
                     </p>
-                 </div>
-                 <p className="text-xs text-muted-foreground text-right -mt-1">{walletName}</p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm", { locale: idLocale })}</p>
+                </div>
             </div>
         </div>
     );
@@ -269,7 +271,7 @@ const PeriodCard = ({ period, id, onDelete }: {
     );
 };
 
-const AllTransactionsList = React.memo(({ transactions, categoryMap, walletMap, onTransactionClick }: {
+const TransactionList = React.memo(({ transactions, categoryMap, walletMap, onTransactionClick }: {
     transactions: UnifiedTransaction[];
     categoryMap: Map<string, Category>;
     walletMap: Map<string, Wallet>;
@@ -302,7 +304,7 @@ const AllTransactionsList = React.memo(({ transactions, categoryMap, walletMap, 
         </Card>
     );
 });
-AllTransactionsList.displayName = 'AllTransactionsList';
+TransactionList.displayName = 'TransactionList';
 
 
 // --- Main Component ---
@@ -664,7 +666,7 @@ export default function HistoryPage() {
                             </div>
                         </div>
 
-                        <AllTransactionsList
+                        <TransactionList
                             transactions={filteredTransactions}
                             categoryMap={categoryMap}
                             walletMap={walletMap}
