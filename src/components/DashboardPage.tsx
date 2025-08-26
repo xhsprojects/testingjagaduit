@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from 'react';
@@ -19,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { iconMap } from '@/lib/icons';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import { useAuth } from '@/context/AuthContext';
@@ -110,19 +109,32 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary flex-shrink-0">
                 <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="flex-1 grid grid-cols-1">
+             <div className="flex-1 grid grid-cols-1">
                  <p className="font-semibold truncate pr-2">{title}</p>
                  <div className='flex justify-between items-baseline'>
-                     <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm")}</p>
-                     <p className={cn("font-bold text-lg", isExpense ? "text-foreground" : "text-green-600")}>
+                     <p className="font-bold text-lg">{formatCurrency(amount)}</p>
+                     <p className={cn("font-semibold text-lg", isExpense ? "text-foreground" : "text-green-600")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
                     </p>
                  </div>
-                 <p className="text-xs text-muted-foreground text-right -mt-1">{walletName}</p>
+                 <p className="text-xs text-muted-foreground">{walletName} · {format(new Date(transaction.date), "d MMM, HH:mm")}</p>
             </div>
         </div>
     );
 };
+
+const allActions = [
+    { href: "/reports", icon: BookMarked, label: "Laporan" },
+    { href: "/import", icon: Upload, label: "Impor" },
+    { href: "/financial-calendar", icon: CalendarDays, label: "Kalender" },
+    { href: "/reminders", icon: BellRing, label: "Pengingat" },
+    { href: "/achievements", icon: Trophy, label: "Prestasi" },
+    { href: "/calculators", icon: Calculator, label: "Kalkulator" },
+    { href: "/recurring", icon: Repeat, label: "Otomatis" },
+    { href: "/net-worth", icon: Scale, label: "Aset" },
+    { href: "/split-bill", icon: Users2, label: "Bagi Bill" },
+    { href: "/notes", icon: FilePenLine, label: "Catatan" },
+];
 
 export default function DashboardPage({ 
   categories, 
@@ -136,8 +148,8 @@ export default function DashboardPage({
   wallets,
   budgetPeriod,
   onExpensesUpdate, 
-  onReset, 
   onSavingGoalsUpdate,
+  onReset, 
   onEditIncome,
   onDeleteIncome,
   onViewIncome,
@@ -442,73 +454,50 @@ export default function DashboardPage({
                  </CardContent>
              </Card>
           
-          <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-               <Link href="/reports">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><BookMarked className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Laporan</p>
-                  </ActionCard>
-              </Link>
-              <Link href="/import">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Upload className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Impor</p>
-                  </ActionCard>
-              </Link>
-              <Link href="/financial-calendar" className="relative">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><CalendarDays className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Kalender</p>
-                  </ActionCard>
-                  {dueEventsCount > 0 && (
-                      <div className="absolute top-0 right-0 h-5 w-5 rounded-full flex items-center justify-center bg-destructive text-destructive-foreground text-xs font-bold">
-                          {dueEventsCount}
-                      </div>
-                  )}
-              </Link>
-               <Link href="/reminders">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><BellRing className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Pengingat</p>
-                  </ActionCard>
-              </Link>
-               <Link href="/achievements">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Trophy className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Prestasi</p>
-                  </ActionCard>
-              </Link>
-              <Link href="/calculators">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Calculator className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Kalkulator</p>
-                  </ActionCard>
-              </Link>
-              <Link href="/recurring">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Repeat className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Otomatis</p>
-                  </ActionCard>
-              </Link>
-               <Link href="/net-worth">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Scale className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Aset</p>
-                  </ActionCard>
-              </Link>
-              <Link href="/split-bill">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Users2 className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Bagi Bill</p>
-                  </ActionCard>
-              </Link>
-              <Link href="/notes">
-                  <ActionCard>
-                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><FilePenLine className="h-6 w-6 text-primary" /></div>
-                      <p className="font-semibold text-xs leading-tight">Catatan</p>
-                  </ActionCard>
-              </Link>
-          </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Akses Cepat</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                    {allActions.slice(0, 8).map((action) => {
+                        const Icon = action.icon;
+                        return (
+                            <Link href={action.href} key={action.href}>
+                                <ActionCard>
+                                    <div className="p-3 bg-secondary rounded-xl mb-1.5"><Icon className="h-6 w-6 text-primary" /></div>
+                                    <p className="font-semibold text-xs leading-tight">{action.label}</p>
+                                </ActionCard>
+                            </Link>
+                        );
+                    })}
+                </CardContent>
+                <CardFooter>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full">Lihat Semua Menu</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Semua Menu</DialogTitle>
+                                <DialogDescription>Akses cepat ke semua fitur Jaga Duit.</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 py-4">
+                                {allActions.map((action) => {
+                                    const Icon = action.icon;
+                                    return (
+                                        <Link href={action.href} key={action.href}>
+                                            <ActionCard>
+                                                <div className="p-3 bg-secondary rounded-xl mb-1.5"><Icon className="h-6 w-6 text-primary" /></div>
+                                                <p className="font-semibold text-xs leading-tight">{action.label}</p>
+                                            </ActionCard>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </CardFooter>
+            </Card>
 
           <PredictiveAnalysis
               expenses={filteredExpenses}
@@ -681,5 +670,3 @@ export default function DashboardPage({
     </>
   );
 }
-
-
