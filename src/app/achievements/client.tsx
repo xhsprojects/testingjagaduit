@@ -18,6 +18,7 @@ import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const themes = [
     { name: 'Default', id: 'default', colors: ['bg-primary', 'bg-secondary', 'bg-accent'], requiredLevel: 1 },
@@ -219,8 +220,20 @@ export default function AchievementsClientPage() {
 
     if (loading || !user) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-secondary">
-                <div className="text-lg font-semibold text-primary">Memuat Prestasi...</div>
+            <div className="flex min-h-screen w-full flex-col bg-muted/40">
+                 <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div className="flex items-center gap-2">
+                       <Skeleton className="h-5 w-5 rounded-md" />
+                       <Skeleton className="h-6 w-32 rounded-md" />
+                    </div>
+                </header>
+                <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-8">
+                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
+                     </div>
+                     <Skeleton className="h-96 w-full" />
+                </main>
             </div>
         );
     }

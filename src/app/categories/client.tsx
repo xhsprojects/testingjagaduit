@@ -20,6 +20,7 @@ import { collection, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { saveCategories } from './actions';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const categorySchema = z.object({
   id: z.string(),
@@ -130,9 +131,20 @@ export default function CategoriesClientPage() {
 
     if (authLoading || isLoadingData) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-secondary">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4 text-lg font-semibold">Memuat Kategori...</p>
+            <div className="flex min-h-screen w-full flex-col bg-muted/40">
+                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6">
+                     <div className="flex items-center gap-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-5 w-5 rounded-md" />
+                        <Skeleton className="h-6 w-32 rounded-md" />
+                    </div>
+                </header>
+                <main className="flex-1 p-4 sm:px-6 sm:py-8 md:p-8">
+                     <div className="mx-auto max-w-2xl space-y-4">
+                        <Skeleton className="h-96 w-full" />
+                        <Skeleton className="h-12 w-full" />
+                     </div>
+                </main>
             </div>
         );
     }
@@ -240,4 +252,3 @@ export default function CategoriesClientPage() {
         </div>
     );
 }
-

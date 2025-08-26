@@ -22,6 +22,7 @@ import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const convertTimestamps = (data: any) => {
   if (data?.date && typeof data.date.toDate === 'function') {
@@ -273,8 +274,16 @@ export default function DebtsPage() {
 
     if (authLoading || isLoading) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-secondary">
-                <div className="text-lg font-semibold text-primary">Memuat Data Utang...</div>
+            <div className="flex min-h-screen w-full flex-col bg-muted/40">
+                 <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+                     <Skeleton className="h-8 w-8 rounded-full" />
+                     <Skeleton className="h-6 w-40 rounded-md" />
+                 </header>
+                 <main className="flex-1 p-4 md:p-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-56 w-full" />)}
+                     </div>
+                 </main>
             </div>
         );
     }

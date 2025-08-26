@@ -23,6 +23,7 @@ import { Loader2 } from 'lucide-react';
 import { resetBudgetPeriod } from './budget/actions';
 import { useAuth } from '@/context/AuthContext';
 import { updateTransaction, deleteTransaction } from '@/app/history/actions';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Helper to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {
@@ -437,11 +438,13 @@ export default function ClientPage() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-secondary">
-        <div className="flex flex-col items-center gap-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-lg font-semibold text-primary">Memuat Dasbor Anda...</p>
+      <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+        <Skeleton className="h-40 w-full" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+            <Skeleton className="h-80 w-full" />
+            <Skeleton className="h-80 w-full" />
         </div>
+        <Skeleton className="h-60 w-full" />
       </div>
     );
   }

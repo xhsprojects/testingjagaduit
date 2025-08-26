@@ -26,6 +26,7 @@ import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const categoryBudgetSchema = z.object({
   id: z.string(),
@@ -140,9 +141,24 @@ export default function BudgetPage() {
 
     if (authLoading || isLoadingData) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-secondary">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4 text-lg font-semibold">Memuat Anggaran...</p>
+             <div className="flex min-h-screen w-full flex-col bg-muted/40">
+                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6">
+                   <div className="flex items-center gap-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-5 w-5 rounded-md" />
+                        <Skeleton className="h-6 w-32 rounded-md" />
+                    </div>
+                </header>
+                <main className="flex-1 p-4 sm:px-6 sm:py-8 md:p-8 space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-4">
+                            <Skeleton className="h-96 w-full" />
+                        </div>
+                        <div className="lg:col-span-1">
+                            <Skeleton className="h-64 w-full" />
+                        </div>
+                    </div>
+                </main>
             </div>
         );
     }

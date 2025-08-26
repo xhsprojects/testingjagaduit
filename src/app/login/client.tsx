@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LoginClientPage() {
   const { user, loading, isFirebaseConfigured } = useAuth();
@@ -101,16 +102,13 @@ export default function LoginClientPage() {
       <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="flex flex-col items-center space-y-4">
           <div className="relative">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <div className="absolute inset-0 m-auto flex items-center justify-center">
-              <Coins className="h-4 w-4 text-green-600 animate-pulse" />
+             <div className="flex flex-col items-center gap-4">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-[250px]" />
+                    <Skeleton className="h-4 w-[200px]" />
+                </div>
             </div>
-          </div>
-          <div className="text-lg font-semibold text-slate-700">Memproses...</div>
-          <div className="flex space-x-2 opacity-60">
-            <Coins className="h-4 w-4 text-yellow-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <Coins className="h-4 w-4 text-yellow-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <Coins className="h-4 w-4 text-yellow-500 animate-bounce" style={{ animationDelay: '300ms' }} />
           </div>
         </div>
       </div>

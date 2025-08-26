@@ -23,6 +23,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 interface AdminAppUser {
@@ -492,8 +493,22 @@ export default function AdminClientPage() {
 
     if (loading || !isAdmin || isDataLoading) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-secondary">
-                <div className="text-lg font-semibold text-primary">Memuat Dasbor Admin...</div>
+            <div className="flex min-h-screen w-full flex-col bg-muted/40">
+                 <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="h-6 w-6 rounded-md" />
+                        <Skeleton className="h-6 w-40 rounded-md" />
+                    </div>
+                </header>
+                <main className="flex-1 p-4 sm:p-6 space-y-6 pb-20">
+                    <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                       <Skeleton className="h-40 w-full" />
+                       <Skeleton className="h-40 w-full" />
+                    </div>
+                    <Skeleton className="h-96 w-full" />
+                </main>
             </div>
         );
     }
