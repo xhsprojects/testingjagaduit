@@ -28,6 +28,7 @@ import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { AddIncomeForm } from '@/components/AddIncomeForm';
 import { updateTransaction, deleteTransaction } from './actions';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const convertTimestamps = (data: any): any => {
   if (!data) return data;
@@ -47,7 +48,7 @@ type UnifiedTransaction = (Expense | Income) & {
 };
 
 // --- Sub-components ---
-const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: { 
+const TransactionItem = React.memo(({ transaction, categoryMap, walletMap, onClick }: { 
     transaction: UnifiedTransaction; 
     categoryMap: Map<string, Category>; 
     walletMap: Map<string, Wallet>;
@@ -97,7 +98,8 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
             </div>
         </div>
     );
-};
+});
+TransactionItem.displayName = 'TransactionItem';
 
 const PeriodCard = ({ period, id, onDelete }: { 
     period: BudgetPeriod, 
@@ -277,31 +279,26 @@ const TransactionList = React.memo(({ transactions, categoryMap, walletMap, onTr
     walletMap: Map<string, Wallet>;
     onTransactionClick: (item: UnifiedTransaction) => void;
 }) => {
+    if (transactions.length === 0) {
+        return (
+            <div className="h-24 text-center flex flex-col justify-center items-center">
+                <p className="font-semibold">Tidak ada transaksi ditemukan.</p>
+                <p className="text-sm text-muted-foreground">Coba ubah filter Anda.</p>
+            </div>
+        );
+    }
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline">Tabel Transaksi</CardTitle>
-                <CardDescription>Menampilkan {transactions.length} transaksi sesuai filter.</CardDescription>
-            </CardHeader>
-            <CardContent>
-               {transactions.length > 0 ? (
-                   transactions.map(item => (
-                        <TransactionItem
-                            key={item.id}
-                            transaction={item}
-                            categoryMap={categoryMap}
-                            walletMap={walletMap}
-                            onClick={() => onTransactionClick(item)}
-                        />
-                   ))
-               ) : (
-                   <div className="h-24 text-center flex flex-col justify-center items-center">
-                       <p className="font-semibold">Tidak ada transaksi ditemukan.</p>
-                       <p className="text-sm text-muted-foreground">Coba ubah filter Anda.</p>
-                   </div>
-               )}
-            </CardContent>
-        </Card>
+        <div className="space-y-1">
+            {transactions.map(item => (
+                <TransactionItem
+                    key={item.id}
+                    transaction={item}
+                    categoryMap={categoryMap}
+                    walletMap={walletMap}
+                    onClick={() => onTransactionClick(item)}
+                />
+            ))}
+        </div>
     );
 });
 TransactionList.displayName = 'TransactionList';
@@ -476,82 +473,6 @@ export default function HistoryPage() {
 
     }, [allTransactions, dateRange, searchQuery, typeFilter, walletFilter]);
 
-    const handleExport = (type: 'csv' | 'pdf') => {
-        if (filteredTransactions.length === 0) {
-            toast({ title: "Tidak Ada Data", description: "Tidak ada transaksi untuk diekspor pada filter ini.", variant: "destructive" });
-            return;
-        }
-
-        const periodName = `riwayat_${format(new Date(), "yyyy-MM-dd")}`;
-        const walletMap = new Map(wallets.map(w => [w.id, w.name]));
-
-        const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-        const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-        const netFlow = totalIncome - totalExpense;
-
-        if (type === 'csv') {
-            const headers = ['Tanggal', 'Tipe', 'Kategori/Detail', 'Jumlah', 'Dompet', 'Catatan'];
-            let rows = filteredTransactions.map(t => [
-                new Date(t.date).toLocaleString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
-                t.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
-                `"${t.categoryName || 'Lainnya'}"`,
-                t.type === 'income' ? t.amount : -t.amount,
-                `"${t.walletId ? walletMap.get(t.walletId) || '' : ''}"`,
-                `"${t.notes?.replace(/"/g, '""') || ''}"`
-            ].join(','));
-            
-            rows.push('');
-            rows.push(`"Total Pemasukan",${totalIncome}`);
-            rows.push(`"Total Pengeluaran",${-totalExpense}`);
-            rows.push(`"Arus Kas Bersih",${netFlow}`);
-            
-            const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `jagaduit_${periodName}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } else { // PDF
-            const doc = new jsPDF();
-            doc.setFontSize(18);
-            doc.text(`Riwayat Transaksi Jaga Duit`, 14, 22);
-            doc.setFontSize(11);
-            doc.text(`Filter: ${dateRange?.from ? format(dateRange.from, 'd MMM yyyy') : ''} - ${dateRange?.to ? format(dateRange.to, 'd MMM yyyy') : ''}`, 14, 30);
-
-            const tableData = filteredTransactions.map(t => [
-                format(new Date(t.date), "d MMM, HH:mm", { locale: idLocale }),
-                t.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
-                t.categoryName || '-',
-                formatCurrency(t.type === 'income' ? t.amount : -t.amount),
-                t.walletId ? walletMap.get(t.walletId) || '-' : '-'
-            ]);
-            
-            autoTable(doc, {
-                head: [['Tanggal', 'Tipe', 'Kategori', 'Jumlah', 'Dompet']],
-                body: tableData,
-                startY: 38,
-                headStyles: { fillColor: [41, 128, 185] },
-            });
-            
-             const finalY = (doc as any).lastAutoTable.finalY || 100;
-            autoTable(doc, {
-                startY: finalY + 10,
-                head: [['Ringkasan', 'Jumlah']],
-                body: [
-                    ['Total Pemasukan', formatCurrency(totalIncome)],
-                    ['Total Pengeluaran', formatCurrency(totalExpense)],
-                    ['Arus Kas Bersih', formatCurrency(netFlow)],
-                ],
-                theme: 'striped',
-                headStyles: { fillColor: [41, 128, 185] }
-            });
-
-            doc.save(`jagaduit_${periodName}.pdf`);
-        }
-    };
-    
     // CRUD handlers
     const handleEditRequest = (item: UnifiedTransaction) => {
         setDetailItem(null);
@@ -599,18 +520,40 @@ export default function HistoryPage() {
     const expenseData = detailItem?.type === 'expense' ? (detailItem as Expense) : null;
     const detailSavingGoal = expenseData?.savingGoalId ? savingGoals.find(g => g.id === expenseData.savingGoalId) : null;
     const detailDebt = expenseData?.debtId ? debts.find(d => d.id === expenseData.debtId) : null;
-    const DetailCategoryIcon = detailItem?.categoryIcon;
 
 
-    if (authLoading || isLoading) {
+    if (authLoading) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-secondary">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4 text-lg font-semibold">Memuat Riwayat...</p>
             </div>
         );
     }
     
+    const LoadingState = () => (
+        <div className="space-y-4">
+             <div className="space-y-2">
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+            </div>
+             <div className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-4 py-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                        </div>
+                         <div className="text-right space-y-2">
+                            <Skeleton className="h-4 w-20 ml-auto" />
+                            <Skeleton className="h-3 w-24 ml-auto" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40 pb-16">
              <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
@@ -633,73 +576,92 @@ export default function HistoryPage() {
                     </TabsList>
                     
                     <TabsContent value="all-transactions" className="mt-6 space-y-4">
-                        <div className="space-y-4 rounded-lg border bg-card p-4">
-                            <div className="flex flex-col md:flex-row gap-4">
-                               <div className="relative flex-grow">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        type="search"
-                                        placeholder="Cari berdasarkan catatan atau kategori..."
-                                        className="w-full pl-8"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Filter Transaksi</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex flex-col md:flex-row gap-4">
+                                <div className="relative flex-grow">
+                                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            type="search"
+                                            placeholder="Cari berdasarkan catatan atau kategori..."
+                                            className="w-full pl-8"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                    </div>
+                                    <DateRangePicker date={dateRange} onDateChange={setDateRange} />
                                 </div>
-                                <DateRangePicker date={dateRange} onDateChange={setDateRange} />
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
-                                    <SelectTrigger><SelectValue placeholder="Semua Tipe" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Semua Tipe</SelectItem>
-                                        <SelectItem value="expense">Pengeluaran</SelectItem>
-                                        <SelectItem value="income">Pemasukan</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <Select value={walletFilter} onValueChange={setWalletFilter}>
-                                    <SelectTrigger><SelectValue placeholder="Semua Dompet" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Semua Dompet</SelectItem>
-                                        {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <TransactionList
-                            transactions={filteredTransactions}
-                            categoryMap={categoryMap}
-                            walletMap={walletMap}
-                            onTransactionClick={setDetailItem}
-                        />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
+                                        <SelectTrigger><SelectValue placeholder="Semua Tipe" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Semua Tipe</SelectItem>
+                                            <SelectItem value="expense">Pengeluaran</SelectItem>
+                                            <SelectItem value="income">Pemasukan</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={walletFilter} onValueChange={setWalletFilter}>
+                                        <SelectTrigger><SelectValue placeholder="Semua Dompet" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Semua Dompet</SelectItem>
+                                            {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="font-headline">Hasil Pencarian</CardTitle>
+                                <CardDescription>Menampilkan {isLoading ? '...' : filteredTransactions.length} transaksi sesuai filter.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                               {isLoading ? <LoadingState /> : (
+                                    <TransactionList
+                                        transactions={filteredTransactions}
+                                        categoryMap={categoryMap}
+                                        walletMap={walletMap}
+                                        onTransactionClick={setDetailItem}
+                                    />
+                               )}
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                     
                     <TabsContent value="arsip-anggaran" className="mt-6 space-y-4">
-                         {!currentPeriod && archivedPeriods.length === 0 && (
-                            <div className="text-center text-muted-foreground py-16">
-                                <p className="text-lg font-semibold">Tidak Ada Data</p>
-                                <p>Belum ada riwayat atau arsip anggaran yang tersimpan.</p>
-                            </div>
-                        )}
-                        
-                        {currentPeriod && (
-                            <PeriodCard period={currentPeriod} id="current" onDelete={() => {}} />
-                        )}
+                         {isLoading ? <LoadingState /> : (
+                            <>
+                                {!currentPeriod && archivedPeriods.length === 0 && (
+                                    <div className="text-center text-muted-foreground py-16">
+                                        <p className="text-lg font-semibold">Tidak Ada Data</p>
+                                        <p>Belum ada riwayat atau arsip anggaran yang tersimpan.</p>
+                                    </div>
+                                )}
+                                
+                                {currentPeriod && (
+                                    <PeriodCard period={currentPeriod} id="current" onDelete={() => {}} />
+                                )}
 
-                        {archivedPeriods.map((period) => (
-                            <PeriodCard key={period.id} period={period} id={period.id} onDelete={handleDeleteArchiveRequest} />
-                        ))}
+                                {archivedPeriods.map((period) => (
+                                    <PeriodCard key={period.id} period={period} id={period.id} onDelete={handleDeleteArchiveRequest} />
+                                ))}
+                            </>
+                         )}
                     </TabsContent>
                 </Tabs>
             </main>
             
             <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-                <DialogContent>
-                    <DialogHeader>
+                <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
+                    <DialogHeader className="p-6 pb-4 border-b">
                         <DialogTitle>Detail Transaksi</DialogTitle>
                     </DialogHeader>
                     {detailItem && (
-                        <div className="space-y-4 py-2">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-4">
                             <div className="rounded-lg bg-secondary p-4">
                                 <p className="text-sm text-muted-foreground">Jumlah</p>
                                 <p className={cn("text-2xl font-bold", detailItem.type === 'income' ? 'text-green-600' : 'text-destructive')}>{formatCurrency(detailItem.amount)}</p>
@@ -768,7 +730,7 @@ export default function HistoryPage() {
                             </div>
                         </div>
                     )}
-                     <DialogFooter>
+                     <DialogFooter className="mt-auto border-t bg-background p-4 sm:p-6 flex justify-end gap-2">
                         <Button variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDeleteRequest(detailItem!)}>Hapus</Button>
                         <Button onClick={() => handleEditRequest(detailItem!)}>Ubah</Button>
                     </DialogFooter>
