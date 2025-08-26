@@ -45,21 +45,21 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
         )}
         <div 
             className={cn(
-                "fixed z-40",
+                "fixed z-40 pointer-events-none",
                 position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
                 className
             )}
         >
           <div className={cn(
-              "flex flex-col-reverse items-center",
+              "flex flex-col items-center",
               position === 'bottom-right' ? 'items-end' : 'items-start'
           )}>
-              <div
-                  className={cn(
-                      "flex flex-col-reverse gap-3 transition-all duration-300 ease-in-out",
-                       isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 hidden"
-                  )}
-              >
+            <div
+                className={cn(
+                    "flex flex-col transition-all duration-300 ease-in-out",
+                    isOpen ? "opacity-100" : "hidden"
+                )}
+            >
               {React.Children.map(children, child => 
                   React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { 
                       onClick: () => {
@@ -68,7 +68,8 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
                       }
                   }) : child
               )}
-              </div>
+            </div>
+            <div className="pointer-events-auto">
               <Button
                 onClick={() => setIsOpen(!isOpen)}
                 size="icon"
@@ -80,6 +81,7 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
                     {mainIcon || <Plus className="h-6 w-6" />}
                 </div>
               </Button>
+            </div>
           </div>
         </div>
     </SpeedDialContext.Provider>
@@ -97,7 +99,7 @@ export function SpeedDialAction({ children, label, onClick, className }: SpeedDi
   const { position } = React.useContext(SpeedDialContext);
   return (
     <div className={cn(
-        "flex items-center gap-4",
+        "flex items-center gap-4 pointer-events-auto mb-3",
         position === 'bottom-left' && "flex-row-reverse",
         className
     )}>

@@ -545,13 +545,16 @@ export default function DashboardPage({
           />
         </main>
 
-        <SpeedDial mainIcon={<HandCoins className="h-7 w-7" />} position="bottom-right">
+        <SpeedDial mainIcon={<Bot className="h-7 w-7" />} position="bottom-left">
            <SpeedDialAction label="Chat Konsultasi" onClick={handleChatbotClick}>
             <Bot className="h-5 w-5" />
           </SpeedDialAction>
           <SpeedDialAction label="Dukungan Aplikasi" onClick={() => setIsSupportDialogOpen(true)}>
             <LifeBuoy className="h-5 w-5" />
           </SpeedDialAction>
+        </SpeedDial>
+        
+        <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />} position="bottom-right">
           <SpeedDialAction label="Tambah Pemasukan" onClick={onAddIncomeClick}>
             <TrendingUp className="h-5 w-5 text-green-500" />
           </SpeedDialAction>
