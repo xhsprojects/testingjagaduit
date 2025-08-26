@@ -600,8 +600,8 @@ export default function HistoryPage() {
                     
                     <TabsContent value="all-transactions" className="mt-6 space-y-4">
                         <div className="space-y-4 rounded-lg border bg-card p-4">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                <div className="relative">
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="relative flex-grow">
                                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                      <Input
                                         type="search"
@@ -613,7 +613,7 @@ export default function HistoryPage() {
                                 </div>
                                 <DateRangePicker date={dateRange} onDateChange={setDateRange} />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
                                     <SelectTrigger><SelectValue placeholder="Semua Tipe" /></SelectTrigger>
                                     <SelectContent>
@@ -829,3 +829,4 @@ export default function HistoryPage() {
         </div>
     );
 }
+

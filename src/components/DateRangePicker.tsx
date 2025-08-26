@@ -2,11 +2,10 @@
 "use client"
 
 import * as React from "react"
-import { format } from "date-fns"
+import { format, subDays, startOfMonth, endOfMonth, subMonths, startOfDay, endOfDay } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import { Calendar as CalendarIcon } from "lucide-react"
 import type { DateRange } from "react-day-picker"
-import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -16,13 +15,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
   date: DateRange | undefined
   onDateChange: (date: DateRange | undefined) => void
 }
 
-type Preset = 'last7' | 'thisMonth' | 'lastMonth';
+type Preset = 'last7' | 'thisMonth' | 'lastMonth' | 'custom';
 
 const presets: { label: string; value: Preset; getRange: () => DateRange }[] = [
     { label: '7 Hari Terakhir', value: 'last7', getRange: () => ({ from: startOfDay(subDays(new Date(), 6)), to: endOfDay(new Date()) }) },
@@ -40,52 +40,35 @@ export function DateRangePicker({
   onDateChange,
 }: DateRangePickerProps) {
   
-  const [activePreset, setActivePreset] = React.useState<Preset | 'custom' | undefined>();
-  
-  React.useEffect(() => {
-    // Determine active preset based on current date range
-    let foundPreset: Preset | 'custom' | undefined = 'custom';
-    for (const preset of presets) {
-        const presetRange = preset.getRange();
-        if (date?.from?.getTime() === presetRange.from?.getTime() && date?.to?.getTime() === presetRange.to?.getTime()) {
-            foundPreset = preset.value;
-            break;
-        }
-    }
-    setActivePreset(foundPreset);
-  }, [date]);
-
-
-  const handlePresetClick = (presetValue: Preset) => {
-    const selectedPreset = presets.find(p => p.value === presetValue);
+  const handlePresetChange = (value: Preset) => {
+    const selectedPreset = presets.find(p => p.value === value);
     if (selectedPreset) {
       onDateChange(selectedPreset.getRange());
     }
   }
 
   return (
-    <div className={cn("flex flex-col sm:flex-row gap-2 items-center", className)}>
-        <div className="flex gap-2">
-            {presets.map(preset => (
-                <Button
-                    key={preset.value}
-                    size="sm"
-                    variant={activePreset === preset.value ? 'default' : 'outline'}
-                    onClick={() => handlePresetClick(preset.value)}
-                >
-                    {preset.label}
-                </Button>
-            ))}
-        </div>
+    <div className={cn("flex flex-col sm:flex-row gap-2 w-full", className)}>
+        <Select onValueChange={(value: Preset) => handlePresetChange(value)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Pilih rentang cepat" />
+            </SelectTrigger>
+            <SelectContent>
+                {presets.map(preset => (
+                     <SelectItem key={preset.value} value={preset.value}>
+                        {preset.label}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
       <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant={"outline"}
             className={cn(
-              "w-full justify-start text-left font-normal sm:w-auto",
+              "w-full justify-start text-left font-normal flex-1",
               !date && "text-muted-foreground",
-              activePreset === 'custom' && 'border-primary'
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
