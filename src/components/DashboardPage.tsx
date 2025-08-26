@@ -110,10 +110,9 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
                 <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
              <div className="flex-1 grid grid-cols-1">
-                 <p className="font-semibold truncate pr-2">{title}</p>
-                 <div className='flex justify-between items-baseline'>
-                     <p className="font-bold text-lg">{formatCurrency(amount)}</p>
-                     <p className={cn("font-semibold text-lg", isExpense ? "text-foreground" : "text-green-600")}>
+                 <div className="flex justify-between items-start">
+                    <p className="font-semibold truncate pr-2 text-sm md:text-base">{title}</p>
+                    <p className={cn("font-semibold text-sm md:text-base", isExpense ? "text-foreground" : "text-green-600")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
                     </p>
                  </div>
