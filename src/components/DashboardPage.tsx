@@ -16,7 +16,7 @@ import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
@@ -143,6 +143,7 @@ const allActions = [
     { href: "/debts", icon: CreditCard, label: "Utang" },
     { href: "/wallets", icon: WalletIcon, label: "Dompet" },
     { href: "/history", icon: History, label: "Riwayat" },
+    { href: "/tutorial", icon: BookOpen, label: "Panduan" },
 ];
 
 export default function DashboardPage({ 
@@ -471,7 +472,7 @@ export default function DashboardPage({
                                 <DialogDescription>Akses cepat ke semua fitur Jaga Duit.</DialogDescription>
                             </DialogHeader>
                             <div className="flex-1 overflow-y-auto p-6">
-                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 py-4">
+                                <div className="grid grid-cols-4 gap-4 py-4">
                                     {allActions.map((action) => {
                                         const Icon = action.icon;
                                         return (
@@ -687,7 +688,7 @@ export default function DashboardPage({
                 )}
                 <DialogFooter className="mt-auto border-t bg-background p-4 sm:p-6 flex justify-end gap-2">
                     <Button variant="ghost" className="text-destructive" onClick={() => detailItem && handleDeleteRequest(detailItem)}>Hapus</Button>
-                    <Button onClick={() => detailItem && handleEditRequest(detailItem)}>Ubah Transaksi</Button>
+                    <Button onClick={() => detailItem && handleEditRequest(detailItem)}>Ubah</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
