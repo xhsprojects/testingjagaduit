@@ -23,7 +23,20 @@ interface StatsCardsProps {
 export default function StatsCards({ totalIncome, totalExpenses, remainingBudget, totalSavings, totalWalletBalance, periodLabel, onReset }: StatsCardsProps) {
     const [isHidden, setIsHidden] = React.useState(false);
 
-    const toggleVisibility = () => setIsHidden(prev => !prev);
+    React.useEffect(() => {
+        // On component mount, check localStorage for the saved state
+        const savedState = localStorage.getItem('jaga-duit-balance-hidden');
+        if (savedState !== null) {
+            setIsHidden(JSON.parse(savedState));
+        }
+    }, []);
+
+    const toggleVisibility = () => {
+        const newHiddenState = !isHidden;
+        setIsHidden(newHiddenState);
+        // Save the new state to localStorage
+        localStorage.setItem('jaga-duit-balance-hidden', JSON.stringify(newHiddenState));
+    };
     
     const displayValue = (value: number) => {
         return isHidden ? '******' : formatCurrency(value);
@@ -37,10 +50,6 @@ export default function StatsCards({ totalIncome, totalExpenses, remainingBudget
                     <p className="font-semibold text-sm sm:text-base">{periodLabel}</p>
                 </div>
                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleVisibility}>
-                        {isHidden ? <EyeOff className="h-5 w-5"/> : <Eye className="h-5 w-5"/>}
-                        <span className="sr-only">{isHidden ? "Tampilkan Saldo" : "Sembunyikan Saldo"}</span>
-                    </Button>
                     <Button variant="ghost" size="sm" onClick={onReset}>
                         <RefreshCw className="mr-2 h-4 w-4" />
                         Periode Baru
@@ -50,11 +59,9 @@ export default function StatsCards({ totalIncome, totalExpenses, remainingBudget
             <CardContent className="p-4 sm:p-6 text-center bg-card rounded-b-lg">
                 <div className="flex justify-center items-center gap-2">
                     <p className="text-sm text-muted-foreground">Total Saldo Dompet</p>
-                     <Button variant="outline" size="icon" className="h-7 w-7" asChild>
-                        <Link href="/wallets">
-                            <Wallet className="h-4 w-4" />
-                            <span className="sr-only">Kelola Dompet</span>
-                        </Link>
+                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleVisibility}>
+                        {isHidden ? <EyeOff className="h-5 w-5"/> : <Eye className="h-5 w-5"/>}
+                        <span className="sr-only">{isHidden ? "Tampilkan Saldo" : "Sembunyikan Saldo"}</span>
                     </Button>
                 </div>
                 <p className="text-3xl sm:text-4xl font-bold font-headline tracking-tight mt-1 text-primary">
