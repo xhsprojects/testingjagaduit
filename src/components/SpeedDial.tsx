@@ -53,7 +53,7 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
         >
           {/* This inner container will re-enable pointer events for its children */}
           <div className={cn(
-              "pointer-events-auto flex flex-col-reverse items-center gap-3",
+              "pointer-events-auto flex flex-col-reverse",
               position === 'bottom-right' ? 'items-end' : 'items-start'
           )}>
               <div
@@ -64,10 +64,13 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
                   )}
               >
               {React.Children.map(children, child => 
-                  React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { onClick: () => {
-                      if (child.props.onClick) child.props.onClick();
-                      setIsOpen(false);
-                  }}) : child
+                  React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { 
+                      className: cn(child.props.className, 'mb-3'), // Add margin to each action
+                      onClick: () => {
+                          if (child.props.onClick) child.props.onClick();
+                          setIsOpen(false);
+                      }
+                  }) : child
               )}
               </div>
               <Button
@@ -91,14 +94,16 @@ interface SpeedDialActionProps {
   children: React.ReactNode
   label?: string
   onClick?: () => void
+  className?: string;
 }
 
-export function SpeedDialAction({ children, label, onClick }: SpeedDialActionProps) {
+export function SpeedDialAction({ children, label, onClick, className }: SpeedDialActionProps) {
   const { position } = React.useContext(SpeedDialContext);
   return (
     <div className={cn(
         "flex items-center gap-4",
-        position === 'bottom-left' && "flex-row-reverse"
+        position === 'bottom-left' && "flex-row-reverse",
+        className
     )}>
       {label && (
         <div className="whitespace-nowrap rounded-md bg-card px-3 py-1.5 text-sm font-medium text-card-foreground shadow-sm">
