@@ -109,14 +109,14 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary flex-shrink-0">
                 <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
-             <div className="flex-1 grid grid-cols-1">
-                 <div className="flex justify-between items-start">
-                    <p className="font-semibold truncate pr-2 text-sm md:text-base">{title}</p>
-                    <p className={cn("font-semibold text-sm md:text-base", isExpense ? "text-foreground" : "text-green-600")}>
+            <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-center">
+                    <p className="font-semibold truncate pr-2 text-sm">{title}</p>
+                    <p className={cn("font-semibold whitespace-nowrap text-sm", isExpense ? "text-foreground" : "text-green-600")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
                     </p>
-                 </div>
-                 <p className="text-xs text-muted-foreground">{walletName} · {format(new Date(transaction.date), "d MMM, HH:mm")}</p>
+                </div>
+                <p className="text-xs text-muted-foreground">{walletName} · {format(new Date(transaction.date), "d MMM, HH:mm")}</p>
             </div>
         </div>
     );
