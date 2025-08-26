@@ -437,6 +437,54 @@ export default function DashboardPage({
             periodLabel={periodLabel}
             onReset={() => setIsResetConfirmOpen(true)}
           />
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Akses Cepat</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                    {allActions.slice(0, 8).map((action) => {
+                        const Icon = action.icon;
+                        return (
+                            <Link href={action.href} key={action.href}>
+                                <ActionCard>
+                                    <div className="p-3 bg-secondary rounded-xl mb-1.5"><Icon className="h-6 w-6 text-primary" /></div>
+                                    <p className="font-semibold text-xs leading-tight">{action.label}</p>
+                                </ActionCard>
+                            </Link>
+                        );
+                    })}
+                </CardContent>
+                <CardFooter>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full">Lihat Semua Menu</Button>
+                        </DialogTrigger>
+                        <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
+                            <DialogHeader className="p-6 pb-4 border-b">
+                                <DialogTitle>Semua Menu</DialogTitle>
+                                <DialogDescription>Akses cepat ke semua fitur Jaga Duit.</DialogDescription>
+                            </DialogHeader>
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 py-4">
+                                    {allActions.map((action) => {
+                                        const Icon = action.icon;
+                                        return (
+                                            <Link href={action.href} key={action.href}>
+                                                <ActionCard>
+                                                    <div className="p-3 bg-secondary rounded-xl mb-1.5"><Icon className="h-6 w-6 text-primary" /></div>
+                                                    <p className="font-semibold text-xs leading-tight">{action.label}</p>
+                                                </ActionCard>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </CardFooter>
+            </Card>
+
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                 <Card>
                     <CardHeader>
@@ -483,51 +531,6 @@ export default function DashboardPage({
                     )}
                  </CardContent>
              </Card>
-          
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-headline">Akses Cepat</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-                    {allActions.slice(0, 8).map((action) => {
-                        const Icon = action.icon;
-                        return (
-                            <Link href={action.href} key={action.href}>
-                                <ActionCard>
-                                    <div className="p-3 bg-secondary rounded-xl mb-1.5"><Icon className="h-6 w-6 text-primary" /></div>
-                                    <p className="font-semibold text-xs leading-tight">{action.label}</p>
-                                </ActionCard>
-                            </Link>
-                        );
-                    })}
-                </CardContent>
-                <CardFooter>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="w-full">Lihat Semua Menu</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Semua Menu</DialogTitle>
-                                <DialogDescription>Akses cepat ke semua fitur Jaga Duit.</DialogDescription>
-                            </DialogHeader>
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4 py-4">
-                                {allActions.map((action) => {
-                                    const Icon = action.icon;
-                                    return (
-                                        <Link href={action.href} key={action.href}>
-                                            <ActionCard>
-                                                <div className="p-3 bg-secondary rounded-xl mb-1.5"><Icon className="h-6 w-6 text-primary" /></div>
-                                                <p className="font-semibold text-xs leading-tight">{action.label}</p>
-                                            </ActionCard>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                </CardFooter>
-            </Card>
 
           <PredictiveAnalysis
               expenses={filteredExpenses}
