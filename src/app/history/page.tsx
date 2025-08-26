@@ -409,7 +409,6 @@ export default function HistoryPage() {
     };
     
     const filteredTransactions = React.useMemo(() => {
-        if (!allTransactions) return [];
         let filtered = allTransactions;
         
         if (dateRange?.from) {
@@ -560,8 +559,9 @@ export default function HistoryPage() {
         setEditingItem(null);
     };
 
-    const categoryMap = new Map(allCategories.map(c => [c.id, c]));
-    const detailWallet = detailItem?.walletId ? wallets.find(w => w.id === detailItem.walletId) : null;
+    const categoryMap = React.useMemo(() => new Map(allCategories.map(c => [c.id, c])), [allCategories]);
+    const walletMap = React.useMemo(() => new Map(wallets.map(w => [w.id, w])), [wallets]);
+    const detailWallet = detailItem?.walletId ? walletMap.get(detailItem.walletId) : null;
     const expenseData = detailItem?.type === 'expense' ? (detailItem as Expense) : null;
     const detailSavingGoal = expenseData?.savingGoalId ? savingGoals.find(g => g.id === expenseData.savingGoalId) : null;
     const detailDebt = expenseData?.debtId ? debts.find(d => d.id === expenseData.debtId) : null;
@@ -601,15 +601,15 @@ export default function HistoryPage() {
                     <TabsContent value="all-transactions" className="mt-6 space-y-4">
                         <div className="space-y-4 rounded-lg border bg-card p-4">
                             <div className="flex flex-col md:flex-row gap-4">
-                                <div className="relative flex-grow">
-                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                     <Input
+                               <div className="relative flex-grow">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
                                         type="search"
                                         placeholder="Cari berdasarkan catatan atau kategori..."
                                         className="w-full pl-8"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                     />
+                                    />
                                 </div>
                                 <DateRangePicker date={dateRange} onDateChange={setDateRange} />
                             </div>
@@ -656,7 +656,7 @@ export default function HistoryPage() {
                                             key={item.id}
                                             transaction={item}
                                             categoryMap={categoryMap}
-                                            walletMap={new Map(wallets.map(w => [w.id, w.name]))}
+                                            walletMap={walletMap}
                                             onClick={() => setDetailItem(item)}
                                         />
                                    ))
@@ -829,4 +829,5 @@ export default function HistoryPage() {
         </div>
     );
 }
+
 
