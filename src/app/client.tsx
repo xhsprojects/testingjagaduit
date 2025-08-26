@@ -422,12 +422,16 @@ export default function ClientPage() {
   };
   
   const totalWalletBalance = React.useMemo(() => {
+    if (!currentBudget) return 0;
+    const expensesInCurrent = currentBudget.expenses || [];
+    const incomesInCurrent = currentBudget.incomes || [];
+    
     return wallets.reduce((total, wallet) => {
-        const totalIncomeForWallet = (allIncomes || []).filter(inc => inc.walletId === wallet.id).reduce((sum, inc) => sum + inc.amount, 0);
-        const totalExpenseForWallet = (allExpenses || []).filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
+        const totalIncomeForWallet = incomesInCurrent.filter(inc => inc.walletId === wallet.id).reduce((sum, inc) => sum + inc.amount, 0);
+        const totalExpenseForWallet = expensesInCurrent.filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
         return total + wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
     }, 0);
-  }, [wallets, allIncomes, allExpenses]);
+  }, [wallets, currentBudget]);
 
 
   if (authLoading || isLoading) {
@@ -451,9 +455,8 @@ export default function ClientPage() {
 
   const detailIncomeWallet = detailIncome?.walletId ? wallets.find(w => w.id === detailIncome.walletId) : null;
   
-  // Use allExpenses and allIncomes for display, but use currentBudget for mutation logic.
-  const expensesInCurrentPeriod = allExpenses;
-  const incomesInCurrentPeriod = allIncomes;
+  const expensesInCurrentPeriod = currentBudget?.expenses || [];
+  const incomesInCurrentPeriod = currentBudget?.incomes || [];
   const incomeInCurrentPeriod = currentBudget?.income || 0;
 
   return (

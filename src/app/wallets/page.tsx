@@ -325,7 +325,7 @@ export default function WalletsPage() {
                                     <CardContent className="flex-grow cursor-pointer" onClick={() => handleWalletClick(wallet)}>
                                         <p className="text-3xl font-bold text-center">{formatCurrency(wallet.currentBalance)}</p>
                                     </CardContent>
-                                    <CardFooter className="grid grid-cols-2 gap-2 pt-4 border-t">
+                                    <CardFooter className="grid grid-cols-3 gap-2 pt-4 border-t">
                                         <Button variant="outline" size="sm" onClick={() => handleOpenForm(wallet)}>
                                             <Pencil className="mr-2 h-4 w-4"/> Ubah
                                         </Button>
