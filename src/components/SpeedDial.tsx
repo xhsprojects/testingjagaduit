@@ -45,13 +45,13 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
         )}
         <div 
             className={cn(
-                "fixed z-40",
+                "fixed z-40 pointer-events-none",
                 position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
                 className
             )}
         >
         <div className={cn(
-            "relative z-50 flex flex-col-reverse gap-3",
+            "relative z-50 flex flex-col-reverse gap-3 pointer-events-auto",
             position === 'bottom-right' ? 'items-end' : 'items-start'
         )}>
             <Button
