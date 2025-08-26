@@ -22,6 +22,7 @@ import OnboardingPage from './onboarding/page';
 import { Loader2 } from 'lucide-react';
 import { resetBudgetPeriod } from './budget/actions';
 import { useAuth } from '@/context/AuthContext';
+import { updateTransaction, deleteTransaction } from '@/app/history/actions';
 
 // Helper to convert Firestore timestamps to JS Dates
 const convertTimestamps = (data: any): any => {

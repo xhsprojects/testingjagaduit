@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
 import { AddExpenseForm } from './AddExpenseForm';
+import { AddIncomeForm } from './AddIncomeForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { DateRange } from 'react-day-picker';
 import { DateRangePicker } from './DateRangePicker';
@@ -23,7 +24,7 @@ import { iconMap } from '@/lib/icons';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import FinancialChatbot from './FinancialChatbot';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
@@ -31,6 +32,7 @@ import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
 import { Alert, AlertTitle } from './ui/alert';
+import { updateTransaction, deleteTransaction } from '../history/actions';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -105,18 +107,21 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
     }
 
     return (
-        <div onClick={onClick} className="flex items-start gap-4 py-3 cursor-pointer border-b last:border-b-0">
+        <div onClick={onClick} className="flex items-center gap-4 py-3 cursor-pointer border-b last:border-b-0">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary flex-shrink-0">
                 <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center">
+            <div className="flex-1 grid grid-cols-2 items-center gap-2 min-w-0">
+                <div>
                     <p className="font-semibold truncate pr-2 text-sm">{title}</p>
+                    <p className="text-xs text-muted-foreground">{walletName}</p>
+                </div>
+                <div className="text-right">
                     <p className={cn("font-semibold whitespace-nowrap text-sm", isExpense ? "text-foreground" : "text-green-600")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
                     </p>
+                    <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "HH:mm")}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">{walletName} · {format(new Date(transaction.date), "d MMM, HH:mm")}</p>
             </div>
         </div>
     );
@@ -154,10 +159,11 @@ export default function DashboardPage({
   onViewIncome,
   onAddIncomeClick
 }: DashboardPageProps) {
-  const { user, isPremium } = useAuth();
+  const { user, isPremium, idToken } = useAuth();
   const router = useRouter();
   const [isAddExpenseFormOpen, setIsAddExpenseFormOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
+  const [editingIncome, setEditingIncome] = React.useState<Income | null>(null);
   const [isSupportDialogOpen, setIsSupportDialogOpen] = React.useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
   const [date, setDate] = React.useState<DateRange | undefined>();
@@ -361,12 +367,37 @@ export default function DashboardPage({
       router.push('/premium');
     }
   };
+  
+  const handleEditRequest = (item: UnifiedTransaction) => {
+      setDetailItem(null);
+      if (item.type === 'expense') {
+          setEditingExpense(item as Expense);
+          setIsAddExpenseFormOpen(true);
+      } else {
+          setEditingIncome(item as Income);
+          onEditIncome(item as Income);
+      }
+  };
+  
+  const handleDeleteRequest = async (item: UnifiedTransaction) => {
+      setDetailItem(null);
+      if (!idToken) {
+          toast({ title: "Sesi tidak valid.", variant: "destructive" });
+          return;
+      }
+      const result = await deleteTransaction(idToken, 'current', item.id, item.type);
+      if (result.success) {
+          toast({ title: "Sukses", description: "Transaksi berhasil dihapus." });
+      } else {
+          toast({ title: "Gagal", description: result.message, variant: "destructive" });
+      }
+  };
+
 
   const detailCategory = detailItem?.type === 'expense' ? categoryMap.get((detailItem as Expense).categoryId) : null;
   const detailSavingGoal = detailItem?.type === 'expense' ? savingGoals.find(g => g.id === (detailItem as Expense).savingGoalId) : null;
   const detailDebt = detailItem?.type === 'expense' ? debts.find(d => d.id === (detailItem as Expense).debtId) : null;
   const detailWallet = detailItem?.walletId ? wallets.find(w => w.id === detailItem.walletId) : null;
-  const DetailCategoryIcon = detailCategory?.icon ? iconMap[detailCategory.icon] : null;
   
   if (!isDataReady) {
       return (
@@ -554,12 +585,12 @@ export default function DashboardPage({
         </Dialog>
         
          <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-            <DialogContent>
-                <DialogHeader>
+            <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
+                <DialogHeader className="p-6 pb-4 border-b">
                     <DialogTitle>Detail Transaksi</DialogTitle>
                 </DialogHeader>
                 {detailItem && (
-                    <div className="space-y-4 py-2">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4">
                         <div className="rounded-lg bg-secondary p-4">
                           <p className="text-sm text-muted-foreground">Jumlah</p>
                           <p className={cn("text-2xl font-bold", detailItem.type === 'income' ? 'text-green-600' : 'text-destructive')}>{formatCurrency(detailItem.amount)}</p>
@@ -646,6 +677,10 @@ export default function DashboardPage({
                         </div>
                     </div>
                 )}
+                <DialogFooter className="mt-auto border-t bg-background p-4 sm:p-6 flex justify-end gap-2">
+                    <Button variant="ghost" className="text-destructive" onClick={() => detailItem && handleDeleteRequest(detailItem)}>Hapus</Button>
+                    <Button onClick={() => detailItem && handleEditRequest(detailItem)}>Ubah Transaksi</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
         
