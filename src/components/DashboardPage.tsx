@@ -32,7 +32,7 @@ import { ToastAction } from './ui/toast';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
 import { Alert, AlertTitle } from './ui/alert';
-import { updateTransaction, deleteTransaction } from '../history/actions';
+import { updateTransaction, deleteTransaction } from '@/app/history/actions';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -112,10 +112,10 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
                 <Icon className="h-5 w-5 text-muted-foreground" />
             </div>
             <div className="flex-1 grid grid-cols-2 items-center gap-2 min-w-0">
-                <div>
+                 <div className="flex-1">
                     <p className="font-semibold truncate pr-2 text-sm">{title}</p>
                     <p className="text-xs text-muted-foreground">{walletName}</p>
-                </div>
+                 </div>
                 <div className="text-right">
                     <p className={cn("font-semibold whitespace-nowrap text-sm", isExpense ? "text-foreground" : "text-green-600")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
