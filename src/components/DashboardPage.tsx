@@ -16,7 +16,7 @@ import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon, BookOpen } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon, BookOpen, HandCoins } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
@@ -545,16 +545,13 @@ export default function DashboardPage({
           />
         </main>
 
-        <SpeedDial mainIcon={<MessageSquare className="h-6 w-6" />} position="bottom-left">
-          <SpeedDialAction label="Chat Konsultasi" onClick={handleChatbotClick}>
+        <SpeedDial mainIcon={<HandCoins className="h-7 w-7" />} position="bottom-right">
+           <SpeedDialAction label="Chat Konsultasi" onClick={handleChatbotClick}>
             <Bot className="h-5 w-5" />
           </SpeedDialAction>
           <SpeedDialAction label="Dukungan Aplikasi" onClick={() => setIsSupportDialogOpen(true)}>
             <LifeBuoy className="h-5 w-5" />
           </SpeedDialAction>
-        </SpeedDial>
-        
-        <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />} position="bottom-right">
           <SpeedDialAction label="Tambah Pemasukan" onClick={onAddIncomeClick}>
             <TrendingUp className="h-5 w-5 text-green-500" />
           </SpeedDialAction>
