@@ -128,7 +128,7 @@ export default function PredictiveAnalysis({ expenses, categories, dateRange }: 
                     </div>
                 )}
 
-                {!isPremium && !analysis && (
+                {!isPremium && !analysis && !isLoading && (
                     <div className="p-4 text-center bg-secondary rounded-lg border">
                         <Gem className="mx-auto h-8 w-8 text-primary/50" />
                         <h4 className="font-semibold mt-2">Fitur Premium</h4>
@@ -148,10 +148,12 @@ export default function PredictiveAnalysis({ expenses, categories, dateRange }: 
                 ) : (
                     <TooltipProvider>
                         <Tooltip>
-                            <TooltipTrigger>
-                                <GenerateButton />
+                            <TooltipTrigger asChild>
+                                <div>
+                                    <GenerateButton />
+                                </div>
                             </TooltipTrigger>
-                            <TooltipContent>
+                            <TooltipContent className="md:block hidden">
                                 <p>Upgrade ke Premium untuk menggunakan fitur ini.</p>
                             </TooltipContent>
                         </Tooltip>

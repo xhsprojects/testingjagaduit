@@ -16,7 +16,7 @@ import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
@@ -130,14 +130,19 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
 const allActions = [
     { href: "/reports", icon: BookMarked, label: "Laporan" },
     { href: "/import", icon: Upload, label: "Impor" },
+    { href: "/split-bill", icon: Users2, label: "Bagi Bill" },
     { href: "/financial-calendar", icon: CalendarDays, label: "Kalender" },
     { href: "/reminders", icon: BellRing, label: "Pengingat" },
     { href: "/achievements", icon: Trophy, label: "Prestasi" },
     { href: "/calculators", icon: Calculator, label: "Kalkulator" },
     { href: "/recurring", icon: Repeat, label: "Otomatis" },
     { href: "/net-worth", icon: Scale, label: "Aset" },
-    { href: "/split-bill", icon: Users2, label: "Bagi Bill" },
     { href: "/notes", icon: FilePenLine, label: "Catatan" },
+    { href: "/savings", icon: TargetIcon, label: "Tujuan" },
+    { href: "/budget", icon: Landmark, label: "Anggaran" },
+    { href: "/debts", icon: CreditCard, label: "Utang" },
+    { href: "/wallets", icon: WalletIcon, label: "Dompet" },
+    { href: "/history", icon: History, label: "Riwayat" },
 ];
 
 export default function DashboardPage({ 
@@ -442,7 +447,7 @@ export default function DashboardPage({
                 <CardHeader>
                     <CardTitle className="font-headline">Akses Cepat</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                <CardContent className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-2">
                     {allActions.slice(0, 8).map((action) => {
                         const Icon = action.icon;
                         return (
@@ -460,7 +465,7 @@ export default function DashboardPage({
                         <DialogTrigger asChild>
                             <Button variant="outline" className="w-full">Lihat Semua Menu</Button>
                         </DialogTrigger>
-                        <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
+                         <DialogContent className="flex h-full flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
                             <DialogHeader className="p-6 pb-4 border-b">
                                 <DialogTitle>Semua Menu</DialogTitle>
                                 <DialogDescription>Akses cepat ke semua fitur Jaga Duit.</DialogDescription>
@@ -588,7 +593,7 @@ export default function DashboardPage({
         </Dialog>
         
          <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-            <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
+            <DialogContent className="flex h-full flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
                 <DialogHeader className="p-6 pb-4 border-b">
                     <DialogTitle>Detail Transaksi</DialogTitle>
                 </DialogHeader>
