@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import * as React from "react"
@@ -7,7 +6,7 @@ import { format } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 import { Calendar as CalendarIcon } from "lucide-react"
 import type { DateRange } from "react-day-picker"
-import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, startOfWeek, subMonths } from 'date-fns'
+import { startOfDay, endOfDay, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -17,70 +16,76 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
   date: DateRange | undefined
   onDateChange: (date: DateRange | undefined) => void
 }
 
-type Preset = 'today' | 'yesterday' | 'last7' | 'last30' | 'thisMonth' | 'lastMonth' | 'custom';
+type Preset = 'last7' | 'thisMonth' | 'lastMonth';
+
+const presets: { label: string; value: Preset; getRange: () => DateRange }[] = [
+    { label: '7 Hari Terakhir', value: 'last7', getRange: () => ({ from: startOfDay(subDays(new Date(), 6)), to: endOfDay(new Date()) }) },
+    { label: 'Bulan Ini', value: 'thisMonth', getRange: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
+    { label: 'Bulan Lalu', value: 'lastMonth', getRange: () => {
+        const lastMonthStart = startOfMonth(subMonths(new Date(), 1));
+        const lastMonthEnd = endOfMonth(subMonths(new Date(), 1));
+        return { from: lastMonthStart, to: lastMonthEnd };
+    }},
+];
 
 export function DateRangePicker({
   className,
   date,
   onDateChange,
 }: DateRangePickerProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  
+  const [activePreset, setActivePreset] = React.useState<Preset | 'custom' | undefined>();
+  
+  React.useEffect(() => {
+    // Determine active preset based on current date range
+    let foundPreset: Preset | 'custom' | undefined = 'custom';
+    for (const preset of presets) {
+        const presetRange = preset.getRange();
+        if (date?.from?.getTime() === presetRange.from?.getTime() && date?.to?.getTime() === presetRange.to?.getTime()) {
+            foundPreset = preset.value;
+            break;
+        }
+    }
+    setActivePreset(foundPreset);
+  }, [date]);
 
-  const handlePresetChange = (value: Preset) => {
-      const today = new Date();
-      let newRange: DateRange | undefined;
-      switch (value) {
-          case 'today':
-              newRange = { from: startOfDay(today), to: endOfDay(today) };
-              break;
-          case 'yesterday':
-              const yesterday = subDays(today, 1);
-              newRange = { from: startOfDay(yesterday), to: endOfDay(yesterday) };
-              break;
-          case 'last7':
-              newRange = { from: startOfDay(subDays(today, 6)), to: endOfDay(today) };
-              break;
-          case 'last30':
-              newRange = { from: startOfDay(subDays(today, 29)), to: endOfDay(today) };
-              break;
-          case 'thisMonth':
-              newRange = { from: startOfMonth(today), to: endOfMonth(today) };
-              break;
-          case 'lastMonth':
-              const lastMonthStart = startOfMonth(subMonths(today, 1));
-              const lastMonthEnd = endOfMonth(subMonths(today, 1));
-              newRange = { from: lastMonthStart, to: lastMonthEnd };
-              break;
-          default:
-              newRange = date; // Keep current custom range if custom is selected
-              break;
-      }
-      if (newRange) {
-        onDateChange(newRange);
-      }
-      // Keep the popover open only if 'custom' is chosen, otherwise close it.
-      if (value !== 'custom') {
-          setIsOpen(false);
-      }
+
+  const handlePresetClick = (presetValue: Preset) => {
+    const selectedPreset = presets.find(p => p.value === presetValue);
+    if (selectedPreset) {
+      onDateChange(selectedPreset.getRange());
+    }
   }
 
   return (
-    <div className={cn("grid gap-2", className)}>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <div className={cn("flex flex-col sm:flex-row gap-2 items-center", className)}>
+        <div className="flex gap-2">
+            {presets.map(preset => (
+                <Button
+                    key={preset.value}
+                    size="sm"
+                    variant={activePreset === preset.value ? 'default' : 'outline'}
+                    onClick={() => handlePresetClick(preset.value)}
+                >
+                    {preset.label}
+                </Button>
+            ))}
+        </div>
+      <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant={"outline"}
             className={cn(
-              "w-full justify-start text-left font-normal md:w-auto",
-              !date && "text-muted-foreground"
+              "w-full justify-start text-left font-normal sm:w-auto",
+              !date && "text-muted-foreground",
+              activePreset === 'custom' && 'border-primary'
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -99,22 +104,6 @@ export function DateRangePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="end">
-           <div className="p-2 border-b">
-              <Select onValueChange={(value: Preset) => handlePresetChange(value)}>
-                  <SelectTrigger>
-                      <SelectValue placeholder="Pilih rentang cepat..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="today">Hari Ini</SelectItem>
-                      <SelectItem value="yesterday">Kemarin</SelectItem>
-                      <SelectItem value="last7">7 Hari Terakhir</SelectItem>
-                      <SelectItem value="last30">30 Hari Terakhir</SelectItem>
-                      <SelectItem value="thisMonth">Bulan Ini</SelectItem>
-                      <SelectItem value="lastMonth">Bulan Lalu</SelectItem>
-                      <SelectItem value="custom">Rentang Kustom</SelectItem>
-                  </SelectContent>
-              </Select>
-           </div>
             <Calendar
               initialFocus
               mode="range"
