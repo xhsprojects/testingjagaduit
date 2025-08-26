@@ -62,8 +62,8 @@ const ActionCard = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       className={cn(
-        "hover:bg-accent hover:border-primary transition-colors text-center p-4 h-full flex flex-col justify-center items-center rounded-lg border bg-card text-card-foreground shadow-sm",
-        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+        "transition-colors text-center p-2 h-full flex flex-col justify-start items-center rounded-lg",
+        disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-accent",
         className
       )}
       {...props}
@@ -442,74 +442,70 @@ export default function DashboardPage({
                  </CardContent>
              </Card>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
                <Link href="/reports">
                   <ActionCard>
-                      <BookMarked className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Laporan Keuangan</p>
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><BookMarked className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Laporan</p>
                   </ActionCard>
               </Link>
               <Link href="/import">
                   <ActionCard>
-                      <Upload className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Impor Transaksi</p>
-                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Upload className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Impor</p>
                   </ActionCard>
               </Link>
               <Link href="/financial-calendar" className="relative">
                   <ActionCard>
-                      <CalendarDays className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Kalender Finansial</p>
-                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><CalendarDays className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Kalender</p>
                   </ActionCard>
                   {dueEventsCount > 0 && (
-                      <Badge variant="destructive" className="absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center">
+                      <div className="absolute top-0 right-0 h-5 w-5 rounded-full flex items-center justify-center bg-destructive text-destructive-foreground text-xs font-bold">
                           {dueEventsCount}
-                      </Badge>
+                      </div>
                   )}
               </Link>
                <Link href="/reminders">
                   <ActionCard>
-                      <BellRing className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Pengingat Bayar</p>
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><BellRing className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Pengingat</p>
                   </ActionCard>
               </Link>
                <Link href="/achievements">
                   <ActionCard>
-                      <Trophy className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Prestasi</p>
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Trophy className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Prestasi</p>
                   </ActionCard>
               </Link>
               <Link href="/calculators">
                   <ActionCard>
-                      <Calculator className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Kalkulator</p>
-                      {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Calculator className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Kalkulator</p>
                   </ActionCard>
               </Link>
               <Link href="/recurring">
                   <ActionCard>
-                      <Repeat className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Transaksi Berulang</p>
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Repeat className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Otomatis</p>
                   </ActionCard>
               </Link>
                <Link href="/net-worth">
                   <ActionCard>
-                      <Scale className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Kekayaan Bersih</p>
-                       {!isPremium && <Badge variant="destructive" className="mt-1 text-xs">Premium</Badge>}
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Scale className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Aset</p>
                   </ActionCard>
               </Link>
               <Link href="/split-bill">
                   <ActionCard>
-                      <Users2 className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Bagi Tagihan</p>
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><Users2 className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Bagi Bill</p>
                   </ActionCard>
               </Link>
               <Link href="/notes">
                   <ActionCard>
-                      <FilePenLine className="h-7 w-7 mb-2 text-primary" />
-                      <p className="font-semibold text-sm">Catatan Pribadi</p>
+                      <div className="p-3 bg-secondary rounded-xl mb-1.5"><FilePenLine className="h-6 w-6 text-primary" /></div>
+                      <p className="font-semibold text-xs leading-tight">Catatan</p>
                   </ActionCard>
               </Link>
           </div>
@@ -685,4 +681,5 @@ export default function DashboardPage({
     </>
   );
 }
+
 
