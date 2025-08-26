@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import * as React from 'react';
@@ -9,7 +8,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Archive, ChevronRight, TrendingUp, TrendingDown, Wallet as WalletIcon, Loader2, Trash2, FileDown, FileType2, Search, Tag, Coins, FileText, Calendar, Landmark, CreditCard, Pencil, ArrowLeft, GitCommitHorizontal, ArrowLeftRight } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -270,6 +269,41 @@ const PeriodCard = ({ period, id, onDelete }: {
     );
 };
 
+const AllTransactionsList = React.memo(({ transactions, categoryMap, walletMap, onTransactionClick }: {
+    transactions: UnifiedTransaction[];
+    categoryMap: Map<string, Category>;
+    walletMap: Map<string, Wallet>;
+    onTransactionClick: (item: UnifiedTransaction) => void;
+}) => {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">Tabel Transaksi</CardTitle>
+                <CardDescription>Menampilkan {transactions.length} transaksi sesuai filter.</CardDescription>
+            </CardHeader>
+            <CardContent>
+               {transactions.length > 0 ? (
+                   transactions.map(item => (
+                        <TransactionItem
+                            key={item.id}
+                            transaction={item}
+                            categoryMap={categoryMap}
+                            walletMap={walletMap}
+                            onClick={() => onTransactionClick(item)}
+                        />
+                   ))
+               ) : (
+                   <div className="h-24 text-center flex flex-col justify-center items-center">
+                       <p className="font-semibold">Tidak ada transaksi ditemukan.</p>
+                       <p className="text-sm text-muted-foreground">Coba ubah filter Anda.</p>
+                   </div>
+               )}
+            </CardContent>
+        </Card>
+    );
+});
+AllTransactionsList.displayName = 'AllTransactionsList';
+
 
 // --- Main Component ---
 export default function HistoryPage() {
@@ -286,7 +320,7 @@ export default function HistoryPage() {
     // State for All Transactions Tab
     const [allTransactions, setAllTransactions] = React.useState<UnifiedTransaction[]>([]);
     const [searchQuery, setSearchQuery] = React.useState("");
-    const [dateRange, setDateRange] = React.useState<DateRange | undefined>({ from: startOfMonth(new Date()), to: endOfDay(new Date()) });
+    const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
     const [detailItem, setDetailItem] = React.useState<UnifiedTransaction | null>(null);
     const [typeFilter, setTypeFilter] = React.useState<'all' | 'income' | 'expense'>('all');
     const [walletFilter, setWalletFilter] = React.useState<string>('all');
@@ -412,10 +446,8 @@ export default function HistoryPage() {
         let filtered = allTransactions;
         
         if (dateRange?.from) {
-            const from = new Date(dateRange.from);
-            from.setHours(0, 0, 0, 0);
-            const to = dateRange.to ? new Date(dateRange.to) : from;
-            to.setHours(23, 59, 59, 999);
+            const from = startOfDay(dateRange.from);
+            const to = dateRange.to ? endOfDay(dateRange.to) : from;
             filtered = filtered.filter(item => {
                 const itemDate = new Date(item.date);
                 return itemDate >= from && itemDate <= to;
@@ -632,42 +664,12 @@ export default function HistoryPage() {
                             </div>
                         </div>
 
-                        <Card>
-                             <CardHeader>
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                    <div>
-                                        <CardTitle className="font-headline">Tabel Transaksi</CardTitle>
-                                        <CardDescription>Menampilkan {filteredTransactions.length} transaksi sesuai filter.</CardDescription>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" onClick={() => handleExport('csv')}>
-                                            <FileDown className="mr-2 h-4 w-4" /> CSV
-                                        </Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleExport('pdf')}>
-                                            <FileType2 className="mr-2 h-4 w-4" /> PDF
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                               {filteredTransactions.length > 0 ? (
-                                   filteredTransactions.map(item => (
-                                        <TransactionItem
-                                            key={item.id}
-                                            transaction={item}
-                                            categoryMap={categoryMap}
-                                            walletMap={walletMap}
-                                            onClick={() => setDetailItem(item)}
-                                        />
-                                   ))
-                               ) : (
-                                   <div className="h-24 text-center flex flex-col justify-center items-center">
-                                       <p className="font-semibold">Tidak ada transaksi ditemukan.</p>
-                                       <p className="text-sm text-muted-foreground">Coba ubah filter Anda.</p>
-                                   </div>
-                               )}
-                            </CardContent>
-                        </Card>
+                        <AllTransactionsList
+                            transactions={filteredTransactions}
+                            categoryMap={categoryMap}
+                            walletMap={walletMap}
+                            onTransactionClick={setDetailItem}
+                        />
                     </TabsContent>
                     
                     <TabsContent value="arsip-anggaran" className="mt-6 space-y-4">
@@ -829,5 +831,3 @@ export default function HistoryPage() {
         </div>
     );
 }
-
-
