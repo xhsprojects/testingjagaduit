@@ -16,10 +16,10 @@ import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon, BookOpen, HandCoins } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { iconMap } from '@/lib/icons';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import { useAuth } from '@/context/AuthContext';
@@ -554,7 +554,7 @@ export default function DashboardPage({
           </SpeedDialAction>
         </SpeedDial>
         
-        <SpeedDial mainIcon={<HandCoins className="h-7 w-7" />} position="bottom-right">
+        <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />} position="bottom-right">
           <SpeedDialAction label="Tambah Pemasukan" onClick={onAddIncomeClick}>
             <TrendingUp className="h-5 w-5 text-green-500" />
           </SpeedDialAction>

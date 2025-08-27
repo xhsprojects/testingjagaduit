@@ -17,7 +17,6 @@ const SpeedDialContext = React.createContext<{ position: 'bottom-right' | 'botto
 export function SpeedDial({ children, mainIcon, position = "bottom-right", className }: SpeedDialProps) {
   const [isOpen, setIsOpen] = React.useState(false)
 
-  // Close speed dial when clicking outside (on the overlay)
   React.useEffect(() => {
     const handleEscKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -45,14 +44,14 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
         )}
         <div 
             className={cn(
-                "fixed z-40",
+                "fixed z-40 pointer-events-none",
                 position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
                 className
             )}
         >
           <div 
               className={cn(
-                  "flex flex-col-reverse items-center",
+                  "flex flex-col-reverse",
                   position === 'bottom-right' ? 'items-end' : 'items-start'
               )}
           >
@@ -69,20 +68,20 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
                 </div>
               </Button>
             </div>
-            <div
-                className={cn(
-                    "flex flex-col-reverse transition-all duration-300 ease-in-out",
-                    isOpen ? "mb-3" : "hidden"
+            <div className={cn(
+                "pointer-events-auto transition-all duration-300 ease-in-out",
+                isOpen ? "mb-3" : "hidden"
+            )}>
+              <div className="flex flex-col-reverse">
+                {React.Children.map(children, child => 
+                    React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { 
+                        onClick: () => {
+                            if (child.props.onClick) child.props.onClick();
+                            setIsOpen(false);
+                        }
+                    }) : child
                 )}
-            >
-              {React.Children.map(children, child => 
-                  React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { 
-                      onClick: () => {
-                          if (child.props.onClick) child.props.onClick();
-                          setIsOpen(false);
-                      }
-                  }) : child
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -101,16 +100,18 @@ export function SpeedDialAction({ children, label, onClick, className }: SpeedDi
   const { position } = React.useContext(SpeedDialContext);
   return (
     <div className={cn(
-        "flex items-center pointer-events-auto mt-3",
+        "flex items-center w-full mt-3",
         position === 'bottom-left' && "flex-row-reverse",
         className
     )}>
       {label && (
         <div className={cn(
-            "whitespace-nowrap rounded-md bg-card px-3 py-1.5 text-sm font-medium text-card-foreground shadow-sm",
-            position === 'bottom-right' ? 'mr-4' : 'ml-4'
+          "flex items-center",
+          position === 'bottom-right' ? 'mr-3' : 'ml-3'
         )}>
-          {label}
+          <div className="whitespace-nowrap rounded-md bg-card px-3 py-1.5 text-sm font-medium text-card-foreground shadow-sm">
+            {label}
+          </div>
         </div>
       )}
       <Button
