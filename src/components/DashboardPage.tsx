@@ -16,10 +16,10 @@ import { startOfMonth, endOfMonth, format, endOfDay, subDays, isSameMonth } from
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon, BookOpen } from 'lucide-react';
+import { BookMarked, RefreshCw, LifeBuoy, Tag, Calendar, Landmark, FileText, CreditCard, MessageSquare, Bot, PlusCircle, Pencil, TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, GitCommitHorizontal, History, Target as TargetIcon, BookOpen, HandCoins, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { SupportDialog } from './SupportDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { iconMap } from '@/lib/icons';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import { useAuth } from '@/context/AuthContext';
@@ -138,12 +138,13 @@ const allActions = [
     { href: "/recurring", icon: Repeat, label: "Otomatis" },
     { href: "/net-worth", icon: Scale, label: "Aset" },
     { href: "/notes", icon: FilePenLine, label: "Catatan" },
-    { href: "/savings", icon: TargetIcon, label: "Tujuan" },
     { href: "/budget", icon: Landmark, label: "Anggaran" },
+    { href: "/savings", icon: TargetIcon, label: "Tujuan" },
     { href: "/debts", icon: CreditCard, label: "Utang" },
     { href: "/wallets", icon: WalletIcon, label: "Dompet" },
     { href: "/history", icon: History, label: "Riwayat" },
     { href: "/tutorial", icon: BookOpen, label: "Panduan" },
+    { href: "/settings", icon: Settings, label: "Pengaturan" },
 ];
 
 export default function DashboardPage({ 
