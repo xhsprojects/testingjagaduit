@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore';
@@ -291,7 +291,7 @@ export default function WalletsPage() {
                     </h1>
                 </div>
             </header>
-            <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+            <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-24">
                 <Card>
                     <CardHeader>
                         <CardTitle className="font-headline">Ringkasan Total Saldo</CardTitle>
@@ -312,27 +312,29 @@ export default function WalletsPage() {
                         {walletsWithBalance.map(wallet => {
                             const Icon = iconMap[wallet.icon] || WalletIcon;
                             return (
-                                <Card key={wallet.id} className="flex flex-col">
-                                    <CardHeader className="cursor-pointer" onClick={() => handleWalletClick(wallet)}>
-                                        <div className="flex items-center gap-3">
-                                            <Icon className="h-8 w-8 text-primary flex-shrink-0" />
-                                            <div>
-                                                <CardTitle className="text-lg font-bold font-headline">{wallet.name}</CardTitle>
-                                                <CardDescription className="text-xs">Saldo Awal: {formatCurrency(wallet.initialBalance)}</CardDescription>
+                                <Card 
+                                    key={wallet.id}
+                                    className="flex flex-col cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1"
+                                    onClick={() => handleWalletClick(wallet)}
+                                >
+                                    <CardContent className="p-4 flex flex-col h-full gap-3">
+                                        <div className="flex justify-between items-start">
+                                            <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg">
+                                                <Icon className="h-7 w-7 text-primary" />
+                                            </div>
+                                            <div className="flex items-center gap-0 -mr-2 -mt-2">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleOpenForm(wallet); }}><Pencil className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteRequest(wallet.id); }}><Trash2 className="h-4 w-4" /></Button>
                                             </div>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="flex-grow cursor-pointer" onClick={() => handleWalletClick(wallet)}>
-                                        <p className="text-3xl font-bold text-center">{formatCurrency(wallet.currentBalance)}</p>
+                                        <div className="flex-grow">
+                                            <p className="font-headline text-lg leading-tight">{wallet.name}</p>
+                                            <p className="text-2xl font-bold font-headline text-foreground/90 mt-1">
+                                                {formatCurrency(wallet.currentBalance)}
+                                            </p>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
                                     </CardContent>
-                                    <CardFooter className="grid grid-cols-3 gap-2 pt-4 border-t">
-                                        <Button variant="outline" size="sm" onClick={() => handleOpenForm(wallet)}>
-                                            <Pencil className="mr-2 h-4 w-4"/> Ubah
-                                        </Button>
-                                        <Button variant="destructive" size="sm" onClick={() => handleDeleteRequest(wallet.id)}>
-                                            <Trash2 className="mr-2 h-4 w-4"/> Hapus
-                                        </Button>
-                                    </CardFooter>
                                 </Card>
                             )
                         })}

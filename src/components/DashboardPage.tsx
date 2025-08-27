@@ -418,7 +418,7 @@ export default function DashboardPage({
     <>
       <div className="flex min-h-screen w-full flex-col">
         <Header />
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-20">
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8 pb-24">
             {showArchiveAlert && (
                 <Alert variant="destructive" className="animate-in fade-in-50">
                     <Info className="h-4 w-4" />
@@ -554,7 +554,7 @@ export default function DashboardPage({
           </SpeedDialAction>
         </SpeedDial>
         
-        <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />} position="bottom-right">
+        <SpeedDial mainIcon={<HandCoins className="h-7 w-7" />} position="bottom-right">
           <SpeedDialAction label="Tambah Pemasukan" onClick={onAddIncomeClick}>
             <TrendingUp className="h-5 w-5 text-green-500" />
           </SpeedDialAction>
