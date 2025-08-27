@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Plus } from "lucide-react"
+import { Plus, X } from "lucide-react"
 
 interface SpeedDialProps {
   children: React.ReactNode[] | React.ReactNode
@@ -44,17 +44,28 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
         )}
         <div 
             className={cn(
-                "fixed z-40 pointer-events-none",
+                "fixed z-40 flex flex-col items-end pointer-events-none",
                 position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
+                 position === 'bottom-left' && "items-start",
                 className
             )}
         >
-          <div 
-              className={cn(
-                  "flex flex-col-reverse",
-                  position === 'bottom-right' ? 'items-end' : 'items-start'
+            <div 
+                className={cn(
+                    "flex flex-col-reverse items-end mb-3",
+                    position === 'bottom-left' && "items-start",
+                    !isOpen && "hidden"
+                )}
+            >
+              {React.Children.map(children, child => 
+                  React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { 
+                      onClick: () => {
+                          if (child.props.onClick) child.props.onClick();
+                          setIsOpen(false);
+                      }
+                  }) : child
               )}
-          >
+            </div>
             <div className="pointer-events-auto">
               <Button
                 onClick={() => setIsOpen(!isOpen)}
@@ -68,22 +79,6 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
                 </div>
               </Button>
             </div>
-            <div className={cn(
-                "pointer-events-auto transition-all duration-300 ease-in-out",
-                isOpen ? "mb-3" : "hidden"
-            )}>
-              <div className="flex flex-col-reverse">
-                {React.Children.map(children, child => 
-                    React.isValidElement(child) ? React.cloneElement(child as React.ReactElement<any>, { 
-                        onClick: () => {
-                            if (child.props.onClick) child.props.onClick();
-                            setIsOpen(false);
-                        }
-                    }) : child
-                )}
-              </div>
-            </div>
-          </div>
         </div>
     </SpeedDialContext.Provider>
   )
@@ -100,16 +95,15 @@ export function SpeedDialAction({ children, label, onClick, className }: SpeedDi
   const { position } = React.useContext(SpeedDialContext);
   return (
     <div className={cn(
-        "flex items-center w-full mt-3",
+        "flex w-full mt-3 pointer-events-auto",
         position === 'bottom-left' && "flex-row-reverse",
         className
     )}>
       {label && (
-        <div className={cn(
-          "flex items-center",
-          position === 'bottom-right' ? 'mr-3' : 'ml-3'
-        )}>
-          <div className="whitespace-nowrap rounded-md bg-card px-3 py-1.5 text-sm font-medium text-card-foreground shadow-sm">
+        <div className="flex items-center flex-grow">
+          <div className={cn(
+            "whitespace-nowrap rounded-md bg-card px-3 py-1.5 text-sm font-medium text-card-foreground shadow-sm"
+          )}>
             {label}
           </div>
         </div>
@@ -117,7 +111,10 @@ export function SpeedDialAction({ children, label, onClick, className }: SpeedDi
       <Button
         size="icon"
         variant="secondary"
-        className="h-12 w-12 rounded-full shadow-md"
+        className={cn(
+            "h-12 w-12 rounded-full shadow-md",
+             position === 'bottom-right' ? 'ml-3' : 'mr-3'
+        )}
         onClick={onClick}
       >
         {children}
