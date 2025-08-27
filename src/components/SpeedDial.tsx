@@ -45,19 +45,34 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
         )}
         <div 
             className={cn(
-                "fixed z-40 pointer-events-none",
+                "fixed z-40",
                 position === 'bottom-right' ? 'bottom-20 right-6' : 'bottom-20 left-6',
                 className
             )}
         >
-          <div className={cn(
-              "flex flex-col items-center",
-              position === 'bottom-right' ? 'items-end' : 'items-start'
-          )}>
+          <div 
+              className={cn(
+                  "flex flex-col-reverse items-center",
+                  position === 'bottom-right' ? 'items-end' : 'items-start'
+              )}
+          >
+            <div className="pointer-events-auto">
+              <Button
+                onClick={() => setIsOpen(!isOpen)}
+                size="icon"
+                className="h-14 w-14 rounded-full shadow-lg"
+                aria-expanded={isOpen}
+                aria-label="Toggle Actions"
+              >
+                <div className={cn("transition-transform duration-300 ease-in-out", isOpen && "rotate-45")}>
+                    {mainIcon || <Plus className="h-6 w-6" />}
+                </div>
+              </Button>
+            </div>
             <div
                 className={cn(
-                    "flex flex-col transition-all duration-300 ease-in-out",
-                    isOpen ? "opacity-100" : "hidden"
+                    "flex flex-col-reverse transition-all duration-300 ease-in-out",
+                    isOpen ? "mb-3" : "hidden"
                 )}
             >
               {React.Children.map(children, child => 
@@ -68,19 +83,6 @@ export function SpeedDial({ children, mainIcon, position = "bottom-right", class
                       }
                   }) : child
               )}
-            </div>
-            <div className="pointer-events-auto">
-              <Button
-                onClick={() => setIsOpen(!isOpen)}
-                size="icon"
-                className="h-14 w-14 rounded-full shadow-lg mt-3"
-                aria-expanded={isOpen}
-                aria-label="Toggle Actions"
-              >
-                <div className={cn("transition-transform duration-300 ease-in-out", isOpen && "rotate-45")}>
-                    {mainIcon || <Plus className="h-6 w-6" />}
-                </div>
-              </Button>
             </div>
           </div>
         </div>
@@ -99,12 +101,15 @@ export function SpeedDialAction({ children, label, onClick, className }: SpeedDi
   const { position } = React.useContext(SpeedDialContext);
   return (
     <div className={cn(
-        "flex items-center gap-4 pointer-events-auto mb-3",
+        "flex items-center pointer-events-auto mt-3",
         position === 'bottom-left' && "flex-row-reverse",
         className
     )}>
       {label && (
-        <div className="whitespace-nowrap rounded-md bg-card px-3 py-1.5 text-sm font-medium text-card-foreground shadow-sm">
+        <div className={cn(
+            "whitespace-nowrap rounded-md bg-card px-3 py-1.5 text-sm font-medium text-card-foreground shadow-sm",
+            position === 'bottom-right' ? 'mr-4' : 'ml-4'
+        )}>
           {label}
         </div>
       )}
