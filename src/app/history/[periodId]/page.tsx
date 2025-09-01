@@ -63,9 +63,13 @@ export default function HistoryDetailPage() {
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
     const [detailItem, setDetailItem] = React.useState<(UnifiedTransaction) | null>(null);
     
+    // State for all data from all periods for passing to forms
+    const [allExpenses, setAllExpenses] = React.useState<Expense[]>([]);
+    const [allIncomes, setAllIncomes] = React.useState<Income[]>([]);
+    const [allCategories, setAllCategories] = React.useState<Category[]>([]);
+    const [wallets, setWallets] = React.useState<Wallet[]>([]);
     const [savingGoals, setSavingGoals] = React.useState<SavingGoal[]>([]);
     const [debts, setDebts] = React.useState<Debt[]>([]);
-    const [wallets, setWallets] = React.useState<Wallet[]>([]);
     
     // CRUD state
     const [isExpenseFormOpen, setIsExpenseFormOpen] = React.useState(false);
@@ -79,6 +83,7 @@ export default function HistoryDetailPage() {
         if (!user || !periodId) return;
         setIsLoading(true);
         try {
+            // Load current period data
             let docRef = periodId === 'current'
                 ? doc(db, 'users', user.uid, 'budgets', 'current')
                 : doc(db, 'users', user.uid, 'archivedBudgets', periodId);
@@ -88,20 +93,43 @@ export default function HistoryDetailPage() {
                 const periodData = convertTimestamps(docSnap.data()) as BudgetPeriod;
                 setPeriod(periodData);
                 setDateRange({ from: new Date(periodData.periodStart), to: periodData.periodEnd ? new Date(periodData.periodEnd) : new Date() });
-
-                const goalsSnapshot = await getDocs(collection(db, 'users', user.uid, 'savingGoals'));
-                setSavingGoals(goalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingGoal[]);
-                
-                const debtsSnapshot = await getDocs(collection(db, 'users', user.uid, 'debts'));
-                setDebts(debtsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Debt[]);
-                
-                const walletsSnapshot = await getDocs(collection(db, 'users', user.uid, 'wallets'));
-                setWallets(walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Wallet[]);
-
             } else {
                 toast({ title: "Error", description: "Data periode tidak ditemukan.", variant: "destructive" });
                 router.push('/history');
+                return;
             }
+
+            // Load all historical data for accurate balance calculations in forms
+            const tempAllExpenses: Expense[] = [];
+            const tempAllIncomes: Income[] = [];
+            const tempAllCategories: Category[] = [];
+            const categoryMap = new Map<string, Category>();
+
+            const currentBudgetSnap = await getDoc(doc(db, 'users', user.uid, 'budgets', 'current'));
+            if (currentBudgetSnap.exists()) {
+                const data = convertTimestamps(currentBudgetSnap.data());
+                tempAllExpenses.push(...(data.expenses || []));
+                tempAllIncomes.push(...(data.incomes || []));
+                (data.categories || []).forEach((c: Category) => !categoryMap.has(c.id) && categoryMap.set(c.id, c));
+            }
+            const archivedSnaps = await getDocs(collection(db, 'users', user.uid, 'archivedBudgets'));
+            archivedSnaps.forEach(docSnap => {
+                const data = convertTimestamps(docSnap.data());
+                tempAllExpenses.push(...(data.expenses || []));
+                tempAllIncomes.push(...(data.incomes || []));
+                (data.categories || []).forEach((c: Category) => !categoryMap.has(c.id) && categoryMap.set(c.id, c));
+            });
+            setAllExpenses(tempAllExpenses);
+            setAllIncomes(tempAllIncomes);
+            setAllCategories(Array.from(categoryMap.values()));
+            
+            const walletsSnapshot = await getDocs(collection(db, 'users', user.uid, 'wallets'));
+            setWallets(walletsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Wallet)));
+            const goalsSnapshot = await getDocs(collection(db, 'users', user.uid, 'savingGoals'));
+            setSavingGoals(goalsSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as SavingGoal[]);
+            const debtsSnapshot = await getDocs(collection(db, 'users', user.uid, 'debts'));
+            setDebts(debtsSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Debt[]);
+
         } catch (error) {
             console.error("Failed to load period data:", error);
             toast({ title: 'Gagal Memuat Data', variant: 'destructive' });
@@ -425,12 +453,14 @@ export default function HistoryDetailPage() {
         <AddExpenseForm
             isOpen={isExpenseFormOpen}
             onOpenChange={setIsExpenseFormOpen}
-            categories={period?.categories || []}
+            categories={allCategories}
             savingGoals={savingGoals}
             debts={debts}
             wallets={wallets}
             onSubmit={(data) => handleSaveTransaction(data, 'expense')}
             expenseToEdit={editingItem?.type === 'expense' ? editingItem as Expense : null}
+            expenses={allExpenses}
+            incomes={allIncomes}
         />
         
         <AddIncomeForm
@@ -439,6 +469,8 @@ export default function HistoryDetailPage() {
             wallets={wallets}
             onSubmit={(data) => handleSaveTransaction(data, 'income')}
             incomeToEdit={editingItem?.type === 'income' ? editingItem as Income : null}
+            expenses={allExpenses}
+            incomes={allIncomes}
         />
 
         <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
