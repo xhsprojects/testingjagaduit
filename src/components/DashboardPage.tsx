@@ -52,6 +52,8 @@ interface DashboardPageProps {
   onDeleteIncome: (incomeId: string) => void;
   onViewIncome: (income: Income) => void;
   onAddIncomeClick: () => void;
+  allExpenses: Expense[];
+  allIncomes: Income[];
 }
 
 type UnifiedTransaction = (Expense | Income) & {
@@ -164,7 +166,9 @@ export default function DashboardPage({
   onEditIncome,
   onDeleteIncome,
   onViewIncome,
-  onAddIncomeClick
+  onAddIncomeClick,
+  allExpenses,
+  allIncomes
 }: DashboardPageProps) {
   const { user, isPremium, idToken } = useAuth();
   const router = useRouter();
@@ -504,8 +508,8 @@ export default function DashboardPage({
                 </Card>
                  <WalletsSummaryCard
                     wallets={wallets}
-                    expenses={expenses}
-                    incomes={incomes}
+                    expenses={allExpenses}
+                    incomes={allIncomes}
                 />
             </div>
              <Card>
@@ -575,8 +579,8 @@ export default function DashboardPage({
           savingGoals={savingGoals}
           debts={debts}
           wallets={wallets}
-          expenses={expenses}
-          incomes={incomes}
+          expenses={allExpenses}
+          incomes={allIncomes}
           onSubmit={handleSaveExpense}
           expenseToEdit={editingExpense}
         />

@@ -424,16 +424,12 @@ export default function ClientPage() {
   };
   
   const totalWalletBalance = React.useMemo(() => {
-    if (!currentBudget) return 0;
-    const expensesInCurrent = currentBudget.expenses || [];
-    const incomesInCurrent = currentBudget.incomes || [];
-    
     return wallets.reduce((total, wallet) => {
-        const totalIncomeForWallet = incomesInCurrent.filter(inc => inc.walletId === wallet.id).reduce((sum, inc) => sum + inc.amount, 0);
-        const totalExpenseForWallet = expensesInCurrent.filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
-        return total + wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
+      const totalIncomeForWallet = allIncomes.filter(i => i.walletId === wallet.id).reduce((sum, i) => sum + i.amount, 0);
+      const totalExpenseForWallet = allExpenses.filter(e => e.walletId === wallet.id).reduce((sum, e) => sum + e.amount, 0);
+      return total + wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
     }, 0);
-  }, [wallets, currentBudget]);
+  }, [wallets, allIncomes, allExpenses]);
 
 
   if (authLoading || isLoading) {
@@ -484,6 +480,8 @@ export default function ClientPage() {
             onDeleteIncome={handleDeleteIncomeRequest}
             onViewIncome={setDetailIncome}
             onAddIncomeClick={() => setIsAddIncomeFormOpen(true)}
+            allExpenses={allExpenses}
+            allIncomes={allIncomes}
         />
         <AddIncomeForm 
             isOpen={isAddIncomeFormOpen}
