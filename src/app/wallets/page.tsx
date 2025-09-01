@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import type { Wallet, Expense, Income, Category, SavingGoal, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, ChevronRight, Pencil, Trash2, History } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { formatCurrency, cn } from '@/lib/utils';
