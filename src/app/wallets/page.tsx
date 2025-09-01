@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { formatCurrency, cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, getDocs } from 'firebase/firestore';
 import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
 import { AddWalletForm } from '@/components/AddWalletForm';
 import { deleteWallet } from './actions';
@@ -58,8 +58,8 @@ export default function WalletsPage() {
     const { toast } = useToast();
 
     const [wallets, setWallets] = React.useState<Wallet[]>([]);
-    const [expenses, setExpenses] = React.useState<Expense[]>([]);
-    const [incomes, setIncomes] = React.useState<Income[]>([]);
+    const [allExpenses, setAllExpenses] = React.useState<Expense[]>([]);
+    const [allIncomes, setAllIncomes] = React.useState<Income[]>([]);
     const [categories, setCategories] = React.useState<Category[]>([]);
     const [savingGoals, setSavingGoals] = React.useState<SavingGoal[]>([]);
     const [debts, setDebts] = React.useState<Debt[]>([]);
@@ -102,21 +102,36 @@ export default function WalletsPage() {
             console.error("Failed to load wallets", err);
             toast({ title: "Gagal memuat dompet", variant: "destructive" });
         });
-
-        const budgetUnsub = onSnapshot(doc(db, 'users', user.uid, 'budgets', 'current'), (snapshot) => {
-            if (snapshot.exists()) {
-                const budgetData = convertTimestamps(snapshot.data());
-                setExpenses(budgetData.expenses || []);
-                setIncomes(budgetData.incomes || []);
-                setCategories(budgetData.categories || []);
-            } else {
-                setExpenses([]);
-                setIncomes([]);
-                setCategories([]);
+        
+        // This is a new, more robust way to load ALL transactions for accurate balance calculation
+        const loadAllTransactions = async () => {
+            const tempAllExpenses: Expense[] = [];
+            const tempAllIncomes: Income[] = [];
+            
+            // Fetch current period
+            const currentBudgetSnap = await getDoc(doc(db, 'users', user.uid, 'budgets', 'current'));
+            if (currentBudgetSnap.exists()) {
+                 const data = convertTimestamps(currentBudgetSnap.data());
+                 tempAllExpenses.push(...(data.expenses || []));
+                 tempAllIncomes.push(...(data.incomes || []));
+                 setCategories(data.categories || []);
             }
-        }, (err) => {
-            console.error("Failed to load budget data", err);
-            toast({ title: "Gagal memuat transaksi", variant: "destructive" });
+
+            // Fetch archived periods
+            const archivedSnaps = await getDocs(collection(db, 'users', user.uid, 'archivedBudgets'));
+            archivedSnaps.forEach(docSnap => {
+                const data = convertTimestamps(docSnap.data());
+                tempAllExpenses.push(...(data.expenses || []));
+                tempAllIncomes.push(...(data.incomes || []));
+            });
+            
+            setAllExpenses(tempAllExpenses);
+            setAllIncomes(tempAllIncomes);
+        };
+        
+        loadAllTransactions().catch(err => {
+             console.error("Failed to load all transaction data", err);
+             toast({ title: "Gagal memuat semua riwayat transaksi", variant: "destructive" });
         });
         
         const goalsUnsub = onSnapshot(collection(db, 'users', user.uid, 'savingGoals'), (snapshot) => {
@@ -130,17 +145,16 @@ export default function WalletsPage() {
 
         return () => {
             walletsUnsub();
-            budgetUnsub();
             goalsUnsub();
             debtsUnsub();
         };
     }, [user, toast]);
     
     const calculateWalletBalance = React.useCallback((walletId: string, initialBalance: number) => {
-        const totalIncome = incomes.filter(i => i.walletId === walletId).reduce((sum, inc) => sum + inc.amount, 0);
-        const totalExpense = expenses.filter(e => e.walletId === walletId).reduce((sum, e) => sum + e.amount, 0);
+        const totalIncome = allIncomes.filter(i => i.walletId === walletId).reduce((sum, inc) => sum + inc.amount, 0);
+        const totalExpense = allExpenses.filter(e => e.walletId === walletId).reduce((sum, e) => sum + e.amount, 0);
         return initialBalance + totalIncome - totalExpense;
-    }, [incomes, expenses]);
+    }, [allIncomes, allExpenses]);
 
     const totalAllWalletsBalance = React.useMemo(() => {
         return wallets.reduce((total, wallet) => {
@@ -236,8 +250,8 @@ export default function WalletsPage() {
 
     const filteredTransactionsForWallet = React.useMemo(() => {
         if (!detailWallet) return [];
-        const walletExpenses = expenses.filter(e => e.walletId === detailWallet.id).map(e => ({...e, type: 'expense' as const}));
-        const walletIncomes = incomes.filter(i => i.walletId === detailWallet.id).map(i => ({...i, type: 'income' as const}));
+        const walletExpenses = allExpenses.filter(e => e.walletId === detailWallet.id).map(e => ({...e, type: 'expense' as const}));
+        const walletIncomes = allIncomes.filter(i => i.walletId === detailWallet.id).map(i => ({...i, type: 'income' as const}));
         
         let allTransactions: UnifiedTransaction[] = [...walletExpenses, ...walletIncomes];
 
@@ -257,7 +271,7 @@ export default function WalletsPage() {
         }
         
         return allTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [expenses, incomes, detailWallet, dialogFilter.tab, dialogFilter.query, categoryMap]);
+    }, [allExpenses, allIncomes, detailWallet, dialogFilter.tab, dialogFilter.query, categoryMap]);
 
     const handleWalletClick = (wallet: Wallet) => {
         setDetailWallet(wallet);
@@ -315,26 +329,32 @@ export default function WalletsPage() {
                                 <Card 
                                     key={wallet.id}
                                     className="flex flex-col cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1"
-                                    onClick={() => handleWalletClick(wallet)}
                                 >
-                                    <CardContent className="p-4 flex flex-col h-full gap-3">
+                                    <CardHeader className="flex-grow pb-2" onClick={() => handleWalletClick(wallet)}>
                                         <div className="flex justify-between items-start">
                                             <div className="p-3 bg-gradient-to-br from-primary/20 to-primary/5 rounded-lg">
                                                 <Icon className="h-7 w-7 text-primary" />
                                             </div>
-                                            <div className="flex items-center gap-0 -mr-2 -mt-2">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); handleOpenForm(wallet); }}><Pencil className="h-4 w-4" /></Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); handleDeleteRequest(wallet.id); }}><Trash2 className="h-4 w-4" /></Button>
-                                            </div>
-                                        </div>
-                                        <div className="flex-grow">
-                                            <p className="font-headline text-lg leading-tight">{wallet.name}</p>
-                                            <p className="text-2xl font-bold font-headline text-foreground/90 mt-1">
+                                             <p className="text-2xl font-bold font-headline text-foreground/90 mt-1 text-right">
                                                 {formatCurrency(wallet.currentBalance)}
                                             </p>
                                         </div>
-                                        <p className="text-xs text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
+                                         <CardTitle className="font-headline text-lg leading-tight pt-2">{wallet.name}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="pt-0" onClick={() => handleWalletClick(wallet)}>
+                                         <p className="text-xs text-muted-foreground">Saldo Awal: {formatCurrency(wallet.initialBalance)}</p>
                                     </CardContent>
+                                    <CardFooter className="grid grid-cols-3 gap-2 pt-3 border-t">
+                                        <Button variant="outline" size="sm" onClick={() => handleWalletClick(wallet)}>
+                                            <History className="mr-2 h-4 w-4"/> Riwayat
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleOpenForm(wallet); }}>
+                                            <Pencil className="mr-2 h-4 w-4"/> Ubah
+                                        </Button>
+                                        <Button variant="destructive" size="sm" onClick={(e) => { e.stopPropagation(); handleDeleteRequest(wallet.id); }}>
+                                            <Trash2 className="mr-2 h-4 w-4"/> Hapus
+                                        </Button>
+                                    </CardFooter>
                                 </Card>
                             )
                         })}
@@ -342,7 +362,7 @@ export default function WalletsPage() {
                 )}
             </main>
 
-            <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />}>
+            <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />} position="bottom-right">
                  <SpeedDialAction label="Transfer Dana" onClick={() => setIsTransferFormOpen(true)}>
                     <ArrowLeftRight className="h-5 w-5 text-purple-500" />
                 </SpeedDialAction>
@@ -367,8 +387,8 @@ export default function WalletsPage() {
                 isOpen={isTransferFormOpen}
                 onOpenChange={setIsTransferFormOpen}
                 wallets={wallets}
-                expenses={expenses}
-                incomes={incomes}
+                expenses={allExpenses}
+                incomes={allIncomes}
             />
 
             <AddExpenseForm
@@ -378,8 +398,8 @@ export default function WalletsPage() {
                 savingGoals={savingGoals}
                 debts={debts}
                 wallets={wallets}
-                expenses={expenses}
-                incomes={incomes}
+                expenses={allExpenses}
+                incomes={allIncomes}
                 onSubmit={(data) => handleSaveTransaction(data, 'expense')}
                 expenseToEdit={editingExpense}
             />
@@ -388,8 +408,8 @@ export default function WalletsPage() {
                 isOpen={isAddIncomeFormOpen}
                 onOpenChange={handleAddIncomeFormOpenChange}
                 wallets={wallets}
-                expenses={expenses}
-                incomes={incomes}
+                expenses={allExpenses}
+                incomes={allIncomes}
                 onSubmit={(data) => handleSaveTransaction(data, 'income')}
                 incomeToEdit={editingIncome}
             />

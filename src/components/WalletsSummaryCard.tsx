@@ -19,6 +19,7 @@ interface WalletsSummaryCardProps {
 export default function WalletsSummaryCard({ wallets, expenses, incomes }: WalletsSummaryCardProps) {
 
     const calculateWalletBalance = React.useCallback((wallet: Wallet) => {
+        // Correctly calculate balance from ALL transactions, not just current period.
         const totalIncome = incomes
             .filter(i => i.walletId === wallet.id)
             .reduce((sum, i) => sum + i.amount, 0);

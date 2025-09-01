@@ -71,29 +71,15 @@ export async function resetBudgetPeriod(token: string): Promise<ActionResult> {
         }
 
         const currentData = budgetDocSnap.data() as BudgetPeriod;
-        const currentExpenses: Expense[] = currentData.expenses || [];
-        const currentIncomes: Income[] = currentData.incomes || [];
-        const walletsSnapshot = await db.collection('users').doc(uid).collection('wallets').get();
-        const wallets = walletsSnapshot.docs.map(doc => doc.data() as Wallet);
-
+        
+        // This is the correct logic: We archive the current period's transactions
+        // and then reset them for the new period. We DO NOT touch the wallet initial balances.
+        // The wallet balance is a derived state from ALL transactions, not just the current period.
+        
         const batch = db.batch();
-
-        // Calculate final balances and prepare wallet updates
-        wallets.forEach(wallet => {
-            const totalIncomeForWallet = currentIncomes
-                .filter(inc => inc.walletId === wallet.id)
-                .reduce((sum, inc) => sum + inc.amount, 0);
-            const totalExpenseForWallet = currentExpenses
-                .filter(e => e.walletId === wallet.id)
-                .reduce((sum, e) => sum + e.amount, 0);
-            const finalBalance = wallet.initialBalance + totalIncomeForWallet - totalExpenseForWallet;
-
-            const walletDocRef = db.collection('users').doc(uid).collection('wallets').doc(wallet.id);
-            batch.update(walletDocRef, { initialBalance: finalBalance });
-        });
-
-        const totalExpensesValue = currentExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-        const totalAddedIncomes = currentIncomes.reduce((sum, inc) => sum + inc.amount, 0);
+        
+        const totalExpensesValue = (currentData.expenses || []).reduce((sum, exp) => sum + exp.amount, 0);
+        const totalAddedIncomes = (currentData.incomes || []).reduce((sum, inc) => sum + inc.amount, 0);
         const totalIncomeValue = currentData.income + totalAddedIncomes;
         const remainingBudgetValue = totalIncomeValue - totalExpensesValue;
 
@@ -108,6 +94,8 @@ export async function resetBudgetPeriod(token: string): Promise<ActionResult> {
         const archiveDocRef = db.collection('users').doc(uid).collection('archivedBudgets').doc();
         batch.set(archiveDocRef, archivedPeriod);
         
+        // Create the new budget data by copying existing categories and income,
+        // but resetting expenses and incomes for the new period.
         const newBudgetData = {
             ...currentData,
             expenses: [],
