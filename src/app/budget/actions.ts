@@ -105,7 +105,7 @@ export async function resetBudgetPeriod(token: string): Promise<ActionResult> {
             remainingBudget: remainingBudgetValue,
         };
 
-        const archiveDocRef = doc(db.collection('users').doc(uid).collection('archivedBudgets'));
+        const archiveDocRef = db.collection('users').doc(uid).collection('archivedBudgets').doc();
         batch.set(archiveDocRef, archivedPeriod);
         
         const newBudgetData = {
