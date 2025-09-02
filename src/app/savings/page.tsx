@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { awardUserXp } from '@/app/achievements/actions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const convertTimestamps = (data: any) => {
   if (data?.date && typeof data.date.toDate === 'function') {
@@ -297,11 +298,28 @@ export default function SavingsPage() {
     }, [expenses, detailGoal]);
 
     const detailWallet = transactionDetail?.walletId ? wallets.find(w => w.id === transactionDetail.walletId) : null;
+    
+    const totalSavedInAllGoals = React.useMemo(() => {
+        return savingGoals.reduce((total, goal) => total + calculateGoalProgress(goal.id), 0);
+    }, [savingGoals, calculateGoalProgress]);
+
 
     if (authLoading || isLoading) {
         return (
-            <div className="flex h-screen w-full items-center justify-center bg-secondary">
-                <div className="text-lg font-semibold text-primary">Memuat Tujuan Menabung...</div>
+            <div className="flex min-h-screen w-full flex-col bg-muted/40">
+                <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <Skeleton className="h-6 w-40" />
+                </header>
+                 <main className="flex-1 p-4 md:p-8 space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
+                    </div>
+                 </main>
             </div>
         );
     }
@@ -321,6 +339,24 @@ export default function SavingsPage() {
                 </div>
             </header>
             <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+                <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Total Dana Tersimpan</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-2xl font-bold">{formatCurrency(totalSavedInAllGoals)}</p>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium">Tujuan Aktif</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                             <p className="text-2xl font-bold">{savingGoals.length}</p>
+                        </CardContent>
+                    </Card>
+                </div>
                  {savingGoals.length > 0 ? (
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {savingGoals.map(goal => {
@@ -343,11 +379,6 @@ export default function SavingsPage() {
                                             <span className="text-muted-foreground">{progress.toFixed(1)}%</span>
                                         </div>
                                     </CardContent>
-                                    <CardFooter>
-                                        <Button variant="ghost" size="sm" className="w-full">
-                                            Lihat Detail <ChevronRight className="h-4 w-4 ml-2" />
-                                        </Button>
-                                    </CardFooter>
                                 </Card>
                             )
                         })}
@@ -515,6 +546,3 @@ export default function SavingsPage() {
     );
 }
 
-    
-
-    
