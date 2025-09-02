@@ -6,11 +6,10 @@ import { useRouter } from 'next/navigation';
 import type { SavingGoal, Expense, Category, Wallet, Income, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
-import { Target, PlusCircle, MinusCircle, Wallet as WalletIcon, Calendar, Coins, FileText, ArrowLeft, CreditCard, Landmark, Tag, PiggyBank } from 'lucide-react';
+import { Target, PlusCircle, MinusCircle, Wallet as WalletIcon, Calendar, Coins, FileText, ArrowLeft, CreditCard, Landmark, Tag, PiggyBank, Edit, Trash2, ChevronRight, History } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/lib/firebase';
 import { collection, doc, getDocs, writeBatch, getDoc, updateDoc } from 'firebase/firestore';
-import SavingGoalsTracker from '@/components/SavingGoalsTracker';
 import { WithdrawFromGoalForm } from '@/components/WithdrawFromGoalForm';
 import { awardAchievement } from '@/lib/achievements-manager';
 import { SpeedDial, SpeedDialAction } from '@/components/SpeedDial';
@@ -23,6 +22,8 @@ import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { awardUserXp } from '@/app/achievements/actions';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 const convertTimestamps = (data: any) => {
   if (data?.date && typeof data.date.toDate === 'function') {
@@ -249,6 +250,7 @@ export default function SavingsPage() {
             id: `dep-${Date.now()}`,
             amount: withdrawalAmount,
             baseAmount: withdrawalAmount,
+            adminFee: 0,
             date: new Date(),
             notes: `Dana masuk dari tujuan '${savingGoals.find(g => g.id === withdrawalData.savingGoalId)?.name || ''}'`,
             walletId: withdrawalData.walletId,
@@ -319,11 +321,43 @@ export default function SavingsPage() {
                 </div>
             </header>
             <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-                <SavingGoalsTracker 
-                    goals={savingGoals} 
-                    expenses={expenses}
-                    onGoalClick={setDetailGoal}
-                />
+                 {savingGoals.length > 0 ? (
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {savingGoals.map(goal => {
+                           const currentAmount = calculateGoalProgress(goal.id);
+                           const progress = goal.targetAmount > 0 ? (currentAmount / goal.targetAmount) * 100 : 0;
+                           return (
+                               <Card 
+                                    key={goal.id} 
+                                    onClick={() => setDetailGoal(goal)}
+                                    className="flex flex-col cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1"
+                                >
+                                    <CardHeader>
+                                        <CardTitle className="font-headline text-lg truncate" title={goal.name}>{goal.name}</CardTitle>
+                                        <CardDescription>Target: {formatCurrency(goal.targetAmount)}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex-grow space-y-2">
+                                        <Progress value={progress} className="h-3"/>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="font-semibold text-primary">{formatCurrency(currentAmount)}</span>
+                                            <span className="text-muted-foreground">{progress.toFixed(1)}%</span>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button variant="ghost" size="sm" className="w-full">
+                                            Lihat Detail <ChevronRight className="h-4 w-4 ml-2" />
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            )
+                        })}
+                    </div>
+                ) : (
+                    <div className="text-center text-muted-foreground py-16">
+                        <p className="text-lg font-semibold">Anda Belum Punya Tujuan</p>
+                        <p className="text-sm">Gunakan tombol (+) untuk membuat tujuan tabungan pertama Anda.</p>
+                    </div>
+                )}
             </main>
 
             <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />}>
@@ -369,7 +403,7 @@ export default function SavingsPage() {
                 onSubmit={handleWithdrawal}
             />
 
-            <Dialog open={!!detailGoal} onOpenChange={(open) => !open && setDetailGoal(null)} modal={false}>
+            <Dialog open={!!detailGoal} onOpenChange={(open) => !open && setDetailGoal(null)}>
                 <DialogContent className="h-full flex flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
                     <DialogHeader className="p-6 pb-4 border-b">
                         <DialogTitle className="font-headline">{detailGoal?.name}</DialogTitle>
@@ -427,7 +461,7 @@ export default function SavingsPage() {
                 </DialogContent>
             </Dialog>
             
-            <Dialog open={!!transactionDetail} onOpenChange={(open) => !open && setTransactionDetail(null)} modal={false}>
+            <Dialog open={!!transactionDetail} onOpenChange={(open) => !open && setTransactionDetail(null)}>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Detail Transaksi Tabungan</DialogTitle>
