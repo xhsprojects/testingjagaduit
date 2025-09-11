@@ -12,6 +12,12 @@ export const metadata: Metadata = {
     'iklan di aplikasi finansial',
     'Jaga Duit partnership',
     'menjangkau audiens finansial',
+    'kerjasama merek',
+    'marketing aplikasi',
+    'audiens melek finansial',
+    'kolaborasi merek indonesia',
+    'brand placement',
+    'native advertising',
   ],
   alternates: {
     canonical: '/sponsor',

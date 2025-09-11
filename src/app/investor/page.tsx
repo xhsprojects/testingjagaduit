@@ -13,6 +13,11 @@ export const metadata: Metadata = {
     'investasi seed indonesia',
     'modal ventura',
     'angel investor',
+    'startup indonesia cari investor',
+    'investasi tahap awal',
+    'pitch deck fintech',
+    'fintech indonesia',
+    'peluang investasi asia tenggara',
   ],
   alternates: {
     canonical: '/investor',
