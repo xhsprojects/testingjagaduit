@@ -65,6 +65,7 @@ export default function SplitBillClientPage() {
 
     const [splitMode, setSplitMode] = React.useState<SplitMode>('equal');
     const [customAmounts, setCustomAmounts] = React.useState<Record<string, number>>({});
+    const [includeItemsInShare, setIncludeItemsInShare] = React.useState(false);
 
     const [isScanning, setIsScanning] = React.useState(false);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -265,7 +266,16 @@ export default function SplitBillClientPage() {
         const bulletPoint = forWhatsApp ? '-' : '▪️';
         const thanksIcon = forWhatsApp ? '😊' : '🙏';
 
-        let message = `*Rincian Tagihan: ${billName || 'Patungan'}*\n\n`;
+        let message = `*Rincian Tagihan: ${billName || 'Patungan'}*\n`;
+
+        if (includeItemsInShare && items.length > 0) {
+            message += '\n*Daftar Item:*\n';
+            items.forEach(item => {
+                message += `${bulletPoint} ${item.name} (${item.quantity}x) = ${formatCurrency(item.quantity * item.price)}\n`;
+            });
+        }
+        
+        message += `\n*Pembagian Tagihan:*\n`;
         summary.perPersonBreakdown.forEach(person => {
             message += `${bulletPoint} *${person.name}*: *${formatCurrency(person.finalAmount)}*\n`;
         });
@@ -481,7 +491,17 @@ export default function SplitBillClientPage() {
                                     </div>
                                 )}
                                 </CardContent>
-                                <CardFooter className="flex-col gap-2">
+                                <CardFooter className="flex-col gap-3">
+                                     <div className="flex items-center space-x-2 self-start">
+                                        <Checkbox 
+                                            id="include-items" 
+                                            checked={includeItemsInShare}
+                                            onCheckedChange={(checked) => setIncludeItemsInShare(!!checked)}
+                                        />
+                                        <label htmlFor="include-items" className="text-sm font-medium leading-none">
+                                            Sertakan Daftar Item
+                                        </label>
+                                    </div>
                                      <Button className="w-full bg-green-500 hover:bg-green-600" onClick={generateWhatsAppMessage} disabled={summary.perPersonBreakdown.length === 0}>
                                         <Share2 className="h-4 w-4 mr-2"/>Bagikan ke WhatsApp
                                     </Button>
@@ -577,4 +597,5 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
         </div>
     );
 }
+
 
