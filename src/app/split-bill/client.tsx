@@ -275,12 +275,19 @@ export default function SplitBillClientPage() {
             });
         }
         
+        message += '\n*Ringkasan Biaya:*\n';
+        message += `${bulletPoint} Subtotal: ${formatCurrency(summary.subtotal)}\n`;
+        if (summary.discountAmount > 0) message += `${bulletPoint} Diskon: -${formatCurrency(summary.discountAmount)}\n`;
+        if (summary.taxAmount > 0) message += `${bulletPoint} Pajak: +${formatCurrency(summary.taxAmount)}\n`;
+        if (summary.serviceAmount > 0) message += `${bulletPoint} Servis: +${formatCurrency(summary.serviceAmount)}\n`;
+        message += `*${bulletPoint} TOTAL TAGIHAN: ${formatCurrency(summary.finalTotal)}*\n`;
+        
         message += `\n*Pembagian Tagihan:*\n`;
         summary.perPersonBreakdown.forEach(person => {
             message += `${bulletPoint} *${person.name}*: *${formatCurrency(person.finalAmount)}*\n`;
         });
-        message += `\n*TOTAL TAGIHAN: ${formatCurrency(summary.finalTotal)}*`;
-        message += `\n\nTerima kasih! ${thanksIcon}\n_Dihitung dengan Jaga Duit_`;
+        
+        message += `\nTerima kasih! ${thanksIcon}\n_Dihitung dengan Jaga Duit_`;
         return message;
     };
     
@@ -597,5 +604,6 @@ function EditItemForm({ item, onSave, onCancel }: EditItemFormProps) {
         </div>
     );
 }
+
 
 
