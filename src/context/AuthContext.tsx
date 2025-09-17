@@ -243,7 +243,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (result.success) {
               toast({ title: "Sinkronisasi Poin Selesai", description: `Anda menerima ${missingXp} XP dari penyesuaian sistem prestasi.` });
               if (result.leveledUp) {
-                toast({ title: '🎉 Naik Level!', description: `Selamat! Anda telah mencapai Level ${result.newLevel}.` });
+                toast({ title: '🎉 Naik Level!', description: `Selamat! Anda telah mencapai Level ${result.newLevel}. Tema baru mungkin terbuka!` });
               }
             } else {
               console.error("XP reconciliation failed:", result.message);

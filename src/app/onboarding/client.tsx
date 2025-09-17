@@ -85,8 +85,8 @@ export default function OnboardingClientPage({ onSetupComplete }: OnboardingClie
         setIsSubmitting(true);
         const result = await saveOnboardingData(idToken, data.wallets, data.categories as Category[]);
         if (result.success) {
-            toast({ title: "Pengaturan Selesai!", description: "Selamat datang di Jaga Duit! Anda akan diarahkan ke panduan singkat." });
-            router.push('/tutorial');
+            toast({ title: "Pengaturan Selesai!", description: "Selamat datang di Jaga Duit! Anda akan diarahkan ke dasbor." });
+            router.push('/dasbor');
         } else {
             toast({ title: 'Gagal Menyimpan', description: result.message, variant: 'destructive' });
             setIsSubmitting(false);

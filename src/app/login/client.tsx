@@ -35,7 +35,7 @@ export default function LoginClientPage() {
   // This effect will redirect the user to the dashboard if they are already logged in.
   useEffect(() => {
     if (!loading && user && isFirebaseConfigured) {
-      router.push('/');
+      router.push('/dasbor');
     }
   }, [user, loading, router, isFirebaseConfigured]);
 
@@ -210,7 +210,7 @@ export default function LoginClientPage() {
 
           {/* Learn More Button - Moved Here */}
           <Button asChild variant="outline" className="w-full h-12 text-base font-medium border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 transition-all duration-300 rounded-xl">
-            <Link href="/landing" className="flex items-center justify-center space-x-2">
+            <Link href="/" className="flex items-center justify-center space-x-2">
               <Info className="h-5 w-5" />
               <span>Lihat Semua Fitur</span>
             </Link>

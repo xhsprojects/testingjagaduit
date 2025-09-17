@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     'kolaborasi merek indonesia',
     'brand placement',
     'native advertising',
+    'digital marketing fintech',
+    'sponsorship opportunity indonesia',
   ],
   alternates: {
     canonical: '/sponsor',

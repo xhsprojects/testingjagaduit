@@ -114,7 +114,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (loading) return; 
 
-        const isPublicPage = pathname === '/login' || pathname === '/maintenance';
+        const isPublicPage = pathname === '/' || pathname === '/login' || pathname === '/maintenance';
 
         if (isMaintenanceMode && !isAdmin && !isPublicPage) {
             router.replace('/maintenance');
@@ -123,7 +123,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
     }, [isMaintenanceMode, isAdmin, loading, router, pathname]);
 
 
-    const showNavbar = user && !loading && pathname !== '/login' && pathname !== '/maintenance';
+    const showNavbar = user && !loading && pathname !== '/' && pathname !== '/login' && pathname !== '/maintenance';
 
     return (
         <>

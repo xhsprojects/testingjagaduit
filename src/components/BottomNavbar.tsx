@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { LayoutGrid, CreditCard, Target, History, Landmark, Wallet, Tag } from 'lucide-react'
 
 const navItems = [
-    { href: '/', label: 'Dasbor', icon: LayoutGrid },
+    { href: '/dasbor', label: 'Dasbor', icon: LayoutGrid },
     { href: '/savings', label: 'Tujuan', icon: Target },
     { href: '/budget', label: 'Anggaran', icon: Landmark },
     { href: '/debts', label: 'Utang', icon: CreditCard },

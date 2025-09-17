@@ -4,7 +4,6 @@ import { MetadataRoute } from 'next'
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = [
     '',
-    '/landing',
     '/login',
     '/premium',
     '/investor',

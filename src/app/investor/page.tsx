@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     'pitch deck fintech',
     'fintech indonesia',
     'peluang investasi asia tenggara',
+    'startup keuangan',
+    'early stage investment',
+    'VC funding',
   ],
   alternates: {
     canonical: '/investor',
