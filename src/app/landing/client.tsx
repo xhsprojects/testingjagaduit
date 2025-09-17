@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -68,6 +68,9 @@ import { SupportDialog } from '@/components/SupportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { subscribeEmail } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+
 
 const Logo = ({ titleColor = 'text-slate-800', subtitleColor = 'text-slate-600' }: {
   titleColor?: string;
@@ -162,11 +165,28 @@ const AdvantageCard = ({ icon, title, description }: {
 
 
 export default function LandingClientPage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
-  const [dialogContent, setDialogContent] = useState({ title: '', content: '' });
-  const [isInfoDialogOpen, setIsInfoDialogOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [lightboxImage, setLightboxImage] = React.useState<string | null>(null);
+  const [isSupportDialogOpen, setIsSupportDialogOpen] = React.useState(false);
+  const [dialogContent, setDialogContent] = React.useState({ title: '', content: '' });
+  const [isInfoDialogOpen, setIsInfoDialogOpen] = React.useState(false);
+
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (!loading && user) {
+      router.push('/dasbor');
+    }
+  }, [user, loading, router]);
+  
+  if (loading || user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-secondary">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const handleInfoClick = (title: string, content: string) => {
     setDialogContent({ title, content });
