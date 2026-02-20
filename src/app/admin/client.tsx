@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react';
@@ -6,15 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { ArrowLeft, UserCog, Loader2, MoreVertical, Search, Trash2, Wrench, Server, BellRing, BellDot, MessageSquare } from 'lucide-react';
+import { UserCog, Loader2, MoreVertical, Search, Trash2, Server, BellRing, MessageSquare } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import Link from 'next/link';
-import { updateSubscription, setMaintenanceMode, triggerDailyReminders, sendTestNotification, sendBroadcastNotification } from './actions';
+import { updateSubscription, setMaintenanceMode, triggerDailyReminders, sendBroadcastNotification } from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -251,7 +249,7 @@ const ReminderTester = () => {
             if (result.success) {
                 toast({ 
                     title: "Proses Selesai", 
-                    description: `Notifikasi Terkirim: ${result.notificationsSent}. Pengguna Dicek: ${result.usersChecked}. Dengan Token: ${result.usersWithToken}. Punya Tagihan: ${result.usersWithDueReminders}. Errors: ${result.errors.length}` 
+                    description: `Notifikasi Internal Dicatat: ${result.notificationsSent}. Pengguna Dicek: ${result.usersChecked}.` 
                 });
             } else {
                  toast({ title: "Gagal", description: result.message, variant: 'destructive' });
@@ -268,64 +266,16 @@ const ReminderTester = () => {
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2">
                     <BellRing className="h-5 w-5" />
-                    Uji Coba Flow Pengingat
+                    Uji Coba Sinkronisasi Pengingat
                 </CardTitle>
                 <CardDescription>
-                    Jalankan flow pengiriman notifikasi pengingat secara manual. Ini akan memeriksa semua pengguna dan mengirim notifikasi untuk tagihan yang jatuh tempo besok.
+                    Jalankan pengecekan pengingat secara manual. Ini akan memeriksa semua pengguna dan mencatat notifikasi internal untuk tagihan yang jatuh tempo besok.
                 </CardDescription>
             </CardHeader>
             <CardFooter>
                  <Button onClick={handleTriggerReminders} disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Jalankan Flow Pengingat
-                </Button>
-            </CardFooter>
-        </Card>
-    );
-}
-
-const DirectNotificationTester = () => {
-    const { idToken } = useAuth();
-    const { toast } = useToast();
-    const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-    const handleSendTest = async () => {
-        setIsSubmitting(true);
-        if (!idToken) {
-            toast({ title: "Otentikasi Gagal", variant: 'destructive' });
-            setIsSubmitting(false);
-            return;
-        }
-
-        try {
-            const result = await sendTestNotification(idToken);
-            if (result.success) {
-                toast({ title: "Sukses", description: result.message });
-            } else {
-                toast({ title: "Gagal", description: result.message, variant: 'destructive' });
-            }
-        } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: 'destructive' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2">
-                    <BellDot className="h-5 w-5" />
-                    Tes Notifikasi Langsung
-                </CardTitle>
-                <CardDescription>
-                    Kirim notifikasi tes langsung ke perangkat Anda untuk memastikan sistem berfungsi. Ini mengabaikan logika pengingat.
-                </CardDescription>
-            </CardHeader>
-            <CardFooter>
-                 <Button onClick={handleSendTest} disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Kirim Notifikasi Tes
+                    Jalankan Pengecekan
                 </Button>
             </CardFooter>
         </Card>
@@ -358,8 +308,8 @@ const BroadcastSender = ({ selectedUserIds }: { selectedUserIds: string[] }) => 
             const result = await sendBroadcastNotification(idToken, title, body, link, hasSelection ? selectedUserIds : undefined);
             if (result.success) {
                 toast({ 
-                    title: "Broadcast Terkirim", 
-                    description: `Pesan berhasil dikirim ke ${result.notificationsSent} pengguna.`
+                    title: "Broadcast Berhasil", 
+                    description: `Pesan berhasil dicatat untuk ${result.notificationsSent} pengguna.`
                 });
                 setTitle("");
                 setBody("");
@@ -379,10 +329,10 @@ const BroadcastSender = ({ selectedUserIds }: { selectedUserIds: string[] }) => 
             <CardHeader>
                 <CardTitle className="font-headline flex items-center gap-2">
                     <MessageSquare className="h-5 w-5" />
-                    Kirim Broadcast Notifikasi
+                    Kirim Broadcast Notifikasi Internal
                 </CardTitle>
                 <CardDescription>
-                    Kirim pesan notifikasi kustom ke semua pengguna atau pengguna terpilih. Gunakan dengan bijak.
+                    Kirim pesan ke pusat notifikasi semua pengguna atau pengguna terpilih.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -407,7 +357,7 @@ const BroadcastSender = ({ selectedUserIds }: { selectedUserIds: string[] }) => 
                     />
                  </div>
                  <div>
-                    <Label htmlFor="broadcast-link">Tautan Kustom (Opsional)</Label>
+                    <Label htmlFor="broadcast-link">Tautan Internal (Opsional)</Label>
                     <Input 
                         id="broadcast-link"
                         value={link}
@@ -430,7 +380,7 @@ const BroadcastSender = ({ selectedUserIds }: { selectedUserIds: string[] }) => 
 
 
 export default function AdminClientPage() {
-    const { user, isAdmin, loading } = useAuth();
+    const { isAdmin, loading } = useAuth();
     const router = useRouter();
     const [users, setUsers] = React.useState<AdminAppUser[]>([]);
     const [isDataLoading, setIsDataLoading] = React.useState(true);
@@ -441,7 +391,7 @@ export default function AdminClientPage() {
         if (!loading && !isAdmin) {
             router.push('/');
         }
-    }, [user, isAdmin, loading, router]);
+    }, [isAdmin, loading, router]);
     
     React.useEffect(() => {
         if (!isAdmin) return;
@@ -527,7 +477,6 @@ export default function AdminClientPage() {
                 <AppSettings />
                 <BroadcastSender selectedUserIds={Array.from(selectedUserIds)} />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <DirectNotificationTester />
                     <ReminderTester />
                 </div>
                 <Card>

@@ -1,4 +1,3 @@
-
 'use server';
 import { getAuthAdmin, getDbAdmin } from '@/lib/firebase-server';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -16,30 +15,6 @@ const handleAuthError = (error: any): ActionResult => {
     }
     return { success: false, message: `Terjadi kesalahan server: ${error.message}` };
 }
-
-export async function saveNotificationToken(token: string, fcmToken: string): Promise<ActionResult> {
-    if (!token) return { success: false, message: 'Sesi tidak valid.' };
-    
-    const authAdmin = getAuthAdmin();
-    const db = getDbAdmin();
-    if (!authAdmin || !db) return { success: false, message: 'Konfigurasi server bermasalah.' };
-    
-    try {
-        const decodedToken = await authAdmin.verifyIdToken(token);
-        const userRef = db.collection('users').doc(decodedToken.uid);
-        
-        // Use arrayUnion with set and merge:true. 
-        // This adds the token if it's not present and also creates the user document or fcmTokens field if they don't exist.
-        await userRef.set({ 
-            fcmTokens: FieldValue.arrayUnion(fcmToken) 
-        }, { merge: true });
-
-        return { success: true, message: 'Token notifikasi disimpan.' };
-    } catch (error: any) {
-        return handleAuthError(error);
-    }
-}
-
 
 export async function markNotificationAsRead(token: string, notificationId: string): Promise<ActionResult> {
     if (!token) return { success: false, message: 'Sesi tidak valid.' };

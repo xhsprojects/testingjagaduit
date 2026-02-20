@@ -2,7 +2,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, type Auth } from 'firebase/auth';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getMessaging, type Messaging } from 'firebase/messaging';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,7 +16,6 @@ let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
 let googleProvider: GoogleAuthProvider | undefined;
-let messaging: Messaging | undefined;
 
 // We only initialize Firebase if all the necessary keys are present.
 export const isFirebaseInitialized = !!(
@@ -32,9 +30,6 @@ if (isFirebaseInitialized) {
     auth = getAuth(app);
     db = getFirestore(app);
     googleProvider = new GoogleAuthProvider();
-    if (typeof window !== 'undefined') {
-        messaging = getMessaging(app);
-    }
   } catch (error) {
     console.error("Firebase initialization failed:", error);
   }
@@ -44,4 +39,4 @@ if (isFirebaseInitialized) {
   );
 }
 
-export { app, auth, db, googleProvider, messaging };
+export { app, auth, db, googleProvider };

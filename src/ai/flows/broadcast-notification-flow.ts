@@ -1,15 +1,14 @@
-
 'use server';
 /**
- * @fileOverview A Genkit flow to send a custom broadcast push notification to all users.
+ * @fileOverview A Genkit flow to send a custom broadcast notification to all users' in-app notification centers.
  *
  * - broadcastNotification - The main function to trigger the broadcast process.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getDbAdmin, getMessagingAdmin } from '@/lib/firebase-server';
-import { FieldValue, FieldPath, Timestamp } from 'firebase-admin/firestore';
+import { getDbAdmin } from '@/lib/firebase-server';
+import { FieldPath, Timestamp } from 'firebase-admin/firestore';
 
 const BroadcastInputSchema = z.object({
   title: z.string().min(1, 'Judul tidak boleh kosong.'),
@@ -39,13 +38,12 @@ const broadcastNotificationFlow = ai.defineFlow(
   },
   async ({ title, body, link, userIds }) => {
     const db = getDbAdmin();
-    const messaging = getMessagingAdmin();
 
     let notificationsSent = 0;
     const errors: string[] = [];
     const targetLink = link || '/';
 
-    if (!db || !messaging) {
+    if (!db) {
       const errorMsg = "Firebase Admin SDK is not initialized. Cannot send broadcast.";
       console.error(errorMsg);
       return { success: false, notificationsSent, errors: [errorMsg] };
@@ -61,10 +59,10 @@ const broadcastNotificationFlow = ai.defineFlow(
         usersSnapshot = await db.collection('users').get();
       }
       
+      const batch = db.batch();
+      
       for (const userDoc of usersSnapshot.docs) {
         const userId = userDoc.id;
-        const userData = userDoc.data();
-        const fcmTokens = userData.fcmTokens;
         
         // Prepare notification for in-app center
         const notificationData = {
@@ -75,48 +73,20 @@ const broadcastNotificationFlow = ai.defineFlow(
             createdAt: Timestamp.now(),
             link: targetLink
         };
-        await db.collection('users').doc(userId).collection('notifications').add(notificationData);
-
-        if (!fcmTokens || !Array.isArray(fcmTokens) || fcmTokens.length === 0) {
-          continue; // Skip push notification if they don't have tokens
-        }
         
-        const tokensToRemove: string[] = [];
-        for (const token of fcmTokens) {
-            try {
-                await messaging.send({
-                    token,
-                    webpush: {
-                        notification: {
-                            title: title,
-                            body: body,
-                            icon: '/icons/icon-192x192.png',
-                            tag: `broadcast-${Date.now()}-${Math.random()}`,
-                            data: {
-                                link: targetLink,
-                            }
-                        },
-                    }
-                });
-                notificationsSent++;
-            } catch (error: any) {
-                const errorCode = error.code;
-                errors.push(`User ${userId} token error: ${errorCode}`);
-                if (errorCode === 'messaging/invalid-registration-token' ||
-                    errorCode === 'messaging/registration-token-not-registered') {
-                  tokensToRemove.push(token);
-                }
-            }
-        }
-
-        if (tokensToRemove.length > 0) {
-            await db.collection('users').doc(userId).update({
-                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
-            });
+        const newNotifRef = db.collection('users').doc(userId).collection('notifications').doc();
+        batch.set(newNotifRef, notificationData);
+        notificationsSent++;
+        
+        // Commit batches in chunks if necessary (Firestore limit is 500 per batch)
+        if (notificationsSent % 450 === 0) {
+            await batch.commit();
         }
       }
 
-      console.log(`Broadcast complete. Sent ${notificationsSent} notifications.`);
+      await batch.commit();
+
+      console.log(`Broadcast complete. Recorded ${notificationsSent} internal notifications.`);
       return { success: true, notificationsSent, errors };
 
     } catch (error: any) {

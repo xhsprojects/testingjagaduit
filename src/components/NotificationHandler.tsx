@@ -1,82 +1,32 @@
-
 "use client";
 
-import { useEffect, useCallback } from 'react';
-import { messaging } from '@/lib/firebase';
-import { getToken, onMessage } from 'firebase/messaging';
+import { useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { saveNotificationToken } from '@/app/notifications/actions';
 
+/**
+ * @fileOverview This component previously handled FCM push notification setup.
+ * Push notifications to devices have been removed to prioritize in-app notifications.
+ * This component is now inert but kept for potential future internal signaling.
+ */
 export default function NotificationHandler() {
-  const { user, idToken } = useAuth();
+  const { user, idToken, notifications } = useAuth();
   const { toast } = useToast();
 
-  const requestPermissionAndSaveToken = useCallback(async () => {
-    // Ensure all dependencies are available and we are in a browser context
-    if (!messaging || !user || !idToken || typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-      return;
-    }
-
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        console.log('User denied notification permission.');
-        return;
-      }
-        
-      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-      if (!vapidKey) {
-          console.error('VAPID key not found in environment variables.');
-          toast({
-              title: "Konfigurasi Notifikasi Error",
-              description: "Kunci VAPID untuk notifikasi web tidak ditemukan. Hubungi admin.",
-              variant: "destructive"
-          });
-          return;
-      }
-
-      const currentToken = await getToken(messaging, { vapidKey });
-      
-      if (currentToken) {
-        await saveNotificationToken(idToken, currentToken);
-      } else {
-        console.log('No registration token available. Request permission to generate one.');
-      }
-
-    } catch (err: any) {
-      // Log the error for debugging purposes but don't show a toast to the user.
-      console.error('An error occurred while setting up notifications: ', err);
-    }
-  }, [user, idToken, toast]);
-
-  // Run the setup process when the user logs in
+  // Show a toast only for very important new unread notifications that arrive while the user is active
   useEffect(() => {
-    if (user && idToken) {
-      requestPermissionAndSaveToken();
+    if (!user || !notifications || notifications.length === 0) return;
+
+    const latestNotif = notifications[0];
+    const isNew = latestNotif.createdAt && (Date.now() - latestNotif.createdAt.toDate().getTime() < 10000); // Created in last 10s
+
+    if (!latestNotif.isRead && isNew) {
+        toast({
+            title: latestNotif.title,
+            description: latestNotif.body,
+        });
     }
-  }, [user, idToken, requestPermissionAndSaveToken]);
+  }, [notifications, user, toast]);
 
-  // Listen for messages when the app is in the foreground
-  useEffect(() => {
-    if (!messaging) return;
-    const unsubscribe = onMessage(messaging, (payload) => {
-      console.log('Foreground message received. ', payload);
-      const { title, body } = payload.notification || {};
-      
-      // Show a toast notification for foreground messages
-      if (title && body) {
-          toast({
-            title: title,
-            description: body,
-          });
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [toast]);
-
-  return null; // This component does not render anything.
+  return null; 
 }

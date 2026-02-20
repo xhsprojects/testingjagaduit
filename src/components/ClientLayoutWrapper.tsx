@@ -1,4 +1,3 @@
-
 "use client";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -6,7 +5,6 @@ import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { BottomNavbar } from "./BottomNavbar";
 import InstallPwaPrompt from "./InstallPwaPrompt";
-import NotificationHandler from "./NotificationHandler";
 import { ThemeProvider } from "./ThemeProvider";
 
 // An explicit list of theme classes we manage.
@@ -130,7 +128,6 @@ function AppContent({ children }: { children: React.ReactNode }) {
             {children}
             {showNavbar && <BottomNavbar />}
             <InstallPwaPrompt />
-            {user && <NotificationHandler />}
         </>
     );
 }

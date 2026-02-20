@@ -6,7 +6,6 @@ const withPWA = require('next-pwa')({
   skipWaiting: true,
   disable: false,
   sw: 'pwabuilder-sw.js',
-  importScripts: ['/firebase-messaging-sw.js'],
 });
 
 const nextConfig = {

@@ -1,11 +1,10 @@
-
 // src/app/admin/actions.ts
 'use server'
 
-import { getAuthAdmin, getDbAdmin, getMessagingAdmin } from '@/lib/firebase-server';
+import { getAuthAdmin, getDbAdmin } from '@/lib/firebase-server';
 import { sendDailyReminders, type SendRemindersOutput } from '@/ai/flows/send-reminders-flow';
 import { broadcastNotification, type BroadcastOutput } from '@/ai/flows/broadcast-notification-flow';
-import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 
 const ADMIN_UID = 'qyHqNRWBVaXEZjo1don6p0reXXH3';
 type ActionType = 'add_month' | 'add_year' | 'set_lifetime' | 'stop_subscription';
@@ -96,87 +95,6 @@ export async function triggerDailyReminders(token: string): Promise<SendReminder
     }
 }
 
-export async function sendTestNotification(token: string): Promise<ActionResult> {
-    if (!token) {
-        return { success: false, message: 'Tidak terotorisasi: Token tidak disediakan' };
-    }
-
-    try {
-        const authAdmin = getAuthAdmin();
-        const db = getDbAdmin();
-        const messaging = getMessagingAdmin();
-
-        if (!authAdmin || !db || !messaging) {
-            return { success: false, message: 'Konfigurasi server Firebase tidak lengkap.' };
-        }
-
-        const decodedToken = await authAdmin.verifyIdToken(token);
-        if (decodedToken.uid !== ADMIN_UID) {
-            return { success: false, message: 'Tidak terotorisasi: Anda bukan admin.' };
-        }
-
-        const adminUserDoc = await db.collection('users').doc(ADMIN_UID).get();
-        if (!adminUserDoc.exists) {
-            return { success: false, message: 'Dokumen admin tidak ditemukan.' };
-        }
-
-        const adminData = adminUserDoc.data();
-        const fcmTokens = adminData?.fcmTokens;
-
-        if (!fcmTokens || !Array.isArray(fcmTokens) || fcmTokens.length === 0) {
-            return { success: false, message: 'Token notifikasi (FCM) untuk admin tidak ditemukan di database.' };
-        }
-        
-        let successCount = 0;
-        let failureCount = 0;
-        const tokensToRemove: string[] = [];
-        const errors: string[] = [];
-
-        // Send notifications one by one to ensure unique tags and delivery.
-        for (const fcmToken of fcmTokens) {
-             try {
-                await messaging.send({
-                    token: fcmToken,
-                    webpush: {
-                        notification: {
-                            title: '🔔 Tes Notifikasi Jaga Duit',
-                            body: 'Jika Anda menerima ini, maka sistem notifikasi berfungsi dengan baik!',
-                            icon: '/icons/icon-192x192.png',
-                            tag: `jaga-duit-test-${Date.now()}-${Math.random()}`, // Unique tag per send
-                            data: {
-                                link: '/'
-                            }
-                        },
-                    }
-                });
-                successCount++;
-            } catch (error: any) {
-                failureCount++;
-                const errorCode = error.code;
-                errors.push(`Token ${fcmToken.substring(0, 10)}...: ${errorCode}`);
-                if (errorCode === 'messaging/invalid-registration-token' ||
-                    errorCode === 'messaging/registration-token-not-registered') {
-                    tokensToRemove.push(fcmToken);
-                }
-            }
-        }
-        
-        if (tokensToRemove.length > 0) {
-            await db.collection('users').doc(ADMIN_UID).update({
-                fcmTokens: FieldValue.arrayRemove(...tokensToRemove)
-            });
-        }
-        
-        const message = `Notifikasi uji coba dikirim. Berhasil: ${successCount}, Gagal: ${failureCount}.` + (errors.length > 0 ? ` Errors: ${errors.join(', ')}` : '');
-        return { success: true, message: message };
-
-    } catch (error: any) {
-        console.error('Error in sendTestNotification:', error);
-        return { success: false, message: error.message || 'Gagal mengirim notifikasi uji coba.' };
-    }
-}
-
-
 export async function updateSubscription(userId: string, token: string, action: ActionType): Promise<ActionResult> {
     if (!token) {
         return { success: false, message: 'Tidak terotorisasi: Token tidak disediakan' };
@@ -185,7 +103,6 @@ export async function updateSubscription(userId: string, token: string, action: 
     try {
         const authAdmin = getAuthAdmin();
         const db = getDbAdmin();
-        const messaging = getMessagingAdmin();
 
         if (!authAdmin || !db) {
             return { success: false, message: 'Konfigurasi server Firebase tidak lengkap. Periksa environment variables Anda.' };
@@ -260,31 +177,6 @@ export async function updateSubscription(userId: string, token: string, action: 
             await db.collection('users').doc(userId).collection('notifications').add(notificationData);
         }
 
-        if (messaging && notificationBody) {
-            const targetUserData = (await userRef.get()).data();
-            const fcmTokens = targetUserData?.fcmTokens;
-            if (fcmTokens && Array.isArray(fcmTokens) && fcmTokens.length > 0) {
-                try {
-                    await messaging.sendEachForMulticast({
-                        tokens: fcmTokens,
-                        webpush: {
-                            notification: {
-                                title: notificationTitle,
-                                body: notificationBody,
-                                icon: '/icons/icon-192x192.png',
-                                tag: `subscription-update-${userId}`,
-                                data: { link: '/premium' }
-                            },
-                        }
-                    });
-                    successMessage += ' Notifikasi terkirim.';
-                } catch (error: any) {
-                    console.error(`Gagal mengirim notifikasi langganan ke pengguna ${userId}:`, error.message);
-                    successMessage += ' Gagal mengirim notifikasi.';
-                }
-            }
-        }
-
         return { success: true, message: successMessage };
 
     } catch (error: any) {
@@ -338,5 +230,3 @@ export async function sendBroadcastNotification(
         return { success: false, message: error.message || 'Gagal mengirim broadcast.' };
     }
 }
-
-    

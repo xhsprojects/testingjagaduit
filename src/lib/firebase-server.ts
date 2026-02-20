@@ -1,9 +1,7 @@
-
 // src/lib/firebase-server.ts
 import { initializeApp, getApps, cert, App } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { Auth, getAuth } from 'firebase-admin/auth';
-import { Messaging, getMessaging } from 'firebase-admin/messaging';
 
 // Use a dynamic app name to avoid conflicts in serverless environments
 const getAppName = () => `jaga-duit-admin--${process.env.VERCEL_DEPLOYMENT_ID || 'local'}`;
@@ -51,10 +49,4 @@ export function getAuthAdmin(): Auth | null {
     const app = initializeAdminApp();
     if (!app) return null;
     return getAuth(app);
-}
-
-export function getMessagingAdmin(): Messaging | null {
-    const app = initializeAdminApp();
-    if (!app) return null;
-    return getMessaging(app);
 }
