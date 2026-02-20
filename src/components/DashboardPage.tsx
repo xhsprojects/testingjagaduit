@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -246,78 +247,92 @@ export default function DashboardPage({
     <>
       <div className="flex min-h-screen w-full flex-col bg-background transition-colors duration-300">
         <Header />
-        <main className="pt-20 pb-24 px-4 max-w-lg mx-auto space-y-6">
-          <StatsCards
-            totalIncome={totalFilteredIncomes}
-            totalExpenses={totalFilteredExpenses}
-            remainingBudget={remainingBudget}
-            totalSavings={(expenses || []).filter(e => e.savingGoalId).reduce((s, e) => s + (e.amount || 0), 0)}
-            totalWalletBalance={totalWalletBalance}
-            periodLabel={periodLabel}
-            onReset={() => setIsResetConfirmOpen(true)}
-          />
+        
+        {/* Main Layout Grid - Optimized for Desktop */}
+        <main className="pt-24 pb-24 px-4 max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            
+            {/* Left Column: Stats and Main Activity */}
+            <div className="lg:col-span-2 space-y-6">
+              <StatsCards
+                totalIncome={totalFilteredIncomes}
+                totalExpenses={totalFilteredExpenses}
+                remainingBudget={remainingBudget}
+                totalSavings={(expenses || []).filter(e => e.savingGoalId).reduce((s, e) => s + (e.amount || 0), 0)}
+                totalWalletBalance={totalWalletBalance}
+                periodLabel={periodLabel}
+                onReset={() => setIsResetConfirmOpen(true)}
+              />
 
-          <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
-            <h3 className="text-lg font-bold mb-6">Akses Cepat</h3>
-            <div className="grid grid-cols-4 gap-y-8 gap-x-2">
-                <QuickActionItem href="/reports" icon={BookMarked} label="Laporan" />
-                <QuickActionItem href="/import" icon={Upload} label="Impor" />
-                <QuickActionItem href="/split-bill" icon={Users2} label="Bagi Bill" />
-                <QuickActionItem href="/financial-calendar" icon={CalendarDays} label="Kalender" />
-                <QuickActionItem href="/reminders" icon={BellRing} label="Pengingat" />
-                <QuickActionItem href="/achievements" icon={Trophy} label="Prestasi" />
-                <QuickActionItem href="/calculators" icon={Calculator} label="Kalkulator" />
-                <QuickActionItem href="/recurring" icon={Repeat} label="Otomatis" />
-            </div>
-            <Button variant="outline" className="w-full mt-8 py-3 rounded-xl border-border dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" onClick={() => setIsMenuDialogOpen(true)}>
-                Lihat Semua Menu
-            </Button>
-          </Card>
-
-          <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
-            <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h3 className="text-lg font-bold">Distribusi Pengeluaran</h3>
-                    <p className="text-xs text-slate-500">Analisis kategori utama</p>
+              <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
+                <h3 className="text-lg font-bold mb-6">Akses Cepat</h3>
+                <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-4 gap-y-8 gap-x-2">
+                    <QuickActionItem href="/reports" icon={BookMarked} label="Laporan" />
+                    <QuickActionItem href="/import" icon={Upload} label="Impor" />
+                    <QuickActionItem href="/split-bill" icon={Users2} label="Bagi Bill" />
+                    <QuickActionItem href="/financial-calendar" icon={CalendarDays} label="Kalender" />
+                    <QuickActionItem href="/reminders" icon={BellRing} label="Pengingat" />
+                    <QuickActionItem href="/achievements" icon={Trophy} label="Prestasi" />
+                    <QuickActionItem href="/calculators" icon={Calculator} label="Kalkulator" />
+                    <QuickActionItem href="/recurring" icon={Repeat} label="Otomatis" />
                 </div>
-                <Button asChild variant="secondary" size="sm" className="h-7 text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full">
-                    <Link href="/reports">Detail</Link>
+                <Button variant="outline" className="w-full mt-8 py-3 rounded-xl border-border dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" onClick={() => setIsMenuDialogOpen(true)}>
+                    Lihat Semua Menu
                 </Button>
-            </div>
-            <BudgetChart data={expensesByCategory} />
-          </Card>
+              </Card>
 
-          <WalletsSummaryCard wallets={wallets} expenses={allExpenses} incomes={allIncomes} />
-
-          <PredictiveAnalysis expenses={expenses} categories={categories} dateRange={{ from: new Date(budgetPeriod?.periodStart || Date.now()), to: budgetPeriod?.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date() }} />
-
-          <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h3 className="text-lg font-bold">Riwayat Transaksi</h3>
-                    <p className="text-xs text-slate-500">Daftar transaksi terbaru Anda.</p>
+              {/* Transaction History Section */}
+              <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
+                <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold">Riwayat Transaksi</h3>
+                        <p className="text-xs text-slate-500">Daftar transaksi terbaru Anda.</p>
+                    </div>
+                    <Button asChild variant="ghost" size="sm" className="h-7 text-xs font-medium text-slate-500 hover:text-primary">
+                        <Link href="/history" className="flex items-center">
+                            Lihat Semua <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                        </Link>
+                    </Button>
                 </div>
-                <Button asChild variant="ghost" size="sm" className="h-7 text-xs font-medium text-slate-500 hover:text-primary">
-                    <Link href="/history" className="flex items-center">
-                        Lihat Semua <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                    </Link>
-                </Button>
+                <div className="space-y-1">
+                    {unifiedTransactions.length > 0 ? (
+                        unifiedTransactions.slice(0, 8).map((t) => (
+                            <TransactionItem key={t.id} transaction={t} categoryMap={categoryMap} walletMap={walletMap} onClick={() => setDetailItem(t)} />
+                        ))
+                    ) : (
+                        <p className="text-center py-8 text-sm text-muted-foreground font-medium italic">Belum ada transaksi.</p>
+                    )}
+                </div>
+              </Card>
             </div>
-            <div className="space-y-1">
-                {unifiedTransactions.length > 0 ? (
-                    unifiedTransactions.slice(0, 5).map((t) => (
-                        <TransactionItem key={t.id} transaction={t} categoryMap={categoryMap} walletMap={walletMap} onClick={() => setDetailItem(t)} />
-                    ))
-                ) : (
-                    <p className="text-center py-8 text-sm text-muted-foreground font-medium italic">Belum ada transaksi.</p>
-                )}
+
+            {/* Right Column: Insights & Summary */}
+            <div className="lg:col-span-1 space-y-6">
+              <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h3 className="text-lg font-bold">Distribusi Pengeluaran</h3>
+                        <p className="text-xs text-slate-500">Analisis kategori utama</p>
+                    </div>
+                    <Button asChild variant="secondary" size="sm" className="h-7 text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full">
+                        <Link href="/reports">Detail</Link>
+                    </Button>
+                </div>
+                <BudgetChart data={expensesByCategory} />
+              </Card>
+
+              <WalletsSummaryCard wallets={wallets} expenses={allExpenses} incomes={allIncomes} />
+
+              <PredictiveAnalysis expenses={expenses} categories={categories} dateRange={{ from: new Date(budgetPeriod?.periodStart || Date.now()), to: budgetPeriod?.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date() }} />
             </div>
-          </Card>
+
+          </div>
         </main>
 
+        {/* Floating Actions */}
         <button 
             onClick={() => setIsChatbotOpen(true)}
-            className="fixed bottom-24 left-4 w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-200 group"
+            className="fixed bottom-24 left-4 lg:left-auto lg:right-24 w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-200 group"
         >
             <Bot className="h-7 w-7 animate-pulse group-hover:animate-none" />
         </button>
@@ -334,8 +349,9 @@ export default function DashboardPage({
             </SpeedDialAction>
         </SpeedDial>
 
+        {/* Dialogs */}
         <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
-            <DialogContent className="max-w-lg sm:rounded-2xl">
+            <DialogContent className="max-w-2xl sm:rounded-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <LayoutGrid className="h-5 w-5 text-primary" />
@@ -343,7 +359,7 @@ export default function DashboardPage({
                     </DialogTitle>
                     <DialogDescription>Akses cepat ke seluruh fitur Jaga Duit.</DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-6 py-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-6 py-4">
                     {allMenuItems.map((item) => (
                         <QuickActionItem key={item.label} href={item.href} icon={item.icon} label={item.label} onClick={() => setIsMenuDialogOpen(false)} />
                     ))}
