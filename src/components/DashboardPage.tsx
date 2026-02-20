@@ -17,7 +17,8 @@ import {
     BookMarked, HandCoins, Bot, PlusCircle, TrendingUp, TrendingDown,
     Repeat, BellRing, Trophy, CalendarDays, Upload, Users2,
     ChevronRight, GitCommitHorizontal, Calculator, Wallet as WalletIcon, Tag,
-    ArrowLeftRight, Scale, PiggyBank, CreditCard, LayoutGrid
+    ArrowLeftRight, Scale, PiggyBank, CreditCard, LayoutGrid, Target, Landmark,
+    BookOpen, FilePenLine
 } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -62,7 +63,7 @@ type UnifiedTransaction = (Expense | Income) & {
 const QuickActionItem = ({ href, icon: Icon, label, onClick }: { href?: string, icon: React.ElementType, label: string, onClick?: () => void }) => {
     const content = (
         <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={onClick}>
-            <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/30">
+            <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/30">
                 <Icon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
             </div>
             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight transition-colors text-center">{label}</span>
@@ -240,7 +241,7 @@ export default function DashboardPage({
     { label: 'Utang', icon: CreditCard, href: '/debts' },
     { label: 'Kekayaan', icon: Scale, href: '/net-worth' },
     { label: 'Dompet', icon: WalletIcon, href: '/wallets' },
-    { label: 'Catatan', icon: BookMarked, href: '/notes' },
+    { label: 'Catatan', icon: BookOpen, href: '/notes' },
   ];
 
   return (
@@ -248,11 +249,9 @@ export default function DashboardPage({
       <div className="flex min-h-screen w-full flex-col bg-background transition-colors duration-300">
         <Header />
         
-        {/* Main Layout Grid - Optimized for Desktop */}
         <main className="pt-24 pb-24 px-4 max-w-7xl mx-auto w-full">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             
-            {/* Left Column: Stats and Main Activity */}
             <div className="lg:col-span-2 space-y-6">
               <StatsCards
                 totalIncome={totalFilteredIncomes}
@@ -281,7 +280,6 @@ export default function DashboardPage({
                 </Button>
               </Card>
 
-              {/* Transaction History Section */}
               <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
                 <div className="flex items-center justify-between mb-6">
                     <div>
@@ -306,7 +304,6 @@ export default function DashboardPage({
               </Card>
             </div>
 
-            {/* Right Column: Insights & Summary */}
             <div className="lg:col-span-1 space-y-6">
               <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
                 <div className="flex justify-between items-center mb-6">
@@ -329,7 +326,6 @@ export default function DashboardPage({
           </div>
         </main>
 
-        {/* Floating Actions */}
         <button 
             onClick={() => setIsChatbotOpen(true)}
             className="fixed bottom-24 left-4 lg:left-auto lg:right-24 w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-200 group"
@@ -349,7 +345,6 @@ export default function DashboardPage({
             </SpeedDialAction>
         </SpeedDial>
 
-        {/* Dialogs */}
         <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
             <DialogContent className="max-w-2xl sm:rounded-2xl">
                 <DialogHeader>

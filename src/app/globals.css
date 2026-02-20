@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,34 +50,34 @@
   }
 }
 
-/* Theme Definitions - Ensuring they override --primary */
+/* Theme Definitions - Correctly overriding --primary variable */
 .theme-forest {
-  --primary: 150 24% 44%; 
-  --ring: 150 24% 44%;
+  --primary: 150 24% 44% !important;
+  --ring: 150 24% 44% !important;
 }
 .theme-sunset {
-  --primary: 21 88% 57%; 
-  --ring: 21 88% 57%;
+  --primary: 21 88% 57% !important; 
+  --ring: 21 88% 57% !important;
 }
 .theme-ocean {
-  --primary: 217 91% 60%; 
-  --ring: 217 91% 60%;
+  --primary: 217 91% 60% !important; 
+  --ring: 217 91% 60% !important;
 }
 .theme-midnight {
-  --primary: 258 90% 66%; 
-  --ring: 258 90% 66%;
+  --primary: 258 90% 66% !important; 
+  --ring: 258 90% 66% !important;
 }
 .theme-sakura {
-  --primary: 330 81% 70%; 
-  --ring: 330 81% 70%;
+  --primary: 330 81% 70% !important; 
+  --ring: 330 81% 70% !important;
 }
 .theme-cosmic {
-  --primary: 239 84% 67%; 
-  --ring: 239 84% 67%;
+  --primary: 239 84% 67% !important; 
+  --ring: 239 84% 67% !important;
 }
 .theme-gold {
-  --primary: 48 100% 45%; 
-  --ring: 48 100% 45%;
+  --primary: 48 100% 45% !important; 
+  --ring: 48 100% 45% !important;
 }
 
 @layer base {
