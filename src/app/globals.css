@@ -49,33 +49,33 @@
   }
 }
 
-/* Theme Definitions */
+/* Theme Definitions - Ensuring they override --primary */
 .theme-forest {
-  --primary: 150 24% 44%; /* #558B6E */
+  --primary: 150 24% 44%; 
   --ring: 150 24% 44%;
 }
 .theme-sunset {
-  --primary: 21 88% 57%; /* #F27830 */
+  --primary: 21 88% 57%; 
   --ring: 21 88% 57%;
 }
 .theme-ocean {
-  --primary: 217 91% 60%; /* #3b82f6 */
+  --primary: 217 91% 60%; 
   --ring: 217 91% 60%;
 }
 .theme-midnight {
-  --primary: 258 90% 66%; /* #8b5cf6 */
+  --primary: 258 90% 66%; 
   --ring: 258 90% 66%;
 }
 .theme-sakura {
-  --primary: 330 81% 70%; /* #f472b6 */
+  --primary: 330 81% 70%; 
   --ring: 330 81% 70%;
 }
 .theme-cosmic {
-  --primary: 239 84% 67%; /* #6366f1 */
+  --primary: 239 84% 67%; 
   --ring: 239 84% 67%;
 }
 .theme-gold {
-  --primary: 48 100% 45%; /* #e6b800 */
+  --primary: 48 100% 45%; 
   --ring: 48 100% 45%;
 }
 

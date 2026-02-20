@@ -2,10 +2,11 @@
 
 import * as React from 'react';
 import { Card } from "@/components/ui/card"
-import { RefreshCw, TrendingUp, TrendingDown, PiggyBank, Eye, EyeOff, Calculator } from "lucide-react"
+import { RefreshCw, TrendingUp, TrendingDown, PiggyBank, Eye, EyeOff, Calculator, Wallet } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { cn } from "@/lib/utils"
+import Link from 'next/link';
 
 interface StatsCardsProps {
     totalIncome: number;
@@ -27,7 +28,9 @@ export default function StatsCards({ totalIncome, totalExpenses, remainingBudget
         }
     }, []);
 
-    const toggleVisibility = () => {
+    const toggleVisibility = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         const newHiddenState = !isHidden;
         setIsHidden(newHiddenState);
         localStorage.setItem('jaga-duit-balance-hidden', JSON.stringify(newHiddenState));
@@ -55,7 +58,7 @@ export default function StatsCards({ totalIncome, totalExpenses, remainingBudget
                 </Button>
             </div>
 
-            <div className="text-center py-4">
+            <Link href="/wallets" className="text-center py-4 block hover:opacity-80 transition-opacity">
                 <div className="flex justify-center items-center gap-2 mb-1">
                     <p className="text-sm font-medium text-slate-500 uppercase tracking-tight">Total Saldo Dompet</p>
                     <button 
@@ -68,10 +71,10 @@ export default function StatsCards({ totalIncome, totalExpenses, remainingBudget
                 <h2 className="text-4xl font-extrabold text-primary tracking-tight drop-shadow-sm">
                     {displayValue(totalWalletBalance)}
                 </h2>
-            </div>
+            </Link>
 
             <div className="grid grid-cols-2 gap-4 mt-6 border-t border-slate-100 dark:border-slate-700/50 pt-6">
-                <div className="text-center group">
+                <Link href="/budget" className="text-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-xl transition-all">
                     <div className="w-10 h-10 mx-auto bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                         <TrendingDown className="h-5 w-5 text-red-500" />
                     </div>
@@ -82,31 +85,31 @@ export default function StatsCards({ totalIncome, totalExpenses, remainingBudget
                     )}>
                         {displayValue(remainingBudget)}
                     </p>
-                </div>
+                </Link>
 
-                <div className="text-center group">
+                <Link href="/history" className="text-center group hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-xl transition-all">
                     <div className="w-10 h-10 mx-auto bg-green-50 dark:bg-green-900/20 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                         <TrendingUp className="h-5 w-5 text-green-500" />
                     </div>
                     <p className="text-[10px] font-bold uppercase text-slate-500 tracking-tight">Pemasukan</p>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">{displayValue(totalIncome)}</p>
-                </div>
+                </Link>
 
-                <div className="text-center group mt-2">
+                <Link href="/history" className="text-center group mt-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-xl transition-all">
                     <div className="w-10 h-10 mx-auto bg-orange-50 dark:bg-orange-900/20 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                         <Calculator className="h-5 w-5 text-orange-500" />
                     </div>
                     <p className="text-[10px] font-bold uppercase text-slate-500 tracking-tight">Pengeluaran</p>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">{displayValue(totalExpenses)}</p>
-                </div>
+                </Link>
 
-                <div className="text-center group mt-2">
+                <Link href="/savings" className="text-center group mt-2 hover:bg-slate-50 dark:hover:bg-slate-800/50 p-2 rounded-xl transition-all">
                     <div className="w-10 h-10 mx-auto bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
                         <PiggyBank className="h-5 w-5 text-blue-500" />
                     </div>
                     <p className="text-[10px] font-bold uppercase text-slate-500 tracking-tight">Tabungan</p>
                     <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-0.5">{displayValue(totalSavings)}</p>
-                </div>
+                </Link>
             </div>
         </Card>
     )
