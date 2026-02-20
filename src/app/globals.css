@@ -4,22 +4,22 @@
 
 @layer base {
   :root {
-    --background: 210 20% 96%;
-    --foreground: 224 71.4% 4.1%;
+    --background: 210 40% 96%; /* background-light: #F0F4F8 */
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 199 89% 48%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 199 89% 48%; /* primary: #0EA5E9 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 20% 90%;
-    --secondary-foreground: 224 71.4% 4.1%;
-    --muted: 210 20% 90%;
-    --muted-foreground: 215 27.9% 53.9%;
+    --secondary: 210 40% 90%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 90%;
+    --muted-foreground: 215 25% 40%;
     --accent: 199 89% 48%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 40% 98%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 199 89% 48%;
@@ -27,9 +27,9 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 222 47% 5%; /* background-dark: #0F172A */
     --foreground: 210 20% 98%;
-    --card: 222 47% 11%;
+    --card: 222 47% 11%; /* card-dark: #1E293B */
     --card-foreground: 210 20% 98%;
     --popover: 222 47% 11%;
     --popover-foreground: 210 20% 98%;
@@ -38,7 +38,7 @@
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 20% 98%;
     --muted: 217 33% 17%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 215 20% 65%;
     --accent: 199 89% 48%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
@@ -59,14 +59,6 @@
   }
 }
 
-.dark .bg-card-dark {
-  background-color: #1E293B;
-}
-
-.dark .bg-background-dark {
-  background-color: #0F172A;
-}
-
 .ai-glow {
   animation: pulse-glow 3s infinite;
 }
@@ -74,4 +66,12 @@
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 10px rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.2); }
   50% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.4); border-color: rgba(14, 165, 233, 0.6); }
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

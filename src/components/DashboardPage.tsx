@@ -7,14 +7,13 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
 import { AddExpenseForm } from './AddExpenseForm';
-import { AddIncomeForm } from './AddIncomeForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
     BookMarked, HandCoins, Bot, PlusCircle, TrendingUp, TrendingDown,
     Repeat, BellRing, Trophy, CalendarDays, Upload, Users2,
-    ChevronRight, GitCommitHorizontal, History, Settings2, CreditCard, Landmark, Tag
+    ChevronRight, GitCommitHorizontal, Calculator, Wallet as WalletIcon, Tag
 } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -108,7 +107,9 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
                 <p className={cn("text-sm font-bold whitespace-nowrap", isExpense ? "text-slate-800 dark:text-white" : "text-green-500")}>
                     {isExpense ? '-' : '+'} {formatCurrency(amount)}
                 </p>
-                <p className="text-[10px] text-slate-400 tracking-tight">{format(new Date(transaction.date), "d MMM, HH:mm", { locale: idLocale })}</p>
+                <p className="text-[10px] text-slate-400 tracking-tight">
+                    {transaction.date ? format(new Date(transaction.date), "d MMM, HH:mm", { locale: idLocale }) : '-'}
+                </p>
             </div>
         </div>
     );
@@ -141,7 +142,7 @@ export default function DashboardPage({
   const [isResetting, setIsResetting] = React.useState(false);
   const { toast } = useToast();
 
-  const isDataReady = categories && categories.length > 0;
+  const isDataReady = Array.isArray(categories) && categories.length > 0;
 
   const categoryMap = React.useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
   const walletMap = React.useMemo(() => new Map(wallets.map((w) => [w.id, w])), [wallets]);
@@ -153,14 +154,14 @@ export default function DashboardPage({
     return `${format(from, "d MMM yyyy", { locale: idLocale })} - ${format(to, "d MMM yyyy", { locale: idLocale })}`;
   }, [budgetPeriod]);
 
-  const totalFilteredExpenses = React.useMemo(() => expenses.reduce((sum, exp) => sum + exp.amount, 0), [expenses]);
-  const totalFilteredIncomes = React.useMemo(() => incomes.reduce((sum, inc) => sum + inc.amount, 0), [incomes]);
-  const remainingBudget = income - totalFilteredExpenses;
+  const totalFilteredExpenses = React.useMemo(() => (expenses || []).reduce((sum, exp) => sum + (exp.amount || 0), 0), [expenses]);
+  const totalFilteredIncomes = React.useMemo(() => (incomes || []).reduce((sum, inc) => sum + (inc.amount || 0), 0), [incomes]);
+  const remainingBudget = (income || 0) - totalFilteredExpenses;
   
   const unifiedTransactions = React.useMemo(() => {
       const combined = [
-          ...expenses.map(e => ({ ...e, type: 'expense' as const })),
-          ...incomes.map(i => ({ ...i, type: 'income' as const })),
+          ...(expenses || []).map(e => ({ ...e, type: 'expense' as const })),
+          ...(incomes || []).map(i => ({ ...i, type: 'income' as const })),
       ];
       return combined.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses, incomes]);
@@ -168,13 +169,13 @@ export default function DashboardPage({
   const expensesByCategory = React.useMemo(() => {
       if (!isDataReady) return [];
       const dataMap = new Map((categories || []).map((cat) => [cat.id, { ...cat, spent: 0 }]));
-      for (const expense of expenses) {
+      for (const expense of (expenses || [])) {
           if (expense.isSplit && expense.splits) {
               expense.splits.forEach(split => {
                   const categoryData = dataMap.get(split.categoryId);
                   if (categoryData) categoryData.spent += split.amount;
               });
-          } else if (expense.categoryId && expense.amount > 0) {
+          } else if (expense.categoryId && (expense.amount || 0) > 0) {
               const categoryData = dataMap.get(expense.categoryId);
               if (categoryData) categoryData.spent += expense.amount;
           }
@@ -183,8 +184,8 @@ export default function DashboardPage({
   }, [expenses, categories, isDataReady]);
 
   const handleSaveExpense = async (expenseData: Expense) => {
-    const isEditing = expenses.some(e => e.id === expenseData.id);
-    let updatedExpenses = isEditing ? expenses.map(e => e.id === expenseData.id ? expenseData : e) : [...expenses, expenseData];
+    const isEditing = (expenses || []).some(e => e.id === expenseData.id);
+    let updatedExpenses = isEditing ? expenses.map(e => e.id === expenseData.id ? expenseData : e) : [...(expenses || []), expenseData];
     await onExpensesUpdate(updatedExpenses);
     toast({ title: 'Sukses', description: `Transaksi berhasil disimpan.` });
     setIsAddExpenseFormOpen(false);
@@ -205,25 +206,27 @@ export default function DashboardPage({
       setDetailItem(null);
   };
 
-  if (!isDataReady) return <div className="flex h-screen w-full items-center justify-center bg-background"><Bot className="h-8 w-8 animate-bounce text-primary" /></div>;
+  if (!isDataReady) {
+    return <div className="flex h-screen w-full items-center justify-center bg-background"><Bot className="h-8 w-8 animate-bounce text-primary" /></div>;
+  }
 
   return (
     <>
-      <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark transition-colors duration-300">
+      <div className="flex min-h-screen w-full flex-col bg-background transition-colors duration-300">
         <Header />
         <main className="pt-20 pb-24 px-4 max-w-lg mx-auto space-y-6">
           <StatsCards
             totalIncome={totalFilteredIncomes}
             totalExpenses={totalFilteredExpenses}
             remainingBudget={remainingBudget}
-            totalSavings={expenses.filter(e => e.savingGoalId).reduce((s, e) => s + e.amount, 0)}
+            totalSavings={(expenses || []).filter(e => e.savingGoalId).reduce((s, e) => s + (e.amount || 0), 0)}
             totalWalletBalance={totalWalletBalance}
             periodLabel={periodLabel}
             onReset={() => setIsResetConfirmOpen(true)}
           />
 
-          <Card className="bg-card dark:bg-card-dark rounded-2xl p-6 shadow-sm dark:shadow-card-dark border border-border dark:border-slate-800">
-            <h3 className="text-lg font-bold mb-6 dark:text-white">Akses Cepat</h3>
+          <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
+            <h3 className="text-lg font-bold mb-6">Akses Cepat</h3>
             <div className="grid grid-cols-4 gap-y-8 gap-x-2">
                 <QuickActionItem href="/reports" icon={BookMarked} label="Laporan" />
                 <QuickActionItem href="/import" icon={Upload} label="Impor" />
@@ -239,11 +242,11 @@ export default function DashboardPage({
             </Button>
           </Card>
 
-          <Card className="bg-card dark:bg-card-dark rounded-2xl p-6 shadow-sm dark:shadow-card-dark border border-border dark:border-slate-800">
+          <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-lg font-bold dark:text-white">Distribusi Pengeluaran</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Analisis kategori utama</p>
+                    <h3 className="text-lg font-bold">Distribusi Pengeluaran</h3>
+                    <p className="text-xs text-slate-500">Analisis kategori utama</p>
                 </div>
                 <Button asChild variant="secondary" size="sm" className="h-7 text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full">
                     <Link href="/reports">Detail</Link>
@@ -256,13 +259,13 @@ export default function DashboardPage({
 
           <PredictiveAnalysis expenses={expenses} categories={categories} dateRange={{ from: new Date(budgetPeriod?.periodStart || Date.now()), to: budgetPeriod?.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date() }} />
 
-          <Card className="bg-card dark:bg-card-dark rounded-2xl p-6 shadow-sm dark:shadow-card-dark border border-border dark:border-slate-800">
+          <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-lg font-bold dark:text-white">Riwayat Transaksi</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Daftar transaksi terbaru Anda.</p>
+                    <h3 className="text-lg font-bold">Riwayat Transaksi</h3>
+                    <p className="text-xs text-slate-500">Daftar transaksi terbaru Anda.</p>
                 </div>
-                <Button asChild variant="ghost" size="sm" className="h-7 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-primary">
+                <Button asChild variant="ghost" size="sm" className="h-7 text-xs font-medium text-slate-500 hover:text-primary">
                     <Link href="/history" className="flex items-center">
                         Lihat Semua <ChevronRight className="h-3.5 w-3.5 ml-1" />
                     </Link>
@@ -328,13 +331,13 @@ export default function DashboardPage({
                         <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-center">
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Jumlah</p>
                             <p className={cn("text-3xl font-extrabold", detailItem.type === 'income' ? "text-green-500" : "text-slate-800 dark:text-white")}>
-                                {formatCurrency(detailItem.amount)}
+                                {formatCurrency(detailItem.amount || 0)}
                             </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase">
                             <div className="p-3 border rounded-xl dark:border-slate-700">
                                 <p className="text-slate-500 mb-1">Tanggal</p>
-                                <p>{format(new Date(detailItem.date), "d MMMM yyyy")}</p>
+                                <p>{detailItem.date ? format(new Date(detailItem.date), "d MMMM yyyy") : '-'}</p>
                             </div>
                             <div className="p-3 border rounded-xl dark:border-slate-700">
                                 <p className="text-slate-500 mb-1">Dompet</p>
