@@ -5,7 +5,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Bot, Loader2, TrendingUp, AlertTriangle, Gem } from "lucide-react"
+import { Bot, Loader2, TrendingUp, AlertTriangle, Gem, Zap } from "lucide-react"
 import type { Category, Expense } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { generatePredictiveAnalysis, type PredictiveAnalysisOutput } from '@/ai/flows/predictive-analysis-flow'
@@ -29,11 +29,7 @@ export default function PredictiveAnalysis({ expenses, categories, dateRange }: 
 
     const handleGenerateAnalysis = async () => {
         if (!dateRange?.from || !dateRange?.to) {
-            toast({
-                title: "Rentang Tanggal Tidak Valid",
-                description: "Silakan pilih rentang tanggal yang valid untuk menjalankan analisis.",
-                variant: "destructive"
-            })
+            toast({ title: "Rentang Tanggal Tidak Valid", variant: "destructive" });
             return;
         }
 
@@ -47,119 +43,89 @@ export default function PredictiveAnalysis({ expenses, categories, dateRange }: 
                 periodEnd: dateRange.to
             });
             if ('error' in response) {
-                toast({
-                    title: "Error Konfigurasi AI",
-                    description: response.error,
-                    variant: "destructive"
-                });
-                return;
+                toast({ title: "Error AI", description: response.error, variant: "destructive" });
+            } else {
+                setAnalysis(response);
             }
-            setAnalysis(response);
         } catch (error) {
             console.error("Predictive Analysis Error:", error);
-            toast({
-                title: "Gagal Membuat Analisis",
-                description: "Terjadi kesalahan saat berkomunikasi dengan AI. Silakan coba lagi.",
-                variant: "destructive"
-            });
+            toast({ title: "Gagal", variant: "destructive" });
         } finally {
             setIsLoading(false)
         }
     }
-    
-    const GenerateButton = () => (
-      <div className="relative">
-          <Button onClick={handleGenerateAnalysis} disabled={isLoading || !isPremium}>
-              {isLoading ? "Sedang Meramal..." : "Jalankan Analisis Prediktif"}
-          </Button>
-           {!isPremium && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2 text-xs">
-                    <Gem className="h-3 w-3 mr-1"/> Premium
-                </Badge>
-            )}
-      </div>
-    );
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                    <TrendingUp className="h-6 w-6 text-accent" />
-                    <CardTitle className="font-headline">Peramalan & Peringatan Anggaran AI</CardTitle>
+        <Card className="rounded-2xl p-6 shadow-lg border-primary/30 relative overflow-hidden bg-card transition-all">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full filter blur-2xl -mr-10 -mt-10"></div>
+            
+            <div className="flex items-start gap-4 relative z-10 mb-6">
+                <div className="p-3 bg-gradient-to-br from-primary to-blue-600 rounded-xl shadow-lg shadow-blue-500/20">
+                    <Zap className="h-6 w-6 text-white" />
                 </div>
-                <CardDescription>Dapatkan prediksi proaktif dari AI apakah Anda akan sesuai anggaran hingga akhir periode.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+                <div className="flex-1">
+                    <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                        Peramalan & AI
+                        <Badge className="text-[8px] h-4 bg-primary text-white font-bold uppercase tracking-widest px-1.5">Beta</Badge>
+                    </h3>
+                    <p className="text-xs font-medium text-muted-foreground leading-relaxed mt-1">
+                        Dapatkan prediksi proaktif dari AI apakah Anda akan sesuai anggaran hingga akhir periode.
+                    </p>
+                </div>
+            </div>
+
+            <CardContent className="p-0 space-y-4 relative z-10">
                 {isLoading && (
-                     <div className="flex flex-col items-center justify-center p-8 border rounded-lg bg-secondary/50">
+                     <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-xl bg-muted/50">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="mt-4 text-muted-foreground">AI sedang meramal masa depan keuangan Anda...</p>
+                        <p className="mt-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">AI sedang meramal...</p>
                     </div>
                 )}
 
                 {analysis && !isLoading && (
-                    <div className="p-4 bg-secondary rounded-lg border space-y-4">
+                    <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 space-y-4">
                         <div className="flex items-start gap-3">
-                            <Bot className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
+                            <Bot className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                             <div className="flex-1">
-                                <h4 className="font-bold font-headline">{analysis.isHealthy ? "Proyeksi Anda Terlihat Baik!" : "Peringatan Anggaran Terdeteksi"}</h4>
-                                <p className="text-sm text-foreground/90 mt-1">{analysis.overallPrediction}</p>
+                                <h4 className="text-sm font-bold text-foreground">{analysis.isHealthy ? "Proyeksi Anda Terlihat Baik!" : "Peringatan Terdeteksi"}</h4>
+                                <p className="text-xs font-medium text-muted-foreground mt-1 leading-relaxed">{analysis.overallPrediction}</p>
                             </div>
                         </div>
 
                         {analysis.categoryWarnings.length > 0 && (
-                            <div className="space-y-3 pt-4 border-t">
+                            <div className="space-y-2 pt-3 border-t border-primary/10">
                                 {analysis.categoryWarnings.map((warning, index) => (
-                                    <Alert key={index} variant="destructive">
-                                        <AlertTriangle className="h-4 w-4" />
-                                        <AlertTitle>{warning.categoryName}</AlertTitle>
-                                        <AlertDescription>
-                                            {warning.warningMessage}
-                                            <div className="text-xs mt-2 flex justify-between">
-                                                <span>Budget: {formatCurrency(warning.budget)}</span>
-                                                <span>Proyeksi: {formatCurrency(warning.projectedSpending)}</span>
-                                            </div>
-                                        </AlertDescription>
-                                    </Alert>
+                                    <div key={index} className="flex items-center gap-2 text-[10px] font-bold text-destructive uppercase">
+                                        <AlertTriangle className="h-3 w-3" />
+                                        <span>{warning.categoryName}: {warning.warningMessage}</span>
+                                    </div>
                                 ))}
                             </div>
                         )}
-
                     </div>
                 )}
 
                 {!isPremium && !analysis && !isLoading && (
-                    <div className="p-4 text-center bg-secondary rounded-lg border">
-                        <Gem className="mx-auto h-8 w-8 text-primary/50" />
-                        <h4 className="font-semibold mt-2">Fitur Premium</h4>
-                        <p className="text-sm text-muted-foreground mt-1">Upgrade ke Premium untuk mendapatkan peringatan dini jika Anda akan melebihi anggaran.</p>
-                        <Button asChild size="sm" className="mt-4">
-                            <Link href="/premium">Upgrade Sekarang</Link>
+                    <div className="p-4 text-center bg-muted/50 rounded-xl border border-dashed flex flex-col items-center">
+                        <Gem className="h-8 w-8 text-primary/40 mb-2" />
+                        <p className="text-xs font-bold text-muted-foreground uppercase mb-3">Fitur Premium</p>
+                        <Button asChild size="sm" className="h-8 text-[10px] font-extrabold rounded-lg">
+                            <Link href="/premium">Buka Fitur AI</Link>
                         </Button>
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="flex-col items-start gap-4 sm:flex-row sm:justify-between">
-                <p className="text-xs text-muted-foreground">
-                    Analisis prediktif ini adalah perkiraan berdasarkan data saat ini.
-                </p>
-                {isPremium ? (
-                    <GenerateButton />
-                ) : (
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div>
-                                    <GenerateButton />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="md:block hidden">
-                                <p>Upgrade ke Premium untuk menggunakan fitur ini.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                )}
-            </CardFooter>
+
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10 pt-4 border-t border-border/50">
+                <p className="text-[9px] text-muted-foreground font-bold italic uppercase tracking-tighter">Berdasarkan data saat ini.</p>
+                <Button 
+                    onClick={handleGenerateAnalysis} 
+                    disabled={isLoading || !isPremium}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-extrabold py-2 px-6 rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 w-full sm:w-auto h-9"
+                >
+                    {isLoading ? "Memproses..." : "Jalankan Analisis"}
+                </Button>
+            </div>
         </Card>
     )
 }

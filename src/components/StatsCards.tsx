@@ -1,14 +1,12 @@
 
-
 "use client"
 
 import * as React from 'react';
 import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeftRight, Edit, PiggyBank, RefreshCw, Wallet, TrendingUp, Loader2, TrendingDown, Eye, EyeOff } from "lucide-react"
+import { RefreshCw, TrendingUp, TrendingDown, PiggyBank, Eye, EyeOff, Calculator } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { Button } from "./ui/button"
 import { cn } from "@/lib/utils"
-import Link from "next/link"
 
 interface StatsCardsProps {
     totalIncome: number;
@@ -24,7 +22,6 @@ export default function StatsCards({ totalIncome, totalExpenses, remainingBudget
     const [isHidden, setIsHidden] = React.useState(false);
 
     React.useEffect(() => {
-        // On component mount, check localStorage for the saved state
         const savedState = localStorage.getItem('jaga-duit-balance-hidden');
         if (savedState !== null) {
             setIsHidden(JSON.parse(savedState));
@@ -34,68 +31,86 @@ export default function StatsCards({ totalIncome, totalExpenses, remainingBudget
     const toggleVisibility = () => {
         const newHiddenState = !isHidden;
         setIsHidden(newHiddenState);
-        // Save the new state to localStorage
         localStorage.setItem('jaga-duit-balance-hidden', JSON.stringify(newHiddenState));
     };
     
     const displayValue = (value: number) => {
-        return isHidden ? '******' : formatCurrency(value);
+        return isHidden ? '••••••' : formatCurrency(value);
     }
     
     return (
-        <Card className="w-full overflow-hidden shadow-sm border-none bg-transparent">
-            <div className="bg-secondary/40 p-3 sm:p-4 rounded-t-lg flex justify-between items-center">
-                <div>
-                    <p className="text-xs text-muted-foreground">Periode Anggaran</p>
-                    <p className="font-semibold text-sm sm:text-base">{periodLabel}</p>
-                </div>
-                 <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={onReset}>
-                        <RefreshCw className="mr-2 h-4 w-4" />
+        <Card className="bg-card border-border/50 shadow-sm overflow-hidden rounded-2xl transition-all">
+            <div className="p-4 sm:p-6 pb-4">
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Periode Anggaran</p>
+                        <p className="text-sm font-semibold text-foreground/80">{periodLabel}</p>
+                    </div>
+                    <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={onReset}
+                        className="h-8 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border-none rounded-lg transition-colors"
+                    >
+                        <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                         Periode Baru
                     </Button>
-                 </div>
-            </div>
-            <CardContent className="p-4 sm:p-6 text-center bg-card rounded-b-lg">
-                <div className="flex justify-center items-center gap-2">
-                    <p className="text-sm text-muted-foreground">Total Saldo Dompet</p>
-                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleVisibility}>
-                        {isHidden ? <EyeOff className="h-5 w-5"/> : <Eye className="h-5 w-5"/>}
-                        <span className="sr-only">{isHidden ? "Tampilkan Saldo" : "Sembunyikan Saldo"}</span>
-                    </Button>
                 </div>
-                <p className="text-3xl sm:text-4xl font-bold font-headline tracking-tight mt-1 text-primary">
-                    {displayValue(totalWalletBalance)}
-                </p>
 
-                <div className="mt-4 pt-4 border-t grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <Link href="/budget" className="p-2 text-center rounded-lg hover:bg-accent transition-colors">
-                        <ArrowLeftRight className="h-5 sm:h-6 mx-auto text-red-500 mb-1" />
-                        <p className="text-xs text-muted-foreground">Sisa Anggaran</p>
+                <div className="text-center py-2">
+                    <div className="flex justify-center items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-muted-foreground">Total Saldo Dompet</p>
+                        <button 
+                            onClick={toggleVisibility}
+                            className="text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                        >
+                            {isHidden ? <EyeOff className="h-4 w-4"/> : <Eye className="h-4 w-4"/>}
+                        </button>
+                    </div>
+                    <h2 className="text-4xl font-extrabold text-primary tracking-tight drop-shadow-sm">
+                        {displayValue(totalWalletBalance)}
+                    </h2>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mt-8 border-t border-border/50 pt-6">
+                    <div className="text-center group">
+                        <div className="w-10 h-10 mx-auto bg-destructive/10 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                            <TrendingDown className="h-5 w-5 text-destructive" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Sisa Anggaran</p>
                         <p className={cn(
-                            "font-semibold text-xs sm:text-sm",
-                             remainingBudget >= 0 ? 'text-foreground' : 'text-destructive'
+                            "text-sm font-bold mt-0.5",
+                            remainingBudget >= 0 ? "text-foreground" : "text-destructive"
                         )}>
                             {displayValue(remainingBudget)}
                         </p>
-                    </Link>
-                    <Link href="/history/current" className="p-2 text-center rounded-lg hover:bg-accent transition-colors">
-                        <TrendingUp className="h-5 sm:h-6 mx-auto text-green-500 mb-1" />
-                        <p className="text-xs text-muted-foreground">Pemasukan Tambahan</p>
-                        <p className="font-semibold text-xs sm:text-sm">{displayValue(totalIncome)}</p>
-                    </Link>
-                    <Link href="/history/current" className="p-2 text-center rounded-lg hover:bg-accent transition-colors">
-                        <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 mx-auto text-red-500 mb-1" />
-                        <p className="text-xs text-muted-foreground">Pengeluaran</p>
-                        <p className="font-semibold text-xs sm:text-sm">{displayValue(totalExpenses)}</p>
-                    </Link>
-                     <Link href="/savings" className="p-2 text-center rounded-lg hover:bg-accent transition-colors">
-                        <PiggyBank className="h-5 w-5 sm:h-6 sm:w-6 mx-auto text-blue-500 mb-1" />
-                        <p className="text-xs text-muted-foreground">Tabungan</p>
-                        <p className="font-semibold text-xs sm:text-sm">{displayValue(totalSavings)}</p>
-                    </Link>
+                    </div>
+
+                    <div className="text-center group">
+                        <div className="w-10 h-10 mx-auto bg-green-500/10 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                            <TrendingUp className="h-5 w-5 text-green-600" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Pemasukan</p>
+                        <p className="text-sm font-bold text-foreground mt-0.5">{displayValue(totalIncome)}</p>
+                    </div>
+
+                    <div className="text-center group">
+                        <div className="w-10 h-10 mx-auto bg-orange-500/10 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                            <Calculator className="h-5 w-5 text-orange-500" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Pengeluaran</p>
+                        <p className="text-sm font-bold text-foreground mt-0.5">{displayValue(totalExpenses)}</p>
+                    </div>
+
+                    <div className="text-center group">
+                        <div className="w-10 h-10 mx-auto bg-blue-500/10 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                            <PiggyBank className="h-5 w-5 text-blue-500" />
+                        </div>
+                        <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Tabungan</p>
+                        <p className="text-sm font-bold text-foreground mt-0.5">{displayValue(totalSavings)}</p>
+                    </div>
                 </div>
-            </CardContent>
+            </div>
         </Card>
     )
 }

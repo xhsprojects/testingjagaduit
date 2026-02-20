@@ -1,9 +1,10 @@
 
 "use client"
 
+import * as React from 'react'
 import { Button } from "@/components/ui/button"
-import { HandCoins, PlusCircle, LogOut, Gem, UserCog, Star, Trophy, BookMarked, Bell, BellRing, Settings, BookText, BookOpen } from "lucide-react"
-import { ThemeToggle } from "./ThemeToggle"
+import { HandCoins, Bell, Moon, Sun } from "lucide-react"
+import { useTheme } from "next-themes"
 import { useAuth } from "@/context/AuthContext"
 import { auth } from "@/lib/firebase"
 import { signOut } from "firebase/auth"
@@ -15,6 +16,7 @@ import { Badge } from "./ui/badge"
 
 export default function Header() {
     const { user, isAdmin, isPremium, premiumExpiresAt, level, notifications } = useAuth();
+    const { theme, setTheme } = useTheme();
     const router = useRouter();
 
     const handleSignOut = async () => {
@@ -26,39 +28,50 @@ export default function Header() {
     const unreadCount = (notifications || []).filter(n => !n.isRead).length;
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+        <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-                <Link href="/" passHref>
-                    <div className="flex items-center gap-2 cursor-pointer">
-                        <HandCoins className="h-6 w-6 text-primary" />
-                        <h1 className="font-headline text-xl font-bold text-foreground">Jaga Duit</h1>
-                    </div>
-                </Link>
+                <div className="p-1.5 bg-primary/10 rounded-lg">
+                    <HandCoins className="h-6 w-6 text-primary" />
+                </div>
+                <h1 className="text-xl font-bold tracking-tight text-foreground">Jaga Duit</h1>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-                <ThemeToggle />
-                {user && (
-                    <Link href="/notifications" passHref>
-                        <Button variant="ghost" size="icon" className="relative">
-                            <Bell className="h-5 w-5" />
-                            {unreadCount > 0 && (
-                                <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 text-xs p-0 justify-center rounded-full">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
-                                </Badge>
-                            )}
-                            <span className="sr-only">Notifikasi</span>
-                        </Button>
-                    </Link>
-                )}
+
+            <div className="flex items-center gap-1 sm:gap-2">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full hover:bg-accent"
+                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                >
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    <span className="sr-only">Toggle theme</span>
+                </Button>
+
+                <Link href="/notifications" passHref>
+                    <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-accent">
+                        <Bell className="h-5 w-5 text-muted-foreground" />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-destructive rounded-full animate-pulse"></span>
+                        )}
+                        <span className="sr-only">Notifikasi</span>
+                    </Button>
+                </Link>
+
                 {user && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="flex flex-col items-center gap-0.5 rounded-md p-1 transition-colors hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                                    <AvatarFallback>{user.displayName?.charAt(0) || 'U'}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-[10px] font-bold text-primary leading-none">LVL {level}</span>
+                            <button className="flex items-center gap-2 focus:outline-none ml-1 group">
+                                <div className="relative">
+                                    <Avatar className="h-9 w-9 border-2 border-transparent group-hover:border-primary/30 transition-all shadow-sm">
+                                        <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
+                                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                                            {user.displayName?.charAt(0) || 'U'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <Badge className="absolute -bottom-1 -right-1 h-4 px-1 text-[8px] font-bold border-2 border-background">
+                                        LVL {level}
+                                    </Badge>
+                                </div>
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -69,73 +82,22 @@ export default function Header() {
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                             <DropdownMenuItem asChild>
-                                <Link href="/reports">
-                                    <BookMarked className="mr-2 h-4 w-4" />
-                                     <span>Laporan Keuangan</span>
-                                </Link>
+                            <DropdownMenuItem asChild>
+                                <Link href="/settings">Pengaturan Profil</Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>
-                                <Link href="/tutorial">
-                                    <BookOpen className="mr-2 h-4 w-4" />
-                                     <span>Panduan Aplikasi</span>
-                                </Link>
-                            </DropdownMenuItem>
-                             <DropdownMenuItem asChild>
-                                <Link href="/reminders">
-                                    <BellRing className="mr-2 h-4 w-4" />
-                                     <span>Pengingat Bayar</span>
-                                </Link>
-                            </DropdownMenuItem>
-                             <DropdownMenuItem asChild>
-                                <Link href="/achievements">
-                                    <Trophy className="mr-2 h-4 w-4" />
-                                     <span>Jejak Prestasi</span>
-                                </Link>
-                            </DropdownMenuItem>
-                             <DropdownMenuItem asChild>
-                                <Link href="/notes">
-                                    <BookText className="mr-2 h-4 w-4" />
-                                     <span>Catatan Pribadi</span>
-                                </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                                <Link href="/settings">
-                                    <Settings className="mr-2 h-4 w-4" />
-                                     <span>Pengaturan</span>
-                                </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                             <DropdownMenuItem asChild>
                                 <Link href="/premium">
-                                    <Gem className="mr-2 h-4 w-4 text-primary" />
-                                     {isPremium ? (
-                                        <span>Kelola Langganan</span>
-                                     ) : (
-                                        <span>Upgrade ke Premium</span>
-                                     )}
+                                    {isPremium ? 'Kelola Premium' : 'Upgrade ke Premium'}
                                 </Link>
                             </DropdownMenuItem>
-                            {isPremium && (
-                                <DropdownMenuItem disabled>
-                                    <Star className="mr-2 h-4 w-4 text-yellow-400" />
-                                    <span>
-                                        {isLifetime ? 'Premium Seumur Hidup' : `Aktif s.d. ${premiumExpiresAt?.toLocaleDateString('id-ID')}`}
-                                    </span>
-                                </DropdownMenuItem>
-                             )}
-                             {isAdmin && (
+                            {isAdmin && (
                                 <DropdownMenuItem asChild>
-                                    <Link href="/admin">
-                                        <UserCog className="mr-2 h-4 w-4" />
-                                        <span>Dasbor Admin</span>
-                                    </Link>
+                                    <Link href="/admin">Dasbor Admin</Link>
                                 </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleSignOut}>
-                                <LogOut className="mr-2 h-4 w-4" />
-                                <span>Keluar</span>
+                            <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                                Keluar
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>

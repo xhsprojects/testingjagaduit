@@ -19,7 +19,6 @@ interface WalletsSummaryCardProps {
 export default function WalletsSummaryCard({ wallets, expenses, incomes }: WalletsSummaryCardProps) {
 
     const calculateWalletBalance = React.useCallback((wallet: Wallet) => {
-        // Correctly calculate balance from ALL transactions, not just current period.
         const totalIncome = incomes
             .filter(i => i.walletId === wallet.id)
             .reduce((sum, i) => sum + i.amount, 0);
@@ -36,37 +35,36 @@ export default function WalletsSummaryCard({ wallets, expenses, incomes }: Walle
         })).sort((a,b) => b.currentBalance - a.currentBalance);
     }, [wallets, calculateWalletBalance]);
     
-    if (wallets.length === 0) {
-        return null; // Don't render the card if there are no wallets
-    }
+    if (wallets.length === 0) return null;
 
     return (
-        <Card className="h-full flex flex-col">
-            <CardHeader>
-                <CardTitle className="font-headline">Ringkasan Dompet</CardTitle>
-                <CardDescription>Saldo terkini di setiap sumber dana Anda.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-3">
+        <Card className="rounded-2xl p-6 shadow-sm border-border/50 bg-card">
+            <h3 className="text-lg font-bold mb-1 text-foreground">Ringkasan Dompet</h3>
+            <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight mb-6">Saldo terkini di sumber dana Anda.</p>
+            
+            <div className="space-y-5">
                 {walletsWithBalance.map(wallet => {
                     const Icon = iconMap[wallet.icon] || WalletIcon;
                     return (
-                        <div key={wallet.id} className="flex items-center gap-4">
-                            <Icon className="h-6 w-6 text-muted-foreground flex-shrink-0" />
-                            <div className="flex-grow">
-                                <p className="font-semibold">{wallet.name}</p>
+                        <div key={wallet.id} className="flex items-center justify-between group">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors shadow-sm">
+                                    <Icon className="h-5 w-5" />
+                                </div>
+                                <span className="font-bold text-sm text-foreground/80 leading-none">{wallet.name}</span>
                             </div>
-                            <p className="font-bold text-right">{formatCurrency(wallet.currentBalance)}</p>
+                            <span className="font-extrabold text-sm text-foreground">{formatCurrency(wallet.currentBalance)}</span>
                         </div>
                     );
                 })}
-            </CardContent>
-            <CardFooter>
-                 <Button asChild variant="outline" className="w-full">
-                    <Link href="/wallets">
-                        Kelola Semua Dompet <ChevronRight className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-            </CardFooter>
+            </div>
+
+            <Button asChild variant="outline" className="w-full mt-8 py-6 rounded-xl text-xs font-bold uppercase tracking-widest text-muted-foreground border-border/50 hover:bg-accent transition-colors flex items-center justify-center gap-2">
+                <Link href="/wallets">
+                    Kelola Semua Dompet
+                    <ChevronRight className="h-4 w-4" />
+                </Link>
+            </Button>
         </Card>
     );
 }
