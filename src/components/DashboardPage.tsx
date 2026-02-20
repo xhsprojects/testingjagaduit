@@ -7,13 +7,16 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
 import StatsCards from '@/components/StatsCards';
 import { AddExpenseForm } from './AddExpenseForm';
+import { AddIncomeForm } from './AddIncomeForm';
+import { TransferFundsForm } from './TransferFundsForm';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
     BookMarked, HandCoins, Bot, PlusCircle, TrendingUp, TrendingDown,
     Repeat, BellRing, Trophy, CalendarDays, Upload, Users2,
-    ChevronRight, GitCommitHorizontal, Calculator, Wallet as WalletIcon, Tag
+    ChevronRight, GitCommitHorizontal, Calculator, Wallet as WalletIcon, Tag,
+    ArrowLeftRight, Scale, PiggyBank, CreditCard, LayoutGrid
 } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -24,9 +27,10 @@ import FinancialChatbot from './FinancialChatbot';
 import { Card } from './ui/card';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
-import { deleteTransaction } from '@/app/history/actions';
+import { deleteTransaction, updateTransaction } from '@/app/history/actions';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
+import { SpeedDial, SpeedDialAction } from './SpeedDial';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -51,17 +55,22 @@ interface DashboardPageProps {
 }
 
 type UnifiedTransaction = (Expense | Income) & {
-  type: 'expense' | 'income';
+  type: 'income' | 'expense';
 };
 
-const QuickActionItem = ({ href, icon: Icon, label }: { href: string, icon: React.ElementType, label: string }) => (
-    <Link href={href} className="flex flex-col items-center gap-2 group cursor-pointer">
-        <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/30">
-            <Icon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
+const QuickActionItem = ({ href, icon: Icon, label, onClick }: { href?: string, icon: React.ElementType, label: string, onClick?: () => void }) => {
+    const content = (
+        <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={onClick}>
+            <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/30">
+                <Icon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
+            </div>
+            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight transition-colors text-center">{label}</span>
         </div>
-        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight transition-colors text-center">{label}</span>
-    </Link>
-);
+    );
+
+    if (href) return <Link href={href}>{content}</Link>;
+    return content;
+};
 
 const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: { 
     transaction: UnifiedTransaction; 
@@ -134,16 +143,18 @@ export default function DashboardPage({
 }: DashboardPageProps) {
   const { isPremium, idToken } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
+
   const [isAddExpenseFormOpen, setIsAddExpenseFormOpen] = React.useState(false);
-  const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
+  const [isAddIncomeFormOpen, setIsAddIncomeFormOpen] = React.useState(false);
+  const [isTransferFormOpen, setIsTransferFormOpen] = React.useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
+  const [isMenuDialogOpen, setIsMenuDialogOpen] = React.useState(false);
   const [detailItem, setDetailItem] = React.useState<UnifiedTransaction | null>(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
   const [isResetting, setIsResetting] = React.useState(false);
-  const { toast } = useToast();
 
   const isDataReady = Array.isArray(categories) && categories.length > 0;
-
   const categoryMap = React.useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
   const walletMap = React.useMemo(() => new Map(wallets.map((w) => [w.id, w])), [wallets]);
   
@@ -183,13 +194,17 @@ export default function DashboardPage({
       return Array.from(dataMap.values());
   }, [expenses, categories, isDataReady]);
 
-  const handleSaveExpense = async (expenseData: Expense) => {
-    const isEditing = (expenses || []).some(e => e.id === expenseData.id);
-    let updatedExpenses = isEditing ? expenses.map(e => e.id === expenseData.id ? expenseData : e) : [...(expenses || []), expenseData];
-    await onExpensesUpdate(updatedExpenses);
-    toast({ title: 'Sukses', description: `Transaksi berhasil disimpan.` });
-    setIsAddExpenseFormOpen(false);
-    setEditingExpense(null);
+  const handleSaveTransaction = async (data: Expense | Income, type: 'expense' | 'income') => {
+    if (!idToken) return;
+    const result = await updateTransaction(idToken, 'current', data, type);
+    if (result.success) {
+        toast({ title: 'Sukses', description: `Transaksi berhasil disimpan.` });
+        setIsAddExpenseFormOpen(false);
+        setIsAddIncomeFormOpen(false);
+        setIsTransferFormOpen(false);
+    } else {
+        toast({ title: 'Gagal', description: result.message, variant: 'destructive' });
+    }
   };
   
   const handleResetClick = async () => {
@@ -209,6 +224,23 @@ export default function DashboardPage({
   if (!isDataReady) {
     return <div className="flex h-screen w-full items-center justify-center bg-background"><Bot className="h-8 w-8 animate-bounce text-primary" /></div>;
   }
+
+  const allMenuItems = [
+    { label: 'Laporan', icon: BookMarked, href: '/reports' },
+    { label: 'Impor', icon: Upload, href: '/import' },
+    { label: 'Bagi Tagihan', icon: Users2, href: '/split-bill' },
+    { label: 'Kalender', icon: CalendarDays, href: '/financial-calendar' },
+    { label: 'Pengingat', icon: BellRing, href: '/reminders' },
+    { label: 'Prestasi', icon: Trophy, href: '/achievements' },
+    { label: 'Kalkulator', icon: Calculator, href: '/calculators' },
+    { label: 'Otomatis', icon: Repeat, href: '/recurring' },
+    { label: 'Tujuan', icon: Target, href: '/savings' },
+    { label: 'Anggaran', icon: Landmark, href: '/budget' },
+    { label: 'Utang', icon: CreditCard, href: '/debts' },
+    { label: 'Kekayaan', icon: Scale, href: '/net-worth' },
+    { label: 'Dompet', icon: WalletIcon, href: '/wallets' },
+    { label: 'Catatan', icon: BookMarked, href: '/notes' },
+  ];
 
   return (
     <>
@@ -237,8 +269,8 @@ export default function DashboardPage({
                 <QuickActionItem href="/calculators" icon={Calculator} label="Kalkulator" />
                 <QuickActionItem href="/recurring" icon={Repeat} label="Otomatis" />
             </div>
-            <Button asChild variant="outline" className="w-full mt-8 py-3 rounded-xl border-border dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                <Link href="/dasbor">Lihat Semua Menu</Link>
+            <Button variant="outline" className="w-full mt-8 py-3 rounded-xl border-border dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" onClick={() => setIsMenuDialogOpen(true)}>
+                Lihat Semua Menu
             </Button>
           </Card>
 
@@ -290,12 +322,34 @@ export default function DashboardPage({
             <Bot className="h-7 w-7 animate-pulse group-hover:animate-none" />
         </button>
 
-        <button 
-            onClick={() => setIsAddExpenseFormOpen(true)}
-            className="fixed bottom-24 right-4 w-14 h-14 bg-primary rounded-full shadow-lg shadow-primary/40 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-200"
-        >
-            <PlusCircle className="h-7 w-7" />
-        </button>
+        <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />}>
+            <SpeedDialAction label="Transfer Dana" onClick={() => setIsTransferFormOpen(true)}>
+                <ArrowLeftRight className="h-5 w-5 text-purple-500" />
+            </SpeedDialAction>
+            <SpeedDialAction label="Tambah Pemasukan" onClick={() => setIsAddIncomeFormOpen(true)}>
+                <TrendingUp className="h-5 w-5 text-green-500" />
+            </SpeedDialAction>
+            <SpeedDialAction label="Tambah Pengeluaran" onClick={() => setIsAddExpenseFormOpen(true)}>
+                <TrendingDown className="h-5 w-5 text-red-500" />
+            </SpeedDialAction>
+        </SpeedDial>
+
+        <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
+            <DialogContent className="max-w-lg sm:rounded-2xl">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <LayoutGrid className="h-5 w-5 text-primary" />
+                        Semua Menu Aplikasi
+                    </DialogTitle>
+                    <DialogDescription>Akses cepat ke seluruh fitur Jaga Duit.</DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-6 py-4">
+                    {allMenuItems.map((item) => (
+                        <QuickActionItem key={item.label} href={item.href} icon={item.icon} label={item.label} onClick={() => setIsMenuDialogOpen(false)} />
+                    ))}
+                </div>
+            </DialogContent>
+        </Dialog>
 
         <Dialog open={isChatbotOpen} onOpenChange={setIsChatbotOpen}>
           <DialogContent className="h-full w-full rounded-none border-none sm:h-[85vh] sm:max-w-lg sm:rounded-lg sm:border flex flex-col p-0 gap-0">
@@ -312,15 +366,31 @@ export default function DashboardPage({
 
         <AddExpenseForm
           isOpen={isAddExpenseFormOpen}
-          onOpenChange={(open) => { if (!open) setEditingExpense(null); setIsAddExpenseFormOpen(open); }}
+          onOpenChange={(open) => setIsAddExpenseFormOpen(open)}
           categories={categories}
           savingGoals={savingGoals}
           debts={[]}
           wallets={wallets}
           expenses={allExpenses}
           incomes={allIncomes}
-          onSubmit={handleSaveExpense}
-          expenseToEdit={editingExpense}
+          onSubmit={(data) => handleSaveTransaction(data, 'expense')}
+        />
+
+        <AddIncomeForm
+          isOpen={isAddIncomeFormOpen}
+          onOpenChange={(open) => setIsAddIncomeFormOpen(open)}
+          wallets={wallets}
+          expenses={allExpenses}
+          incomes={allIncomes}
+          onSubmit={(data) => handleSaveTransaction(data, 'income')}
+        />
+
+        <TransferFundsForm
+          isOpen={isTransferFormOpen}
+          onOpenChange={(open) => setIsTransferFormOpen(open)}
+          wallets={wallets}
+          expenses={allExpenses}
+          incomes={allIncomes}
         />
 
         <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>

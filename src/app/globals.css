@@ -4,13 +4,13 @@
 
 @layer base {
   :root {
-    --background: 210 40% 96%; /* background-light: #F0F4F8 */
+    --background: 210 40% 96%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 199 89% 48%; /* primary: #0EA5E9 */
+    --primary: 199 89% 48%; /* Default Blue */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 90%;
     --secondary-foreground: 222 47% 11%;
@@ -27,9 +27,9 @@
   }
 
   .dark {
-    --background: 222 47% 5%; /* background-dark: #0F172A */
+    --background: 222 47% 5%;
     --foreground: 210 20% 98%;
-    --card: 222 47% 11%; /* card-dark: #1E293B */
+    --card: 222 47% 11%;
     --card-foreground: 210 20% 98%;
     --popover: 222 47% 11%;
     --popover-foreground: 210 20% 98%;
@@ -49,6 +49,36 @@
   }
 }
 
+/* Theme Definitions */
+.theme-forest {
+  --primary: 150 24% 44%; /* #558B6E */
+  --ring: 150 24% 44%;
+}
+.theme-sunset {
+  --primary: 21 88% 57%; /* #F27830 */
+  --ring: 21 88% 57%;
+}
+.theme-ocean {
+  --primary: 217 91% 60%; /* #3b82f6 */
+  --ring: 217 91% 60%;
+}
+.theme-midnight {
+  --primary: 258 90% 66%; /* #8b5cf6 */
+  --ring: 258 90% 66%;
+}
+.theme-sakura {
+  --primary: 330 81% 70%; /* #f472b6 */
+  --ring: 330 81% 70%;
+}
+.theme-cosmic {
+  --primary: 239 84% 67%; /* #6366f1 */
+  --ring: 239 84% 67%;
+}
+.theme-gold {
+  --primary: 48 100% 45%; /* #e6b800 */
+  --ring: 48 100% 45%;
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -57,6 +87,12 @@
     @apply bg-background text-foreground transition-colors duration-300;
     font-family: 'Inter', sans-serif;
   }
+}
+
+.sophisticated-donut {
+    background: conic-gradient(
+        #4F46E5 0% 66%,#F97316 66% 84%,#14B8A6 84% 100%);
+    border-radius: 50%;
 }
 
 .ai-glow {
