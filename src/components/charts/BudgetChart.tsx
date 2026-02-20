@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -8,8 +7,6 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
 } from "@/components/ui/chart"
 import { formatCurrency } from "@/lib/utils"
 
@@ -21,56 +18,22 @@ interface BudgetChartProps {
     }[];
 }
 
-const chartConfigBase = {
-  spent: {
-    label: "Dibelanjakan",
-  },
-}
-
-const COLORS = ["#3DA3FF", "#735CDD", "#FFB45A", "#4CAF50", "#FF6B6B", "#3DDBD9", "#A855F7"];
-
-const RADIAN = Math.PI / 180;
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.6;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    if (percent < 0.05) {
-        return null;
-    }
-
-    return (
-        <text
-            x={x}
-            y={y}
-            fill="#fff"
-            textAnchor="middle"
-            dominantBaseline="central"
-            className="text-xs font-semibold"
-        >
-            {`${(percent * 100).toFixed(0)}%`}
-        </text>
-    );
-};
-
+const COLORS = ["#4F46E5", "#F97316", "#14B8A6", "#22C55E", "#EF4444", "#0EA5E9", "#A855F7"];
 
 export default function BudgetChart({ data }: BudgetChartProps) {
   const chartData = data.filter(item => item.spent > 0).map(item => ({
       name: item.name,
       spent: item.spent,
-      fill: `var(--color-${item.name.replace(/\s+/g, '-')})`
   }));
   
   const totalSpent = React.useMemo(() => {
     return data.reduce((acc, curr) => acc + curr.spent, 0)
   }, [data]);
 
-  const shouldShowScrollNote = chartData.length > 3;
-  
   const chartConfig = React.useMemo(() => {
-    const config = { ...chartConfigBase };
+    const config: any = {};
     chartData.forEach((item, index) => {
-      (config as any)[item.name] = {
+      config[item.name] = {
         label: item.name,
         color: COLORS[index % COLORS.length],
       };
@@ -80,60 +43,60 @@ export default function BudgetChart({ data }: BudgetChartProps) {
 
   if (totalSpent <= 0) {
       return (
-          <div className="flex h-[350px] flex-col items-center justify-center text-muted-foreground">
-              <p>Belum ada data.</p>
-              <p className="text-sm">Grafik akan muncul di sini setelah ada transaksi.</p>
+          <div className="flex h-[200px] flex-col items-center justify-center text-slate-400 text-sm italic">
+              <p>Belum ada data pengeluaran.</p>
           </div>
       );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center">
-        <ChartContainer
-            config={chartConfig}
-            className="w-full h-[350px]"
-        >
-            <PieChart>
-            <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent nameKey="name" formatter={(value) => formatCurrency(value as number)}/>}
-            />
-            <Pie
-                data={chartData}
-                dataKey="spent"
-                nameKey="name"
-                innerRadius="50%"
-                outerRadius="80%"
-                strokeWidth={2}
-                labelLine={false}
-                label={renderCustomizedLabel}
+    <div className="flex flex-row items-center gap-6">
+        <div className="relative w-32 h-32 flex-shrink-0">
+            <ChartContainer
+                config={chartConfig}
+                className="w-full h-full"
             >
-                <text
-                x="50%"
-                y="50%"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="fill-foreground text-lg sm:text-xl font-headline font-bold"
-                >
-                {formatCurrency(totalSpent)}
-                </text>
-                {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-            </Pie>
-            <ChartLegend
-                content={<ChartLegendContent nameKey="name" />}
-                wrapperStyle={{
-                paddingTop: '20px',
-                }}
-            />
-            </PieChart>
-        </ChartContainer>
-        {shouldShowScrollNote && (
-        <p className="text-xs text-muted-foreground pt-2">
-            Geser legenda di atas untuk melihat semua kategori.
-        </p>
-        )}
+                <PieChart>
+                    <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent hideLabel />}
+                    />
+                    <Pie
+                        data={chartData}
+                        dataKey="spent"
+                        nameKey="name"
+                        innerRadius="65%"
+                        outerRadius="100%"
+                        strokeWidth={0}
+                    >
+                        {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                    </Pie>
+                </PieChart>
+            </ChartContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[10px] font-medium text-slate-400">Total</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">100%</span>
+            </div>
+        </div>
+        <div className="flex-1 space-y-3">
+            {chartData.slice(0, 4).map((item, index) => {
+                const percentage = ((item.spent / totalSpent) * 100).toFixed(0);
+                return (
+                    <div key={item.name} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-2">
+                            <span 
+                                className="w-2.5 h-2.5 rounded-full" 
+                                style={{ backgroundColor: COLORS[index % COLORS.length], boxShadow: `0 0 8px ${COLORS[index % COLORS.length]}80` }}
+                            ></span>
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate max-w-[100px]">{item.name}</span>
+                        </div>
+                        <span className="text-xs font-bold text-slate-800 dark:text-white">{percentage}%</span>
+                    </div>
+                )
+            })}
+        </div>
     </div>
   )
 }

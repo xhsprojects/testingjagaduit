@@ -1,11 +1,10 @@
-
 "use client"
 
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutGrid, CreditCard, Target, History, Landmark, Wallet } from 'lucide-react'
+import { LayoutGrid, Target, Landmark, CreditCard, Wallet, History } from 'lucide-react'
 
 const navItems = [
     { href: '/dasbor', label: 'Dasbor', icon: LayoutGrid },
@@ -20,8 +19,8 @@ export function BottomNavbar() {
     const pathname = usePathname()
 
     return (
-        <nav className="fixed bottom-0 w-full bg-background border-t border-border/50 pb-safe pt-2 px-4 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
-            <div className="flex justify-between items-center max-w-lg mx-auto pb-2">
+        <nav className="fixed bottom-0 w-full bg-white dark:bg-[#0F172A] border-t border-slate-200 dark:border-slate-800 pb-safe pt-2 px-6 z-50">
+            <div className="flex justify-between items-center max-w-lg mx-auto pb-4">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href || (item.href === '/history' && pathname.startsWith('/history'))
                     const Icon = item.icon
@@ -30,10 +29,10 @@ export function BottomNavbar() {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                'flex flex-col items-center justify-center gap-1 transition-all duration-300 px-2 py-1 rounded-xl',
+                                'flex flex-col items-center justify-center gap-1 transition-all duration-300 rounded-xl px-2',
                                 isActive 
                                     ? 'text-primary' 
-                                    : 'text-muted-foreground hover:text-primary/70'
+                                    : 'text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-primary'
                             )}
                         >
                             <Icon className={cn("h-6 w-6 transition-transform", isActive && "scale-110")} />

@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -13,23 +12,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
-    BookMarked, RefreshCw, HandCoins, Tag, Landmark, FileText, CreditCard, Bot, PlusCircle, 
-    TrendingUp, TrendingDown, Edit, Trash2, Scale, Calculator, Repeat, BellRing, Wallet as WalletIcon, 
-    Trophy, CalendarDays, Upload, Users2, FilePenLine, Info, ArrowLeftRight, ChevronRight, 
-    GitCommitHorizontal, History, Target as TargetIcon, BookOpen, Settings, Settings2
+    BookMarked, HandCoins, Bot, PlusCircle, TrendingUp, TrendingDown,
+    Repeat, BellRing, Trophy, CalendarDays, Upload, Users2,
+    ChevronRight, GitCommitHorizontal, History, Settings2, CreditCard, Landmark, Tag
 } from 'lucide-react';
 import Link from 'next/link';
-import { SupportDialog } from './SupportDialog';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { iconMap } from '@/lib/icons';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import { useAuth } from '@/context/AuthContext';
 import FinancialChatbot from './FinancialChatbot';
-import { SpeedDial, SpeedDialAction } from './SpeedDial';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from './ui/card';
+import { Card } from './ui/card';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
-import { Alert, AlertTitle } from './ui/alert';
 import { deleteTransaction } from '@/app/history/actions';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -60,12 +55,12 @@ type UnifiedTransaction = (Expense | Income) & {
   type: 'expense' | 'income';
 };
 
-const QuickActionItem = ({ href, icon: Icon, label, colorClass }: { href: string, icon: React.ElementType, label: string, colorClass: string }) => (
+const QuickActionItem = ({ href, icon: Icon, label }: { href: string, icon: React.ElementType, label: string }) => (
     <Link href={href} className="flex flex-col items-center gap-2 group cursor-pointer">
-        <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-md shadow-sm", colorClass)}>
-            <Icon className="h-6 w-6 transition-colors" />
+        <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/30">
+            <Icon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
         </div>
-        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight group-hover:text-primary transition-colors text-center">{label}</span>
+        <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight transition-colors text-center">{label}</span>
     </Link>
 );
 
@@ -76,7 +71,6 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
     onClick: () => void;
 }) => {
     const isExpense = transaction.type === 'expense';
-    const isTransfer = categoryMap.get((transaction as Expense).categoryId || '')?.name === 'Transfer Antar Dompet';
     let Icon = isExpense ? Tag : TrendingUp;
     let title = transaction.notes || (isExpense ? 'Pengeluaran' : 'Pemasukan');
     const walletName = walletMap.get(transaction.walletId || '')?.name || 'Tanpa Dompet';
@@ -95,30 +89,26 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
             }
         }
     }
-    if (isTransfer) {
-        Icon = ArrowLeftRight;
-        title = transaction.notes || "Transfer Antar Dompet"
-    }
 
     return (
-        <div onClick={onClick} className="flex items-center justify-between py-4 cursor-pointer border-b last:border-b-0 group">
+        <div onClick={onClick} className="flex items-center justify-between py-4 cursor-pointer border-b last:border-b-0 group border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
                 <div className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm",
-                    isExpense ? "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary" : "bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400"
+                    isExpense ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-primary group-hover:text-white" : "bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400"
                 )}>
                     <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                    <p className="text-sm font-bold text-foreground leading-none mb-1">{title}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">{walletName}</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">{title}</p>
+                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">{walletName}</p>
                 </div>
             </div>
             <div className="text-right">
-                <p className={cn("text-sm font-extrabold whitespace-nowrap", isExpense ? "text-foreground" : "text-green-500")}>
+                <p className={cn("text-sm font-bold whitespace-nowrap", isExpense ? "text-slate-800 dark:text-white" : "text-green-500")}>
                     {isExpense ? '-' : '+'} {formatCurrency(amount)}
                 </p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">{format(new Date(transaction.date), "d MMM, HH:mm", { locale: idLocale })}</p>
+                <p className="text-[10px] text-slate-400 tracking-tight">{format(new Date(transaction.date), "d MMM, HH:mm", { locale: idLocale })}</p>
             </div>
         </div>
     );
@@ -138,10 +128,6 @@ export default function DashboardPage({
   onExpensesUpdate, 
   onSavingGoalsUpdate,
   onReset, 
-  onEditIncome,
-  onDeleteIncome,
-  onViewIncome,
-  onAddIncomeClick,
   allExpenses,
   allIncomes
 }: DashboardPageProps) {
@@ -149,7 +135,6 @@ export default function DashboardPage({
   const router = useRouter();
   const [isAddExpenseFormOpen, setIsAddExpenseFormOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
-  const [isSupportDialogOpen, setIsSupportDialogOpen] = React.useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
   const [detailItem, setDetailItem] = React.useState<UnifiedTransaction | null>(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
@@ -201,7 +186,7 @@ export default function DashboardPage({
     const isEditing = expenses.some(e => e.id === expenseData.id);
     let updatedExpenses = isEditing ? expenses.map(e => e.id === expenseData.id ? expenseData : e) : [...expenses, expenseData];
     await onExpensesUpdate(updatedExpenses);
-    toast({ title: 'Sukses', description: `Pengeluaran berhasil disimpan.` });
+    toast({ title: 'Sukses', description: `Transaksi berhasil disimpan.` });
     setIsAddExpenseFormOpen(false);
     setEditingExpense(null);
   };
@@ -220,11 +205,11 @@ export default function DashboardPage({
       setDetailItem(null);
   };
 
-  if (!isDataReady) return <div className="flex h-screen w-full items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (!isDataReady) return <div className="flex h-screen w-full items-center justify-center bg-background"><Bot className="h-8 w-8 animate-bounce text-primary" /></div>;
 
   return (
     <>
-      <div className="flex min-h-screen w-full flex-col bg-muted/30">
+      <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark transition-colors duration-300">
         <Header />
         <main className="pt-20 pb-24 px-4 max-w-lg mx-auto space-y-6">
           <StatsCards
@@ -237,30 +222,30 @@ export default function DashboardPage({
             onReset={() => setIsResetConfirmOpen(true)}
           />
 
-          <Card className="rounded-2xl p-6 shadow-sm border-border/50">
-            <h3 className="text-lg font-bold mb-6 text-foreground">Akses Cepat</h3>
+          <Card className="bg-card dark:bg-card-dark rounded-2xl p-6 shadow-sm dark:shadow-card-dark border border-border dark:border-slate-800">
+            <h3 className="text-lg font-bold mb-6 dark:text-white">Akses Cepat</h3>
             <div className="grid grid-cols-4 gap-y-8 gap-x-2">
-                <QuickActionItem href="/reports" icon={BookMarked} label="Laporan" colorClass="bg-sky-50 dark:bg-sky-900/30 text-primary" />
-                <QuickActionItem href="/import" icon={Upload} label="Impor" colorClass="bg-sky-50 dark:bg-sky-900/30 text-primary" />
-                <QuickActionItem href="/split-bill" icon={Users2} label="Bagi Bill" colorClass="bg-sky-50 dark:bg-sky-900/30 text-primary" />
-                <QuickActionItem href="/financial-calendar" icon={CalendarDays} label="Kalender" colorClass="bg-sky-50 dark:bg-sky-900/30 text-primary" />
-                <QuickActionItem href="/reminders" icon={BellRing} label="Pengingat" colorClass="bg-sky-50 dark:bg-sky-900/30 text-primary" />
-                <QuickActionItem href="/achievements" icon={Trophy} label="Prestasi" colorClass="bg-sky-50 dark:bg-sky-900/30 text-primary" />
-                <QuickActionItem href="/calculators" icon={Calculator} label="Kalkulator" colorClass="bg-sky-50 dark:bg-sky-900/30 text-primary" />
-                <QuickActionItem href="/recurring" icon={Repeat} label="Otomatis" colorClass="bg-sky-50 dark:bg-sky-900/30 text-primary" />
+                <QuickActionItem href="/reports" icon={BookMarked} label="Laporan" />
+                <QuickActionItem href="/import" icon={Upload} label="Impor" />
+                <QuickActionItem href="/split-bill" icon={Users2} label="Bagi Bill" />
+                <QuickActionItem href="/financial-calendar" icon={CalendarDays} label="Kalender" />
+                <QuickActionItem href="/reminders" icon={BellRing} label="Pengingat" />
+                <QuickActionItem href="/achievements" icon={Trophy} label="Prestasi" />
+                <QuickActionItem href="/calculators" icon={Calculator} label="Kalkulator" />
+                <QuickActionItem href="/recurring" icon={Repeat} label="Otomatis" />
             </div>
-            <Button asChild variant="outline" className="w-full mt-8 py-6 rounded-xl text-xs font-bold uppercase tracking-widest text-muted-foreground border-border/50 hover:bg-accent transition-colors">
+            <Button asChild variant="outline" className="w-full mt-8 py-3 rounded-xl border-border dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                 <Link href="/dasbor">Lihat Semua Menu</Link>
             </Button>
           </Card>
 
-          <Card className="rounded-2xl p-6 shadow-sm border-border/50">
+          <Card className="bg-card dark:bg-card-dark rounded-2xl p-6 shadow-sm dark:shadow-card-dark border border-border dark:border-slate-800">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h3 className="text-lg font-bold text-foreground">Distribusi Pengeluaran</h3>
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Analisis kategori utama</p>
+                    <h3 className="text-lg font-bold dark:text-white">Distribusi Pengeluaran</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Analisis kategori utama</p>
                 </div>
-                <Button asChild variant="secondary" size="sm" className="h-7 text-[10px] uppercase font-bold rounded-full">
+                <Button asChild variant="secondary" size="sm" className="h-7 text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full">
                     <Link href="/reports">Detail</Link>
                 </Button>
             </div>
@@ -271,13 +256,13 @@ export default function DashboardPage({
 
           <PredictiveAnalysis expenses={expenses} categories={categories} dateRange={{ from: new Date(budgetPeriod?.periodStart || Date.now()), to: budgetPeriod?.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date() }} />
 
-          <Card className="rounded-2xl p-6 shadow-sm border-border/50">
+          <Card className="bg-card dark:bg-card-dark rounded-2xl p-6 shadow-sm dark:shadow-card-dark border border-border dark:border-slate-800">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-lg font-bold text-foreground">Riwayat Transaksi</h3>
-                    <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-tight">Daftar transaksi terbaru Anda.</p>
+                    <h3 className="text-lg font-bold dark:text-white">Riwayat Transaksi</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Daftar transaksi terbaru Anda.</p>
                 </div>
-                <Button asChild variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold text-muted-foreground hover:text-primary">
+                <Button asChild variant="ghost" size="sm" className="h-7 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-primary">
                     <Link href="/history" className="flex items-center">
                         Lihat Semua <ChevronRight className="h-3.5 w-3.5 ml-1" />
                     </Link>
@@ -340,32 +325,32 @@ export default function DashboardPage({
                 <DialogHeader><DialogTitle>Detail Transaksi</DialogTitle></DialogHeader>
                 {detailItem && (
                     <div className="space-y-4 py-4">
-                        <div className="p-4 bg-secondary rounded-xl text-center">
-                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Jumlah</p>
-                            <p className={cn("text-3xl font-extrabold", detailItem.type === 'income' ? "text-green-500" : "text-foreground")}>
+                        <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-center">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Jumlah</p>
+                            <p className={cn("text-3xl font-extrabold", detailItem.type === 'income' ? "text-green-500" : "text-slate-800 dark:text-white")}>
                                 {formatCurrency(detailItem.amount)}
                             </p>
                         </div>
-                        <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase tracking-tighter">
-                            <div className="p-3 border rounded-xl">
-                                <p className="text-muted-foreground mb-1">Tanggal</p>
+                        <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase">
+                            <div className="p-3 border rounded-xl dark:border-slate-700">
+                                <p className="text-slate-500 mb-1">Tanggal</p>
                                 <p>{format(new Date(detailItem.date), "d MMMM yyyy")}</p>
                             </div>
-                            <div className="p-3 border rounded-xl">
-                                <p className="text-muted-foreground mb-1">Dompet</p>
+                            <div className="p-3 border rounded-xl dark:border-slate-700">
+                                <p className="text-slate-500 mb-1">Dompet</p>
                                 <p>{walletMap.get(detailItem.walletId || '')?.name || '-'}</p>
                             </div>
                         </div>
                         {detailItem.notes && (
-                            <div className="p-3 border rounded-xl text-sm">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Catatan</p>
-                                <p className="font-medium text-foreground">{detailItem.notes}</p>
+                            <div className="p-3 border rounded-xl text-sm dark:border-slate-700">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Catatan</p>
+                                <p className="font-medium text-slate-800 dark:text-slate-200">{detailItem.notes}</p>
                             </div>
                         )}
                     </div>
                 )}
                 <DialogFooter className="gap-2">
-                    <Button variant="ghost" className="text-destructive font-bold" onClick={() => detailItem && handleDeleteRequest(detailItem)}>Hapus</Button>
+                    <Button variant="ghost" className="text-red-500 font-bold" onClick={() => detailItem && handleDeleteRequest(detailItem)}>Hapus</Button>
                     <Button onClick={() => setDetailItem(null)}>Tutup</Button>
                 </DialogFooter>
             </DialogContent>

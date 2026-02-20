@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react'
@@ -24,34 +23,31 @@ export default function Header() {
         router.push('/login');
     };
     
-    const isLifetime = premiumExpiresAt && premiumExpiresAt.getFullYear() > 9000;
     const unreadCount = (notifications || []).filter(n => !n.isRead).length;
 
     return (
-        <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-3 flex items-center justify-between">
+        <header className="fixed top-0 w-full z-50 bg-background/90 dark:bg-background/90 backdrop-blur-md border-b border-border/50 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-primary/10 rounded-lg">
-                    <HandCoins className="h-6 w-6 text-primary" />
-                </div>
-                <h1 className="text-xl font-bold tracking-tight text-foreground">Jaga Duit</h1>
+                <HandCoins className="h-8 w-8 text-primary" />
+                <h1 className="text-xl font-bold tracking-tight text-foreground dark:text-white">Jaga Duit</h1>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-3">
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="rounded-full hover:bg-accent"
+                    className="rounded-full hover:bg-muted"
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 >
-                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    {theme === 'dark' ? <Sun className="h-5 w-5 text-slate-300" /> : <Moon className="h-5 w-5 text-slate-600" />}
                     <span className="sr-only">Toggle theme</span>
                 </Button>
 
                 <Link href="/notifications" passHref>
-                    <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-accent">
-                        <Bell className="h-5 w-5 text-muted-foreground" />
+                    <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted">
+                        <Bell className="h-5 w-5 text-slate-600 dark:text-slate-300" />
                         {unreadCount > 0 && (
-                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-destructive rounded-full animate-pulse"></span>
+                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                         )}
                         <span className="sr-only">Notifikasi</span>
                     </Button>
@@ -60,16 +56,16 @@ export default function Header() {
                 {user && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <button className="flex items-center gap-2 focus:outline-none ml-1 group">
+                            <button className="flex items-center focus:outline-none ml-1 group">
                                 <div className="relative">
-                                    <Avatar className="h-9 w-9 border-2 border-transparent group-hover:border-primary/30 transition-all shadow-sm">
-                                        <AvatarImage src={user.photoURL || ''} alt={user.displayName || 'User'} />
-                                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                                    <Avatar className="h-9 w-9 shadow-lg shadow-primary/30 border-2 border-transparent group-hover:border-primary/50 transition-all">
+                                        <AvatarImage src={user.photoURL || ''} />
+                                        <AvatarFallback className="bg-primary text-white font-bold text-sm">
                                             {user.displayName?.charAt(0) || 'U'}
                                         </AvatarFallback>
                                     </Avatar>
                                     <Badge className="absolute -bottom-1 -right-1 h-4 px-1 text-[8px] font-bold border-2 border-background">
-                                        LVL {level}
+                                        {level}
                                     </Badge>
                                 </div>
                             </button>
