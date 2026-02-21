@@ -392,27 +392,32 @@ export default function HistoryPage() {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                     />
                                 </div>
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="flex flex-col gap-3">
+                                    {/* Date Range Picker - Full Width on Mobile */}
                                     <DateRangePicker 
                                         date={dateRange} 
                                         onDateChange={setDateRange} 
-                                        className="col-span-1"
+                                        className="w-full"
                                     />
-                                    <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
-                                        <SelectTrigger className="rounded-xl h-10 text-[10px] font-bold uppercase tracking-widest border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                                            <div className="flex items-center gap-1.5"><Filter className="h-3 w-3" /><SelectValue placeholder="Tipe" /></div>
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl"><SelectItem value="all">Semua</SelectItem><SelectItem value="income">Pemasukan</SelectItem><SelectItem value="expense">Pengeluaran</SelectItem></SelectContent>
-                                    </Select>
-                                    <Select value={walletFilter} onValueChange={setWalletFilter}>
-                                        <SelectTrigger className="rounded-xl h-10 text-[10px] font-bold uppercase tracking-widest border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-                                            <div className="flex items-center gap-1.5"><WalletIcon className="h-3 w-3" /><SelectValue placeholder="Dompet" /></div>
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl">
-                                            <SelectItem value="all">Semua</SelectItem>
-                                            {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                                    
+                                    {/* Type and Wallet Selects - Side by Side on Mobile */}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
+                                            <SelectTrigger className="rounded-xl h-10 text-[10px] font-bold uppercase tracking-widest border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 w-full">
+                                                <div className="flex items-center gap-1.5"><Filter className="h-3 w-3" /><SelectValue placeholder="Tipe" /></div>
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl"><SelectItem value="all">Semua</SelectItem><SelectItem value="income">Pemasukan</SelectItem><SelectItem value="expense">Pengeluaran</SelectItem></SelectContent>
+                                        </Select>
+                                        <Select value={walletFilter} onValueChange={setWalletFilter}>
+                                            <SelectTrigger className="rounded-xl h-10 text-[10px] font-bold uppercase tracking-widest border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 w-full">
+                                                <div className="flex items-center gap-1.5"><WalletIcon className="h-3 w-3" /><SelectValue placeholder="Dompet" /></div>
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl">
+                                                <SelectItem value="all">Semua</SelectItem>
+                                                {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                             </div>
                         </div>
