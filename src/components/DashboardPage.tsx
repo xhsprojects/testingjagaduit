@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -287,7 +288,7 @@ export default function DashboardPage({
   const detailSavingGoal = expenseData?.savingGoalId ? savingGoals.find(g => g.id === expenseData.savingGoalId) : null;
   const detailDebt = expenseData?.debtId ? (debts || []).find(d => d.id === expenseData.debtId) : null;
   const detailCategory = expenseData?.categoryId ? categoryMap.get(expenseData.categoryId) : null;
-  const DetailCategoryIcon = detailCategory ? iconMap[detailCategory.icon] : Tag;
+  const DetailCategoryIcon = detailCategory ? iconMap[detailCategory.icon as keyof typeof iconMap] : Tag;
 
   const isExpense = detailItem?.type === 'expense';
   const amountColor = isExpense ? "text-red-500" : "text-emerald-500";
@@ -419,7 +420,7 @@ export default function DashboardPage({
       </SpeedDial>
 
       <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
-          <DialogContent className="max-w-2xl h-full flex flex-col sm:h-auto sm:max-h-[85vh] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogContent className="flex h-full flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
               <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
                   <div className="flex flex-col">
                     <DialogTitle className="font-bold text-xl uppercase tracking-widest text-slate-800 dark:text-white">Menu Utama</DialogTitle>
@@ -455,7 +456,7 @@ export default function DashboardPage({
       <TransferFundsForm isOpen={isTransferFormOpen} onOpenChange={setIsTransferFormOpen} wallets={wallets} expenses={allExpenses} incomes={allIncomes} />
 
       <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-          <DialogContent className="sm:max-w-lg h-full flex flex-col sm:h-auto sm:max-h-[85vh] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogContent className="flex h-full flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
               <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
                   <DialogTitle className="font-bold text-xl text-slate-800 dark:text-white mx-auto">Detail Transaksi</DialogTitle>
                   <DialogClose className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -553,21 +554,20 @@ export default function DashboardPage({
               )}
 
               <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
-                  <Button 
+                  <button 
                       className="w-full h-16 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
                       onClick={() => detailItem && handleEditClick(detailItem)}
                   >
                       <Pencil className="h-6 w-6" />
                       Ubah Transaksi
-                  </Button>
-                  <Button 
-                      variant="ghost" 
+                  </button>
+                  <button 
                       className="w-full text-red-500 font-black uppercase text-xs tracking-[0.2em] hover:bg-red-50 dark:hover:bg-red-900/20 h-10 rounded-xl"
                       onClick={() => detailItem && handleDeleteRequest(detailItem)}
                   >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Hapus Transaksi
-                  </Button>
+                  </button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
