@@ -4,7 +4,7 @@ const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
-  disable: false,
+  disable: process.env.NODE_ENV === 'development', // Nonaktifkan PWA di mode dev untuk mencegah ChunkLoadError
   sw: 'pwabuilder-sw.js',
 });
 
