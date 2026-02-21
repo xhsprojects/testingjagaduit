@@ -5,110 +5,75 @@
 
 @layer base {
   :root {
-    --background: 210 40% 96%;
+    --background: 210 40% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 199 89% 48%; /* Default Blue */
+    --primary: 161 72% 40%; /* Emerald 500 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 90%;
+    --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 90%;
+    --muted: 210 40% 96%;
     --muted-foreground: 215 25% 40%;
-    --accent: 199 89% 48%;
+    --accent: 161 72% 40%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 199 89% 48%;
+    --ring: 161 72% 40%;
     --radius: 1rem;
   }
 
   .dark {
-    --background: 222 47% 5%;
+    --background: 222 47% 4%;
     --foreground: 210 20% 98%;
-    --card: 222 47% 11%;
+    --card: 222 47% 8%;
     --card-foreground: 210 20% 98%;
-    --popover: 222 47% 11%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 20% 98%;
-    --primary: 199 89% 48%;
+    --primary: 161 72% 40%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 217 33% 17%;
+    --secondary: 217 33% 12%;
     --secondary-foreground: 210 20% 98%;
-    --muted: 217 33% 17%;
+    --muted: 217 33% 12%;
     --muted-foreground: 215 20% 65%;
-    --accent: 199 89% 48%;
+    --accent: 161 72% 40%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 199 89% 48%;
+    --border: 217 33% 12%;
+    --input: 217 33% 12%;
+    --ring: 161 72% 40%;
   }
 }
 
-/* Theme Definitions - Correctly overriding --primary variable */
-.theme-forest {
-  --primary: 150 24% 44% !important;
-  --ring: 150 24% 44% !important;
-}
-.theme-sunset {
-  --primary: 21 88% 57% !important; 
-  --ring: 21 88% 57% !important;
-}
-.theme-ocean {
-  --primary: 217 91% 60% !important; 
-  --ring: 217 91% 60% !important;
-}
-.theme-midnight {
-  --primary: 258 90% 66% !important; 
-  --ring: 258 90% 66% !important;
-}
-.theme-sakura {
-  --primary: 330 81% 70% !important; 
-  --ring: 330 81% 70% !important;
-}
-.theme-cosmic {
-  --primary: 239 84% 67% !important; 
-  --ring: 239 84% 67% !important;
-}
-.theme-gold {
-  --primary: 48 100% 45% !important; 
-  --ring: 48 100% 45% !important;
-}
+/* Theme Definitions */
+.theme-forest { --primary: 150 24% 44% !important; --ring: 150 24% 44% !important; }
+.theme-sunset { --primary: 21 88% 57% !important; --ring: 21 88% 57% !important; }
+.theme-ocean { --primary: 217 91% 60% !important; --ring: 217 91% 60% !important; }
+.theme-midnight { --primary: 258 90% 66% !important; --ring: 258 90% 66% !important; }
+.theme-sakura { --primary: 330 81% 70% !important; --ring: 330 81% 70% !important; }
+.theme-cosmic { --primary: 239 84% 67% !important; --ring: 239 84% 67% !important; }
+.theme-gold { --primary: 48 100% 45% !important; --ring: 48 100% 45% !important; }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
     @apply bg-background text-foreground transition-colors duration-300;
     font-family: 'Inter', sans-serif;
   }
 }
 
-.sophisticated-donut {
-    background: conic-gradient(
-        #4F46E5 0% 66%,#F97316 66% 84%,#14B8A6 84% 100%);
-    border-radius: 50%;
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
 }
 
-.ai-glow {
-  animation: pulse-glow 3s infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 10px rgba(14, 165, 233, 0.1); border-color: rgba(14, 165, 233, 0.2); }
-  50% { box-shadow: 0 0 20px rgba(14, 165, 233, 0.4); border-color: rgba(14, 165, 233, 0.6); }
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.shadow-soft {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
 }

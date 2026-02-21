@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from 'react'
@@ -19,8 +20,8 @@ export function BottomNavbar() {
     const pathname = usePathname()
 
     return (
-        <nav className="fixed bottom-0 w-full bg-white dark:bg-[#0F172A] border-t border-slate-200 dark:border-slate-800 pb-safe pt-2 px-6 z-50">
-            <div className="flex justify-between items-center max-w-lg mx-auto pb-4">
+        <nav className="fixed bottom-0 w-full max-w-7xl left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-100 dark:border-slate-800 pb-safe pt-2 z-40 shadow-2xl">
+            <div className="grid grid-cols-6 h-16 items-center max-w-lg mx-auto">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href || (item.href === '/history' && pathname.startsWith('/history'))
                     const Icon = item.icon
@@ -29,14 +30,14 @@ export function BottomNavbar() {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                'flex flex-col items-center justify-center gap-1 transition-all duration-300 rounded-xl px-2',
+                                'flex flex-col items-center justify-center gap-1 transition-all duration-300 px-1',
                                 isActive 
-                                    ? 'text-primary' 
-                                    : 'text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-primary'
+                                    ? 'text-primary scale-110' 
+                                    : 'text-slate-400 dark:text-slate-500 hover:text-primary transition-colors'
                             )}
                         >
-                            <Icon className={cn("h-6 w-6 transition-transform", isActive && "scale-110")} />
-                            <span className="text-[10px] font-bold tracking-tight uppercase">{item.label}</span>
+                            <Icon className={cn("h-5 w-5")} />
+                            <span className="text-[9px] font-extrabold uppercase tracking-tighter">{item.label}</span>
                         </Link>
                     )
                 })}

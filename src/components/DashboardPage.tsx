@@ -14,11 +14,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
-    BookMarked, HandCoins, Bot, PlusCircle, TrendingUp, TrendingDown,
+    BookMarked, Bot, PlusCircle, TrendingUp, TrendingDown,
     Repeat, BellRing, Trophy, CalendarDays, Upload, Users2,
     ChevronRight, GitCommitHorizontal, Calculator, Wallet as WalletIcon, Tag,
     ArrowLeftRight, Scale, PiggyBank, CreditCard, LayoutGrid, Target, Landmark,
-    BookOpen, FilePenLine
+    BookOpen, FilePenLine, Info, Mic, Search
 } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -33,6 +33,7 @@ import { deleteTransaction, updateTransaction } from '@/app/history/actions';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
+import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -62,11 +63,11 @@ type UnifiedTransaction = (Expense | Income) & {
 
 const QuickActionItem = ({ href, icon: Icon, label, onClick }: { href?: string, icon: React.ElementType, label: string, onClick?: () => void }) => {
     const content = (
-        <div className="flex flex-col items-center gap-2 group cursor-pointer" onClick={onClick}>
-            <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:bg-primary group-hover:shadow-lg group-hover:shadow-primary/30">
-                <Icon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
+        <div className="flex flex-col items-center gap-2 group cursor-pointer w-[60px] flex-shrink-0" onClick={onClick}>
+            <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 group-hover:border-primary/50 group-hover:text-primary transition-all">
+                <Icon className="h-5 w-5" />
             </div>
-            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-tight transition-colors text-center">{label}</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 text-center whitespace-nowrap uppercase tracking-tight">{label}</span>
         </div>
     );
 
@@ -90,7 +91,7 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
         const expense = transaction as Expense;
         if (expense.isSplit && expense.splits && expense.splits.length > 0) {
             Icon = GitCommitHorizontal;
-            title = expense.notes || `Split ${expense.splits.length} kategori`;
+            title = expense.notes || `Split ke ${expense.splits.length} kategori`;
         } else if (expense.categoryId) {
             const category = categoryMap.get(expense.categoryId);
             if (category) {
@@ -101,24 +102,24 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
     }
 
     return (
-        <div onClick={onClick} className="flex items-center justify-between py-4 cursor-pointer border-b last:border-b-0 group border-slate-100 dark:border-slate-800">
+        <div onClick={onClick} className="flex items-center justify-between py-4 cursor-pointer border-b last:border-b-0 group border-slate-50 dark:border-slate-800/50">
             <div className="flex items-center gap-3">
                 <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-sm",
-                    isExpense ? "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover:bg-primary group-hover:text-white" : "bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400"
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
+                    isExpense ? "bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:bg-primary group-hover:text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
                 )}>
-                    <Icon className="h-5 w-5" />
+                    {isExpense ? <Icon className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />}
                 </div>
                 <div>
-                    <p className="text-sm font-bold text-slate-800 dark:text-white leading-none mb-1">{title}</p>
-                    <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight">{walletName}</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-none mb-1">{title}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{walletName}</p>
                 </div>
             </div>
             <div className="text-right">
-                <p className={cn("text-sm font-bold whitespace-nowrap", isExpense ? "text-slate-800 dark:text-white" : "text-green-500")}>
+                <p className={cn("text-sm font-bold whitespace-nowrap", isExpense ? "text-slate-800 dark:text-slate-100" : "text-primary")}>
                     {isExpense ? '-' : '+'} {formatCurrency(amount)}
                 </p>
-                <p className="text-[10px] text-slate-400 tracking-tight">
+                <p className="text-[9px] font-bold text-slate-400 uppercase">
                     {transaction.date ? format(new Date(transaction.date), "d MMM, HH:mm", { locale: idLocale }) : '-'}
                 </p>
             </div>
@@ -155,6 +156,7 @@ export default function DashboardPage({
   const [detailItem, setDetailItem] = React.useState<UnifiedTransaction | null>(null);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = React.useState(false);
   const [isResetting, setIsResetting] = React.useState(false);
+  const [historyTab, setHistoryTab] = React.useState<'all' | 'expense' | 'income'>('all');
 
   const isDataReady = Array.isArray(categories) && categories.length > 0;
   const categoryMap = React.useMemo(() => new Map(categories.map((cat) => [cat.id, cat])), [categories]);
@@ -164,7 +166,7 @@ export default function DashboardPage({
     if (!budgetPeriod?.periodStart) return "Periode Ini";
     const from = new Date(budgetPeriod.periodStart);
     const to = budgetPeriod.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date();
-    return `${format(from, "d MMM yyyy", { locale: idLocale })} - ${format(to, "d MMM yyyy", { locale: idLocale })}`;
+    return `${format(from, "d MMM", { locale: idLocale })} - ${format(to, "d MMM yyyy", { locale: idLocale })}`;
   }, [budgetPeriod]);
 
   const totalFilteredExpenses = React.useMemo(() => (expenses || []).reduce((sum, exp) => sum + (exp.amount || 0), 0), [expenses]);
@@ -176,8 +178,12 @@ export default function DashboardPage({
           ...(expenses || []).map(e => ({ ...e, type: 'expense' as const })),
           ...(incomes || []).map(i => ({ ...i, type: 'income' as const })),
       ];
-      return combined.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [expenses, incomes]);
+      let filtered = combined;
+      if (historyTab === 'expense') filtered = combined.filter(t => t.type === 'expense');
+      if (historyTab === 'income') filtered = combined.filter(t => t.type === 'income');
+      
+      return filtered.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [expenses, incomes, historyTab]);
 
   const expensesByCategory = React.useMemo(() => {
       if (!isDataReady) return [];
@@ -230,7 +236,7 @@ export default function DashboardPage({
   const allMenuItems = [
     { label: 'Laporan', icon: BookMarked, href: '/reports' },
     { label: 'Impor', icon: Upload, href: '/import' },
-    { label: 'Bagi Tagihan', icon: Users2, href: '/split-bill' },
+    { label: 'Bagi Bill', icon: Users2, href: '/split-bill' },
     { label: 'Kalender', icon: CalendarDays, href: '/financial-calendar' },
     { label: 'Pengingat', icon: BellRing, href: '/reminders' },
     { label: 'Prestasi', icon: Trophy, href: '/achievements' },
@@ -245,214 +251,264 @@ export default function DashboardPage({
   ];
 
   return (
-    <>
-      <div className="flex min-h-screen w-full flex-col bg-background transition-colors duration-300">
-        <Header />
-        
-        <main className="pt-24 pb-24 px-4 max-w-7xl mx-auto w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            
-            <div className="lg:col-span-2 space-y-6">
-              <StatsCards
-                totalIncome={totalFilteredIncomes}
-                totalExpenses={totalFilteredExpenses}
-                remainingBudget={remainingBudget}
-                totalSavings={(expenses || []).filter(e => e.savingGoalId).reduce((s, e) => s + (e.amount || 0), 0)}
-                totalWalletBalance={totalWalletBalance}
-                periodLabel={periodLabel}
-                onReset={() => setIsResetConfirmOpen(true)}
-              />
+    <div className="flex min-h-screen w-full flex-col bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+      <Header />
+      
+      <main className="pt-24 pb-24 px-4 sm:px-6 max-w-7xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          
+          {/* Main Content Column */}
+          <div className="lg:col-span-2 space-y-8">
+            <StatsCards
+              totalIncome={totalFilteredIncomes}
+              totalExpenses={totalFilteredExpenses}
+              remainingBudget={remainingBudget}
+              totalSavings={(expenses || []).filter(e => e.savingGoalId).reduce((s, e) => s + (e.amount || 0), 0)}
+              totalWalletBalance={totalWalletBalance}
+              periodLabel={periodLabel}
+              onReset={() => setIsResetConfirmOpen(true)}
+            />
 
-              <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
-                <h3 className="text-lg font-bold mb-6">Akses Cepat</h3>
-                <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-4 gap-y-8 gap-x-2">
-                    <QuickActionItem href="/reports" icon={BookMarked} label="Laporan" />
-                    <QuickActionItem href="/import" icon={Upload} label="Impor" />
-                    <QuickActionItem href="/split-bill" icon={Users2} label="Bagi Bill" />
-                    <QuickActionItem href="/financial-calendar" icon={CalendarDays} label="Kalender" />
-                    <QuickActionItem href="/reminders" icon={BellRing} label="Pengingat" />
-                    <QuickActionItem href="/achievements" icon={Trophy} label="Prestasi" />
-                    <QuickActionItem href="/calculators" icon={Calculator} label="Kalkulator" />
-                    <QuickActionItem href="/recurring" icon={Repeat} label="Otomatis" />
+            {/* Quick Actions - Horizontal Scroll */}
+            <section className="bg-transparent">
+                <div className="flex justify-between items-center mb-4 px-1">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest">Akses Cepat</h3>
+                    <button className="text-[10px] font-bold text-primary uppercase hover:underline" onClick={() => setIsMenuDialogOpen(true)}>Lihat Semua</button>
                 </div>
-                <Button variant="outline" className="w-full mt-8 py-3 rounded-xl border-border dark:border-slate-700 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" onClick={() => setIsMenuDialogOpen(true)}>
-                    Lihat Semua Menu
-                </Button>
-              </Card>
-
-              <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
-                <div className="flex items-center justify-between mb-6">
-                    <div>
-                        <h3 className="text-lg font-bold">Riwayat Transaksi</h3>
-                        <p className="text-xs text-slate-500">Daftar transaksi terbaru Anda.</p>
+                <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 pb-2">
+                    <div className="flex space-x-5 min-w-max">
+                        <QuickActionItem href="/reports" icon={BookMarked} label="Laporan" />
+                        <QuickActionItem href="/import" icon={Upload} label="Impor" />
+                        <QuickActionItem href="/split-bill" icon={Users2} label="Bagi Bill" />
+                        <QuickActionItem href="/financial-calendar" icon={CalendarDays} label="Kalender" />
+                        <QuickActionItem href="/reminders" icon={BellRing} label="Pengingat" />
+                        <QuickActionItem href="/achievements" icon={Trophy} label="Prestasi" />
+                        <QuickActionItem href="/calculators" icon={Calculator} label="Kalkulator" />
+                        <QuickActionItem href="/recurring" icon={Repeat} label="Otomatis" />
                     </div>
-                    <Button asChild variant="ghost" size="sm" className="h-7 text-xs font-medium text-slate-500 hover:text-primary">
+                </div>
+            </section>
+
+            {/* AI Predictive Card - Large on Desktop */}
+            <div className="lg:hidden">
+                <PredictiveAnalysis expenses={expenses} categories={categories} dateRange={{ from: new Date(budgetPeriod?.periodStart || Date.now()), to: budgetPeriod?.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date() }} />
+            </div>
+
+            {/* Transactions History */}
+            <Card className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col space-y-6 mb-6">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest">Riwayat Transaksi</h3>
+                        <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-tighter">Daftar transaksi terbaru Anda</p>
+                    </div>
+                    <Button asChild variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-wider text-primary hover:bg-primary/10">
                         <Link href="/history" className="flex items-center">
-                            Lihat Semua <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                            Semua <ChevronRight className="h-3 w-3 ml-1" />
                         </Link>
                     </Button>
                 </div>
-                <div className="space-y-1">
-                    {unifiedTransactions.length > 0 ? (
-                        unifiedTransactions.slice(0, 8).map((t) => (
-                            <TransactionItem key={t.id} transaction={t} categoryMap={categoryMap} walletMap={walletMap} onClick={() => setDetailItem(t)} />
-                        ))
-                    ) : (
-                        <p className="text-center py-8 text-sm text-muted-foreground font-medium italic">Belum ada transaksi.</p>
-                    )}
+                
+                <div className="flex space-x-2">
+                    <button 
+                        onClick={() => setHistoryTab('all')}
+                        className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'all' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700")}
+                    >
+                        Semua
+                    </button>
+                    <button 
+                        onClick={() => setHistoryTab('income')}
+                        className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'income' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700")}
+                    >
+                        Pemasukan
+                    </button>
+                    <button 
+                        onClick={() => setHistoryTab('expense')}
+                        className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'expense' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700")}
+                    >
+                        Pengeluaran
+                    </button>
                 </div>
-              </Card>
-            </div>
+              </div>
 
-            <div className="lg:col-span-1 space-y-6">
-              <Card className="bg-card rounded-2xl p-6 shadow-sm border border-border dark:border-slate-800">
-                <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h3 className="text-lg font-bold">Distribusi Pengeluaran</h3>
-                        <p className="text-xs text-slate-500">Analisis kategori utama</p>
-                    </div>
-                    <Button asChild variant="secondary" size="sm" className="h-7 text-xs bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full">
-                        <Link href="/reports">Detail</Link>
-                    </Button>
-                </div>
-                <BudgetChart data={expensesByCategory} />
-              </Card>
-
-              <WalletsSummaryCard wallets={wallets} expenses={allExpenses} incomes={allIncomes} />
-
-              <PredictiveAnalysis expenses={expenses} categories={categories} dateRange={{ from: new Date(budgetPeriod?.periodStart || Date.now()), to: budgetPeriod?.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date() }} />
-            </div>
-
+              <div className="space-y-1">
+                  {unifiedTransactions.length > 0 ? (
+                      unifiedTransactions.slice(0, 8).map((t) => (
+                          <TransactionItem key={t.id} transaction={t} categoryMap={categoryMap} walletMap={walletMap} onClick={() => setDetailItem(t)} />
+                      ))
+                  ) : (
+                      <div className="text-center py-12">
+                          <Info className="h-8 w-8 mx-auto text-slate-200 dark:text-slate-800 mb-2" />
+                          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest italic">Belum ada transaksi.</p>
+                      </div>
+                  )}
+              </div>
+            </Card>
           </div>
-        </main>
 
-        <button 
-            onClick={() => setIsChatbotOpen(true)}
-            className="fixed bottom-24 left-4 lg:left-auto lg:right-24 w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full shadow-lg shadow-indigo-500/40 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-200 group"
-        >
-            <Bot className="h-7 w-7 animate-pulse group-hover:animate-none" />
-        </button>
+          {/* Sidebar Column (Desktop) */}
+          <div className="lg:col-span-1 space-y-8">
+            <Card className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between items-center mb-6">
+                  <div>
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest">Distribusi</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Analisis pengeluaran</p>
+                  </div>
+                  <Button asChild variant="ghost" size="sm" className="h-7 text-[10px] font-bold uppercase tracking-wider text-primary hover:bg-primary/10">
+                      <Link href="/reports">Detail</Link>
+                  </Button>
+              </div>
+              <BudgetChart data={expensesByCategory} />
+            </Card>
 
-        <SpeedDial mainIcon={<PlusCircle className="h-7 w-7" />}>
-            <SpeedDialAction label="Transfer Dana" onClick={() => setIsTransferFormOpen(true)}>
-                <ArrowLeftRight className="h-5 w-5 text-purple-500" />
-            </SpeedDialAction>
-            <SpeedDialAction label="Tambah Pemasukan" onClick={() => setIsAddIncomeFormOpen(true)}>
-                <TrendingUp className="h-5 w-5 text-green-500" />
-            </SpeedDialAction>
-            <SpeedDialAction label="Tambah Pengeluaran" onClick={() => setIsAddExpenseFormOpen(true)}>
-                <TrendingDown className="h-5 w-5 text-red-500" />
-            </SpeedDialAction>
-        </SpeedDial>
+            <WalletsSummaryCard wallets={wallets} expenses={allExpenses} incomes={allIncomes} />
 
-        <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
-            <DialogContent className="max-w-2xl sm:rounded-2xl">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <LayoutGrid className="h-5 w-5 text-primary" />
-                        Semua Menu Aplikasi
-                    </DialogTitle>
-                    <DialogDescription>Akses cepat ke seluruh fitur Jaga Duit.</DialogDescription>
-                </DialogHeader>
-                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-6 py-4">
-                    {allMenuItems.map((item) => (
-                        <QuickActionItem key={item.label} href={item.href} icon={item.icon} label={item.label} onClick={() => setIsMenuDialogOpen(false)} />
-                    ))}
-                </div>
-            </DialogContent>
-        </Dialog>
+            <div className="hidden lg:block">
+                <PredictiveAnalysis expenses={expenses} categories={categories} dateRange={{ from: new Date(budgetPeriod?.periodStart || Date.now()), to: budgetPeriod?.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date() }} />
+            </div>
+          </div>
 
-        <Dialog open={isChatbotOpen} onOpenChange={setIsChatbotOpen}>
-          <DialogContent className="h-full w-full rounded-none border-none sm:h-[85vh] sm:max-w-lg sm:rounded-lg sm:border flex flex-col p-0 gap-0">
-            <DialogHeader className="p-4 border-b">
-              <DialogTitle className="flex items-center gap-2 font-headline">
-                <Bot className="h-6 w-6 text-primary" />
-                Asisten Keuangan Jaga
-              </DialogTitle>
-              <DialogDescription>Tanya apa saja seputar keuanganmu.</DialogDescription>
-            </DialogHeader>
-            <FinancialChatbot />
+        </div>
+      </main>
+
+      {/* AI Bot FAB - Refined */}
+      <button 
+          onClick={() => setIsChatbotOpen(true)}
+          className="fixed bottom-24 left-4 w-14 h-14 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-xl shadow-slate-900/40 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-200 group border border-slate-700"
+      >
+          <Bot className="h-7 w-7 text-primary animate-pulse group-hover:animate-none" />
+          <div className="absolute -top-1 -right-1 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-primary text-[8px] font-bold flex items-center justify-center">AI</span>
+          </div>
+      </button>
+
+      {/* Main Action FAB */}
+      <SpeedDial mainIcon={<PlusCircle className="h-8 w-8" />}>
+          <SpeedDialAction label="Transfer Dana" onClick={() => setIsTransferFormOpen(true)}>
+              <ArrowLeftRight className="h-5 w-5 text-purple-500" />
+          </SpeedDialAction>
+          <SpeedDialAction label="Tambah Pemasukan" onClick={() => setIsAddIncomeFormOpen(true)}>
+              <TrendingUp className="h-5 w-5 text-green-500" />
+          </SpeedDialAction>
+          <SpeedDialAction label="Tambah Pengeluaran" onClick={() => setIsAddExpenseFormOpen(true)}>
+              <TrendingDown className="h-5 w-5 text-red-500" />
+          </SpeedDialAction>
+      </SpeedDial>
+
+      {/* All Menus Dialog */}
+      <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
+          <DialogContent className="max-w-2xl sm:rounded-3xl p-8">
+              <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3 font-bold text-xl uppercase tracking-widest text-slate-800 dark:text-slate-100">
+                      <div className="p-2 bg-primary/10 rounded-xl">
+                        <LayoutGrid className="h-6 w-6 text-primary" />
+                      </div>
+                      Menu Utama
+                  </DialogTitle>
+                  <DialogDescription className="text-xs font-bold uppercase tracking-tight text-slate-400">Navigasi cepat ke seluruh fitur Jaga Duit.</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-y-10 gap-x-2 py-8 overflow-y-auto max-h-[60vh] hide-scrollbar">
+                  {allMenuItems.map((item) => (
+                      <QuickActionItem key={item.label} href={item.href} icon={item.icon} label={item.label} onClick={() => setIsMenuDialogOpen(false)} />
+                  ))}
+              </div>
           </DialogContent>
-        </Dialog>
+      </Dialog>
 
-        <AddExpenseForm
-          isOpen={isAddExpenseFormOpen}
-          onOpenChange={(open) => setIsAddExpenseFormOpen(open)}
-          categories={categories}
-          savingGoals={savingGoals}
-          debts={[]}
-          wallets={wallets}
-          expenses={allExpenses}
-          incomes={allIncomes}
-          onSubmit={(data) => handleSaveTransaction(data, 'expense')}
-        />
+      {/* Modals & Forms */}
+      <Dialog open={isChatbotOpen} onOpenChange={setIsChatbotOpen}>
+        <DialogContent className="h-full w-full rounded-none border-none sm:h-[85vh] sm:max-w-lg sm:rounded-3xl sm:border flex flex-col p-0 gap-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="p-6 border-b bg-white dark:bg-slate-900">
+            <DialogTitle className="flex items-center gap-3 font-bold text-lg uppercase tracking-widest text-slate-800 dark:text-slate-100">
+              <Bot className="h-7 w-7 text-primary" />
+              Asisten Jaga
+            </DialogTitle>
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-tighter text-slate-400">Tanya apa saja seputar keuanganmu.</DialogDescription>
+          </DialogHeader>
+          <FinancialChatbot />
+        </DialogContent>
+      </Dialog>
 
-        <AddIncomeForm
-          isOpen={isAddIncomeFormOpen}
-          onOpenChange={(open) => setIsAddIncomeFormOpen(open)}
-          wallets={wallets}
-          expenses={allExpenses}
-          incomes={allIncomes}
-          onSubmit={(data) => handleSaveTransaction(data, 'income')}
-        />
+      <AddExpenseForm
+        isOpen={isAddExpenseFormOpen}
+        onOpenChange={setIsAddExpenseFormOpen}
+        categories={categories}
+        savingGoals={savingGoals}
+        debts={[]}
+        wallets={wallets}
+        expenses={allExpenses}
+        incomes={allIncomes}
+        onSubmit={(data) => handleSaveTransaction(data, 'expense')}
+      />
 
-        <TransferFundsForm
-          isOpen={isTransferFormOpen}
-          onOpenChange={(open) => setIsTransferFormOpen(open)}
-          wallets={wallets}
-          expenses={allExpenses}
-          incomes={allIncomes}
-        />
+      <AddIncomeForm
+        isOpen={isAddIncomeFormOpen}
+        onOpenChange={setIsAddIncomeFormOpen}
+        wallets={wallets}
+        expenses={allExpenses}
+        incomes={allIncomes}
+        onSubmit={(data) => handleSaveTransaction(data, 'income')}
+      />
 
-        <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader><DialogTitle>Detail Transaksi</DialogTitle></DialogHeader>
-                {detailItem && (
-                    <div className="space-y-4 py-4">
-                        <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-xl text-center">
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Jumlah</p>
-                            <p className={cn("text-3xl font-extrabold", detailItem.type === 'income' ? "text-green-500" : "text-slate-800 dark:text-white")}>
-                                {formatCurrency(detailItem.amount || 0)}
-                            </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-xs font-bold uppercase">
-                            <div className="p-3 border rounded-xl dark:border-slate-700">
-                                <p className="text-slate-500 mb-1">Tanggal</p>
-                                <p>{detailItem.date ? format(new Date(detailItem.date), "d MMMM yyyy") : '-'}</p>
-                            </div>
-                            <div className="p-3 border rounded-xl dark:border-slate-700">
-                                <p className="text-slate-500 mb-1">Dompet</p>
-                                <p>{walletMap.get(detailItem.walletId || '')?.name || '-'}</p>
-                            </div>
-                        </div>
-                        {detailItem.notes && (
-                            <div className="p-3 border rounded-xl text-sm dark:border-slate-700">
-                                <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Catatan</p>
-                                <p className="font-medium text-slate-800 dark:text-slate-200">{detailItem.notes}</p>
-                            </div>
-                        )}
-                    </div>
-                )}
-                <DialogFooter className="gap-2">
-                    <Button variant="ghost" className="text-red-500 font-bold" onClick={() => detailItem && handleDeleteRequest(detailItem)}>Hapus</Button>
-                    <Button onClick={() => setDetailItem(null)}>Tutup</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+      <TransferFundsForm
+        isOpen={isTransferFormOpen}
+        onOpenChange={setIsTransferFormOpen}
+        wallets={wallets}
+        expenses={allExpenses}
+        incomes={allIncomes}
+      />
 
-        <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle>Mulai Periode Baru?</AlertDialogTitle>
-                  <AlertDialogDescription>Data saat ini akan diarsipkan. Anda tidak akan kehilangan riwayat transaksi lama.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <AlertDialogCancel>Batal</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleResetClick} disabled={isResetting}>Lanjutkan</AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    </>
+      <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
+          <DialogContent className="sm:max-w-lg sm:rounded-3xl">
+              <DialogHeader><DialogTitle className="font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100">Detail Transaksi</DialogTitle></DialogHeader>
+              {detailItem && (
+                  <div className="space-y-6 py-4">
+                      <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl text-center border border-slate-100 dark:border-slate-800">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Jumlah Transaksi</p>
+                          <p className={cn("text-4xl font-extrabold tracking-tight", detailItem.type === 'income' ? "text-primary" : "text-slate-900 dark:text-white")}>
+                              {formatCurrency(detailItem.amount || 0)}
+                          </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tanggal</p>
+                              <p className="text-sm font-bold">{detailItem.date ? format(new Date(detailItem.date), "d MMM yyyy") : '-'}</p>
+                          </div>
+                          <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Dompet</p>
+                              <p className="text-sm font-bold truncate">{walletMap.get(detailItem.walletId || '')?.name || '-'}</p>
+                          </div>
+                      </div>
+                      {detailItem.notes && (
+                          <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-transparent">
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Catatan</p>
+                              <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{detailItem.notes}</p>
+                          </div>
+                      )}
+                  </div>
+              )}
+              <DialogFooter className="flex-row gap-3 pt-4 border-t dark:border-slate-800">
+                  <Button variant="ghost" className="flex-1 text-red-500 font-bold uppercase text-[10px] tracking-widest hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => detailItem && handleDeleteRequest(detailItem)}>Hapus</Button>
+                  <Button className="flex-1 font-bold uppercase text-[10px] tracking-widest" onClick={() => setDetailItem(null)}>Tutup</Button>
+              </DialogFooter>
+          </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+        <AlertDialogContent className="sm:rounded-3xl">
+            <AlertDialogHeader>
+                <AlertDialogTitle className="font-bold uppercase tracking-widest">Mulai Periode Baru?</AlertDialogTitle>
+                <AlertDialogDescription className="text-xs font-medium text-slate-500 leading-relaxed uppercase">
+                    Data transaksi saat ini akan diarsipkan secara otomatis ke riwayat. Anda tidak akan kehilangan data lama. Lanjutkan?
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-row gap-3">
+                <AlertDialogCancel className="flex-1 mt-0 sm:mt-0 font-bold uppercase text-[10px] tracking-widest">Batal</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetClick} disabled={isResetting} className="flex-1 font-bold uppercase text-[10px] tracking-widest">Ya, Lanjutkan</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

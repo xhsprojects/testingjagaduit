@@ -1,10 +1,11 @@
+
 "use client"
 
 import * as React from 'react'
 import Link from 'next/link'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Bot, Loader2, TrendingUp, AlertTriangle, Gem, Zap } from "lucide-react"
+import { Bot, Loader2, TrendingUp, AlertTriangle, Gem, ArrowRight, BrainCircuit } from "lucide-react"
 import type { Category, Expense } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import { generatePredictiveAnalysis, type PredictiveAnalysisOutput } from '@/ai/flows/predictive-analysis-flow'
@@ -52,76 +53,75 @@ export default function PredictiveAnalysis({ expenses, categories, dateRange }: 
     }
 
     return (
-        <Card className="bg-card-light dark:bg-card-dark rounded-2xl p-6 shadow-lg border border-primary/30 relative overflow-hidden transition-all animate-in fade-in duration-500">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full filter blur-2xl -mr-10 -mt-10"></div>
+        <section className="relative group cursor-pointer animate-in fade-in duration-700">
+            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-3xl opacity-0 group-hover:opacity-40 transition-opacity duration-500"></div>
             
-            <div className="flex items-start gap-4 relative z-10">
-                <div className="p-3 bg-gradient-to-br from-primary to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
-                    <TrendingUp className="h-6 w-6 text-white" />
+            <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-[2rem] p-6 text-white overflow-hidden shadow-xl border border-slate-700/50 dark:border-slate-700">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <TrendingUp className="h-24 w-24 text-primary" />
                 </div>
-                <div className="flex-1">
-                    <h3 className="text-lg font-bold mb-1 dark:text-white flex items-center gap-2">
-                        Peramalan & AI
-                        <Badge className="text-[8px] bg-primary text-white px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Beta</Badge>
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                        Dapatkan prediksi proaktif dari AI apakah Anda akan sesuai anggaran hingga akhir periode.
-                    </p>
-                </div>
-            </div>
-
-            <CardContent className="p-0 mt-6 relative z-10">
-                {isLoading && (
-                     <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-xl bg-muted/50">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <p className="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">AI sedang meramal...</p>
+                
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-primary/20 rounded-xl border border-primary/30">
+                        <BrainCircuit className="h-5 w-5 text-primary" />
                     </div>
-                )}
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-sm tracking-widest uppercase">Peramalan & AI</h3>
+                        <Badge className="bg-primary/20 text-primary text-[8px] font-extrabold px-2 py-0.5 rounded-full border border-primary/30">BETA</Badge>
+                    </div>
+                </div>
 
-                {analysis && !isLoading && (
-                    <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 space-y-4">
-                        <div className="flex items-start gap-3">
-                            <Bot className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                                <h4 className="text-sm font-bold text-slate-800 dark:text-white">{analysis.isHealthy ? "Proyeksi Terlihat Baik!" : "Peringatan Terdeteksi"}</h4>
-                                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">{analysis.overallPrediction}</p>
-                            </div>
+                <div className="min-h-[80px]">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-4">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            <p className="mt-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest">AI sedang meramal...</p>
                         </div>
-
-                        {analysis.categoryWarnings.length > 0 && (
-                            <div className="space-y-2 pt-3 border-t border-primary/10">
-                                {analysis.categoryWarnings.map((warning, index) => (
-                                    <div key={index} className="flex items-center gap-2 text-[10px] font-bold text-red-500 uppercase">
-                                        <AlertTriangle className="h-3 w-3" />
-                                        <span>{warning.categoryName} Berisiko</span>
-                                    </div>
-                                ))}
+                    ) : analysis ? (
+                        <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                            <div className="flex items-start gap-3">
+                                <Bot className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">{analysis.isHealthy ? "Proyeksi Baik" : "Peringatan"}</h4>
+                                    <p className="text-[11px] font-medium text-slate-400 mt-1 leading-relaxed">{analysis.overallPrediction}</p>
+                                </div>
                             </div>
-                        )}
-                    </div>
-                )}
+                            {analysis.categoryWarnings.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                    {analysis.categoryWarnings.map((w, i) => (
+                                        <div key={i} className="px-2 py-1 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-1">
+                                            <AlertTriangle className="h-2.5 w-2.5 text-red-500" />
+                                            <span className="text-[8px] font-extrabold text-red-400 uppercase">{w.categoryName}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-slate-400 text-[11px] leading-relaxed mb-6 max-w-[90%]">
+                            Dapatkan prediksi proaktif dari AI apakah pengeluaran Anda akan tetap sesuai anggaran hingga akhir bulan ini.
+                        </p>
+                    )}
+                </div>
 
-                {!isPremium && !analysis && !isLoading && (
-                    <div className="p-4 text-center bg-muted/50 dark:bg-slate-800/50 rounded-xl border border-dashed flex flex-col items-center">
-                        <Gem className="h-8 w-8 text-primary/40 mb-2" />
-                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-3">Fitur Premium</p>
-                        <Button asChild size="sm" className="h-8 text-[10px] font-bold rounded-lg px-6">
-                            <Link href="/premium">Buka Fitur AI</Link>
+                <div className="mt-6 flex flex-col gap-4 relative z-10">
+                    {!isPremium ? (
+                        <Button asChild size="sm" className="w-full bg-white text-slate-900 hover:bg-slate-100 text-[10px] font-bold uppercase tracking-widest h-10 rounded-xl">
+                            <Link href="/premium">Buka Fitur Premium <Gem className="ml-2 h-3 w-3" /></Link>
                         </Button>
-                    </div>
-                )}
-            </CardContent>
-
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
-                <p className="text-[10px] text-slate-400 italic">Analisis ini berdasarkan data riwayat transaksi Anda.</p>
-                <Button 
-                    onClick={handleGenerateAnalysis} 
-                    disabled={isLoading || !isPremium}
-                    className="bg-primary hover:bg-blue-600 text-white text-xs font-bold py-2.5 px-6 rounded-lg shadow-lg shadow-primary/40 transition-all hover:scale-105 active:scale-95 w-full sm:w-auto h-9"
-                >
-                    {isLoading ? "Memproses..." : "Jalankan Analisis"}
-                </Button>
+                    ) : (
+                        <button 
+                            onClick={handleGenerateAnalysis}
+                            disabled={isLoading}
+                            className="w-full bg-primary hover:bg-primary/90 text-white text-[10px] font-extrabold py-3 rounded-xl transition-all uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-95 disabled:opacity-50"
+                        >
+                            <span>Jalankan Analisis</span>
+                            <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                    <p className="text-[8px] text-slate-500 font-bold uppercase text-center tracking-widest italic opacity-60">Analisis berdasarkan riwayat transaksi saat ini</p>
+                </div>
             </div>
-        </Card>
+        </section>
     )
 }

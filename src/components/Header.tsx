@@ -3,7 +3,7 @@
 
 import * as React from 'react'
 import { Button } from "@/components/ui/button"
-import { HandCoins, Bell, Moon, Sun, Wallet } from "lucide-react"
+import { HandCoins, Bell, Moon, Sun, User } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/context/AuthContext"
 import { auth } from "@/lib/firebase"
@@ -27,34 +27,30 @@ export default function Header() {
     const unreadCount = (notifications || []).filter(n => !n.isRead).length;
 
     return (
-        <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-3">
-            <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                        <HandCoins className="h-6 w-6 text-primary" />
+        <header className="fixed top-0 w-full z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 transition-colors">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+                <div className="flex items-center space-x-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/5">
+                        <HandCoins className="h-5 w-5" />
                     </div>
-                    <h1 className="text-lg font-bold tracking-tight text-foreground">Jaga Duit</h1>
+                    <h1 className="font-extrabold text-lg tracking-tight text-slate-800 dark:text-white">Jaga Duit</h1>
                 </div>
 
-                <div className="flex items-center gap-1 sm:gap-2">
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-full hover:bg-muted"
+                <div className="flex items-center space-x-2 md:space-x-4">
+                    <button 
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary transition-all duration-300"
                         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     >
                         {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                        <span className="sr-only">Toggle theme</span>
-                    </Button>
+                    </button>
 
                     <Link href="/notifications" passHref>
-                        <Button variant="ghost" size="icon" className="relative rounded-full hover:bg-muted">
+                        <button className="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-primary transition-all duration-300 relative">
                             <Bell className="h-5 w-5" />
                             {unreadCount > 0 && (
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-950"></span>
                             )}
-                            <span className="sr-only">Notifikasi</span>
-                        </Button>
+                        </button>
                     </Link>
 
                     {user && (
@@ -62,41 +58,42 @@ export default function Header() {
                             <DropdownMenuTrigger asChild>
                                 <button className="flex items-center focus:outline-none ml-1 group">
                                     <div className="relative">
-                                        <Avatar className="h-9 w-9 shadow-lg border-2 border-transparent group-hover:border-primary/50 transition-all">
-                                            <AvatarImage src={user.photoURL || ''} />
-                                            <AvatarFallback className="bg-primary text-white font-bold text-xs">
-                                                {user.displayName?.charAt(0) || 'U'}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <Badge className="absolute -bottom-1 -right-1 h-4 px-1 text-[8px] font-bold border-2 border-background">
+                                        <div className="w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700 transition-all group-hover:border-primary/50 shadow-sm">
+                                            {user.photoURL ? (
+                                                <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="font-bold text-xs text-slate-500 dark:text-slate-400">{user.displayName?.charAt(0) || 'U'}</span>
+                                            )}
+                                        </div>
+                                        <Badge className="absolute -bottom-1.5 -right-1.5 h-4 px-1 text-[8px] font-extrabold bg-primary border-2 border-white dark:border-slate-950 text-white rounded-lg shadow-sm">
                                             {level}
                                         </Badge>
                                     </div>
                                 </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56" align="end" forceMount>
-                                <DropdownMenuLabel className="font-normal">
+                            <DropdownMenuContent className="w-56 rounded-2xl p-2" align="end" forceMount>
+                                <DropdownMenuLabel className="font-bold p-3">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                                        <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                                        <p className="text-xs uppercase tracking-widest text-slate-400">Akun Saya</p>
+                                        <p className="text-sm font-extrabold leading-none text-slate-800 dark:text-white">{user.displayName}</p>
                                     </div>
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <Link href="/settings">Pengaturan Profil</Link>
+                                <DropdownMenuSeparator className="mx-2" />
+                                <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
+                                    <Link href="/settings" className="flex items-center gap-2">Pengaturan Profil</Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href="/premium">
+                                <DropdownMenuItem asChild className="rounded-xl cursor-pointer">
+                                    <Link href="/premium" className="flex items-center gap-2">
                                         {isPremium ? 'Kelola Premium' : 'Upgrade ke Premium'}
                                     </Link>
                                 </DropdownMenuItem>
                                 {isAdmin && (
-                                    <DropdownMenuItem asChild>
+                                    <DropdownMenuItem asChild className="rounded-xl cursor-pointer text-primary font-bold">
                                         <Link href="/admin">Dasbor Admin</Link>
                                     </DropdownMenuItem>
                                 )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive font-bold">
+                                <DropdownMenuSeparator className="mx-2" />
+                                <DropdownMenuItem onClick={handleSignOut} className="rounded-xl cursor-pointer text-red-500 focus:text-red-500 font-extrabold uppercase text-[10px] tracking-[0.2em] p-3">
                                     Keluar
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
