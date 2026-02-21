@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react'
@@ -6,177 +5,117 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Loader2, ArrowLeft, Bell, CheckCheck, CalendarClock, Gem, Repeat, Megaphone, Trash2 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
+import { Loader2, ArrowLeft, Bell, CheckCheck, CalendarClock, Gem, Repeat, Megaphone, Trash2, ChevronRight } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { markAllNotificationsAsRead, markNotificationAsRead, deleteReadNotifications } from './actions'
 import { type AppNotification } from '@/lib/types'
+import { format } from 'date-fns'
+import { id as idLocale } from 'date-fns/locale'
 
 const NotificationItem = ({ notification, onNotificationClick }: { 
     notification: AppNotification; 
     onNotificationClick: (notification: AppNotification) => void;
 }) => {
-    
-    const getNotificationDetails = () => {
+    const getIcon = () => {
         switch (notification.type) {
-            case 'reminder': return { icon: CalendarClock, color: 'text-amber-500' };
-            case 'subscription': return { icon: Gem, color: 'text-primary' };
-            case 'broadcast': return { icon: Megaphone, color: 'text-purple-500' };
-            case 'recurring_transaction': return { icon: Repeat, color: 'text-blue-500' };
-            default: return { icon: Bell, color: 'text-muted-foreground' };
+            case 'reminder': return { icon: CalendarClock, color: 'bg-amber-50 text-amber-500' };
+            case 'subscription': return { icon: Gem, color: 'bg-primary/10 text-primary' };
+            case 'broadcast': return { icon: Megaphone, color: 'bg-purple-50 text-purple-500' };
+            case 'recurring_transaction': return { icon: Repeat, color: 'bg-blue-50 text-blue-500' };
+            default: return { icon: Bell, color: 'bg-slate-100 text-slate-400' };
         }
     }
-
-    const { icon: Icon, color } = getNotificationDetails();
+    const { icon: Icon, color } = getIcon();
 
     return (
         <div 
             onClick={() => onNotificationClick(notification)}
             className={cn(
-                "flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-secondary transition-colors cursor-pointer", 
-                notification.isRead && 'opacity-60 bg-secondary/30'
+                "flex items-center gap-4 py-4 border-b last:border-b-0 border-slate-50 dark:border-slate-800/50 cursor-pointer group transition-all",
+                notification.isRead && "opacity-50"
             )}
         >
-            <div className={cn("p-2 rounded-full mt-1", notification.isRead ? 'bg-muted' : 'bg-primary/10')}>
-                <Icon className={cn("h-5 w-5", notification.isRead ? 'text-muted-foreground' : color)} />
+            <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-105", color)}>
+                <Icon className="h-5 w-5" />
             </div>
-            <div className="flex-1 grid gap-1">
-                <p className="font-semibold">{notification.title}</p>
-                <p className="text-sm text-muted-foreground">{notification.body}</p>
+            <div className="flex-1 min-w-0">
+                <div className="flex justify-between items-baseline mb-0.5">
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate pr-4">{notification.title}</h4>
+                    {!notification.isRead && <span className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0"></span>}
+                </div>
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 line-clamp-1 mb-1">{notification.body}</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest tabular-nums">
+                    {format(notification.createdAt.toDate(), "d MMM • HH:mm", { locale: idLocale })}
+                </p>
             </div>
+            <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-primary transition-colors" />
         </div>
     );
 };
-
 
 export default function NotificationsPage() {
     const { user, idToken, loading: authLoading, notifications } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
-    const [isLoading, setIsLoading] = React.useState(true);
 
-    React.useEffect(() => {
-        if (!authLoading && !user) {
-            router.push('/login');
-        } else if (!authLoading && user) {
-            setIsLoading(false);
-        }
-    }, [user, authLoading, router]);
-    
-    const handleNotificationClick = async (notification: AppNotification) => {
-        if (idToken && !notification.isRead) {
-            await markNotificationAsRead(idToken, notification.id);
-        }
-        if (notification.link) {
-            router.push(notification.link);
-        }
+    if (authLoading) return <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-950"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+    if (!user) { router.push('/login'); return null; }
+
+    const handleNotificationClick = async (n: AppNotification) => {
+        if (idToken && !n.isRead) await markNotificationAsRead(idToken, n.id);
+        if (n.link) router.push(n.link);
     }
 
-    const handleMarkAllRead = async () => {
-        if (!idToken) {
-            toast({ title: 'Sesi tidak valid', variant: 'destructive' });
-            return;
-        }
-        const result = await markAllNotificationsAsRead(idToken);
-        if (result.success) {
-            toast({ title: 'Sukses', description: result.message });
-        } else {
-            toast({ title: 'Gagal', description: result.message, variant: 'destructive' });
-        }
-    }
+    const unread = (notifications || []).filter(n => !n.isRead);
+    const read = (notifications || []).filter(n => n.isRead);
 
-    const handleDeleteRead = async () => {
-         if (!idToken) {
-            toast({ title: 'Sesi tidak valid', variant: 'destructive' });
-            return;
-        }
-        const result = await deleteReadNotifications(idToken);
-        if (result.success) {
-            toast({ title: 'Sukses', description: result.message });
-        } else {
-            toast({ title: 'Gagal', description: result.message, variant: 'destructive' });
-        }
-    }
-
-    const unreadNotifications = (notifications || []).filter(n => !n.isRead);
-    const readNotifications = (notifications || []).filter(n => n.isRead);
-
-    if (authLoading || isLoading) {
-        return (
-            <div className="flex h-screen w-full items-center justify-center bg-secondary">
-                <div className="flex items-center gap-3 text-lg font-semibold text-primary">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <span>Memuat Notifikasi...</span>
-                </div>
-            </div>
-        );
-    }
-    
     return (
-        <div className="flex min-h-screen w-full flex-col bg-muted/40 pb-16">
-            <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-                <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                    <ArrowLeft className="h-5 w-5" />
-                    <span className="sr-only">Kembali</span>
-                </Button>
-                <div className="flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" />
-                    <h1 className="font-headline text-xl font-bold text-foreground">
-                        Notifikasi
-                    </h1>
+        <div className="flex min-h-screen w-full flex-col bg-slate-50 dark:bg-slate-950 pb-24 transition-colors duration-300">
+            <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/95 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full -ml-2 text-slate-400"><ArrowLeft className="h-5 w-5" /></Button>
+                    <div>
+                        <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">Pusat Notifikasi</h1>
+                        <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">Informasi Akun Anda</p>
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="ghost" size="icon" className="text-primary rounded-full" onClick={async () => idToken && await markAllNotificationsAsRead(idToken)} title="Tandai semua dibaca"><CheckCheck className="h-5 w-5"/></Button>
+                    <Button variant="ghost" size="icon" className="text-rose-500 rounded-full" onClick={async () => idToken && await deleteReadNotifications(idToken)} title="Hapus yang sudah dibaca"><Trash2 className="h-5 w-5"/></Button>
                 </div>
             </header>
-            <main className="flex-1 p-4 sm:p-6 md:p-8 space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Notifikasi Belum Dibaca</CardTitle>
-                        <CardDescription>Ini adalah pemberitahuan penting yang memerlukan perhatian Anda.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {unreadNotifications.length === 0 ? (
-                            <div className="text-center text-muted-foreground py-8">
-                                <CheckCheck className="mx-auto h-12 w-12 text-green-500" />
-                                <p className="mt-4 font-semibold">Semua notifikasi sudah dibaca!</p>
-                                <p className="text-sm">Tidak ada notifikasi baru untuk saat ini.</p>
+
+            <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-3xl mx-auto w-full space-y-10">
+                <section>
+                    <div className="px-1 mb-4 flex justify-between items-center">
+                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">PEMBERITAHUAN BARU</h2>
+                        <span className="text-[9px] font-black bg-primary text-white px-2 py-0.5 rounded-full">{unread.length}</span>
+                    </div>
+                    <Card className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 shadow-sm border-none">
+                        {unread.length > 0 ? (
+                            <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                {unread.map(n => <NotificationItem key={n.id} notification={n} onNotificationClick={handleNotificationClick} />)}
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                {unreadNotifications.map(notification => (
-                                    <NotificationItem key={notification.id} notification={notification} onNotificationClick={handleNotificationClick} />
-                                ))}
+                            <div className="text-center py-12">
+                                <CheckCheck className="h-10 w-10 mx-auto text-slate-200 dark:text-slate-800 mb-3" />
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Semua notifikasi sudah dibaca.</p>
                             </div>
                         )}
-                    </CardContent>
-                    {unreadNotifications.length > 0 && (
-                        <CardFooter>
-                            <Button variant="outline" size="sm" onClick={handleMarkAllRead} className="w-full sm:w-auto">
-                                <CheckCheck className="mr-2 h-4 w-4" />
-                                Tandai Semua Dibaca
-                            </Button>
-                        </CardFooter>
-                    )}
-                </Card>
-                 {readNotifications.length > 0 && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Notifikasi Terdahulu</CardTitle>
-                            <CardDescription>Notifikasi yang sudah Anda baca.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <div className="space-y-4">
-                                {readNotifications.slice(0, 10).map(notification => (
-                                    <NotificationItem key={notification.id} notification={notification} onNotificationClick={handleNotificationClick} />
-                                ))}
-                            </div>
-                        </CardContent>
-                        <CardFooter>
-                            <Button variant="destructive" size="sm" onClick={handleDeleteRead} className="w-full sm:w-auto">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Hapus Terbaca
-                            </Button>
-                        </CardFooter>
                     </Card>
-                 )}
+                </section>
+
+                {read.length > 0 && (
+                    <section>
+                        <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1 mb-4">RIWAYAT TERDAHULU</h2>
+                        <Card className="bg-transparent border-none shadow-none p-0">
+                            <div className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                                {read.slice(0, 15).map(n => <NotificationItem key={n.id} notification={n} onNotificationClick={handleNotificationClick} />)}
+                            </div>
+                        </Card>
+                    </section>
+                )}
             </main>
         </div>
     );
