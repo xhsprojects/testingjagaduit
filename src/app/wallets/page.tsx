@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react';
@@ -90,7 +89,6 @@ export default function WalletsPage() {
         }
     }, [user, authLoading, router]);
 
-    // Data loading effect
     React.useEffect(() => {
         if (!user) return;
         setIsLoading(true);
@@ -107,7 +105,6 @@ export default function WalletsPage() {
             const tempAllExpenses: Expense[] = [];
             const tempAllIncomes: Income[] = [];
             
-            // Fetch current period
             const currentBudgetSnap = await getDoc(doc(db, 'users', user.uid, 'budgets', 'current'));
             if (currentBudgetSnap.exists()) {
                  const data = convertTimestamps(currentBudgetSnap.data());
@@ -116,7 +113,6 @@ export default function WalletsPage() {
                  setCategories(data.categories || []);
             }
 
-            // Fetch archived periods
             const archivedSnaps = await getDocs(collection(db, 'users', user.uid, 'archivedBudgets'));
             archivedSnaps.forEach(docSnap => {
                 const data = convertTimestamps(docSnap.data());
@@ -139,7 +135,7 @@ export default function WalletsPage() {
 
         const debtsUnsub = onSnapshot(collection(db, 'users', user.uid, 'debts'), (snapshot) => {
             setDebts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt)));
-            setIsLoading(false); // Set loading to false after the last fetch
+            setIsLoading(false);
         });
 
         return () => {
@@ -193,9 +189,7 @@ export default function WalletsPage() {
     
     const handleSaveTransaction = async (data: Expense | Income, type: 'expense' | 'income') => {
         if (!idToken) return;
-        const currentPeriodId = 'current';
-
-        const result = await updateTransaction(idToken, currentPeriodId, data, type);
+        const result = await updateTransaction(idToken, 'current', data, type);
         if (result.success) {
             toast({ title: "Sukses", description: `Transaksi berhasil disimpan.` });
         } else {
@@ -396,7 +390,7 @@ export default function WalletsPage() {
 
             <AddExpenseForm
                 isOpen={isAddExpenseFormOpen}
-                onOpenChange={handleAddExpenseFormOpenChange}
+                onOpenChange={(open) => setIsAddExpenseFormOpen(open)}
                 categories={categories}
                 savingGoals={savingGoals}
                 debts={debts}
@@ -409,7 +403,7 @@ export default function WalletsPage() {
             
             <AddIncomeForm
                 isOpen={isAddIncomeFormOpen}
-                onOpenChange={handleAddIncomeFormOpenChange}
+                onOpenChange={(open) => setIsAddIncomeFormOpen(open)}
                 wallets={wallets}
                 expenses={allExpenses}
                 incomes={allIncomes}
@@ -489,7 +483,6 @@ export default function WalletsPage() {
                     
                     {transactionDetail && (
                         <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
-                            {/* Amount Card */}
                             <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
                                 <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
                                 <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>
@@ -501,7 +494,6 @@ export default function WalletsPage() {
                             </div>
 
                             <div className="space-y-8 px-2">
-                                {/* Date */}
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 shrink-0 shadow-sm">
                                         <Calendar className="h-6 w-6" />
@@ -515,7 +507,6 @@ export default function WalletsPage() {
                                     </div>
                                 </div>
 
-                                {/* Wallet */}
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-500 shrink-0 shadow-sm">
                                         <WalletIcon className="h-6 w-6" />
@@ -526,7 +517,6 @@ export default function WalletsPage() {
                                     </div>
                                 </div>
 
-                                {/* Category */}
                                 {isExpense && detailCategory && (
                                     <div className="flex items-start gap-5">
                                         <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 shrink-0 shadow-sm">
@@ -539,7 +529,6 @@ export default function WalletsPage() {
                                     </div>
                                 )}
 
-                                {/* Saving Goal */}
                                 {detailSavingGoal && (
                                     <div className="flex items-start gap-5">
                                         <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
@@ -552,7 +541,6 @@ export default function WalletsPage() {
                                     </div>
                                 )}
 
-                                {/* Debt */}
                                 {detailDebt && (
                                     <div className="flex items-start gap-5">
                                         <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
@@ -565,7 +553,6 @@ export default function WalletsPage() {
                                     </div>
                                 )}
 
-                                {/* Notes */}
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
                                         <FileText className="h-6 w-6" />
@@ -585,7 +572,7 @@ export default function WalletsPage() {
 
                     <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
                         <Button 
-                            className="w-full h-16 rounded-[1.5rem] bg-[#F97316] hover:bg-[#EA580C] text-white font-black text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                            className="w-full h-16 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
                             onClick={() => transactionDetail && handleEditTransaction(transactionDetail)}
                         >
                             <Pencil className="h-6 w-6" />

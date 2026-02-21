@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react';
@@ -44,7 +43,6 @@ const convertTimestamps = (data: any): any => {
   return data;
 };
 
-// Combined type for the unified list
 type UnifiedTransaction = (Expense | Income) & {
     type: 'income' | 'expense';
     categoryName?: string;
@@ -64,7 +62,6 @@ export default function HistoryDetailPage() {
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
     const [detailItem, setDetailItem] = React.useState<(UnifiedTransaction) | null>(null);
     
-    // State for all data from all periods for passing to forms
     const [allExpenses, setAllExpenses] = React.useState<Expense[]>([]);
     const [allIncomes, setAllIncomes] = React.useState<Income[]>([]);
     const [allCategories, setAllCategories] = React.useState<Category[]>([]);
@@ -72,7 +69,6 @@ export default function HistoryDetailPage() {
     const [savingGoals, setSavingGoals] = React.useState<SavingGoal[]>([]);
     const [debts, setDebts] = React.useState<Debt[]>([]);
     
-    // CRUD state
     const [isExpenseFormOpen, setIsExpenseFormOpen] = React.useState(false);
     const [isIncomeFormOpen, setIsIncomeFormOpen] = React.useState(false);
     const [editingItem, setEditingItem] = React.useState<UnifiedTransaction | null>(null);
@@ -84,7 +80,6 @@ export default function HistoryDetailPage() {
         if (!user || !periodId) return;
         setIsLoading(true);
         try {
-            // Load current period data
             let docRef = periodId === 'current'
                 ? doc(db, 'users', user.uid, 'budgets', 'current')
                 : doc(db, 'users', user.uid, 'archivedBudgets', periodId);
@@ -100,7 +95,6 @@ export default function HistoryDetailPage() {
                 return;
             }
 
-            // Load all historical data for accurate balance calculations in forms
             const tempAllExpenses: Expense[] = [];
             const tempAllIncomes: Income[] = [];
             const tempAllCategories: Category[] = [];
@@ -226,7 +220,7 @@ export default function HistoryDetailPage() {
         const result = await deleteTransaction(idToken, periodId, itemToDelete.id, itemToDelete.type);
         if (result.success) {
             toast({ title: "Sukses", description: "Transaksi berhasil dihapus." });
-            loadData(); // Refresh data
+            loadData();
         } else {
             toast({ title: "Gagal", description: result.message, variant: "destructive" });
         }
@@ -239,7 +233,7 @@ export default function HistoryDetailPage() {
         const result = await updateTransaction(idToken, periodId, data, type);
          if (result.success) {
             toast({ title: "Sukses", description: "Transaksi berhasil diperbarui." });
-            loadData(); // Refresh data
+            loadData();
             setIsExpenseFormOpen(false);
             setIsIncomeFormOpen(false);
             setEditingItem(null);
@@ -387,7 +381,6 @@ export default function HistoryDetailPage() {
                 
                 {detailItem && (
                     <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
-                        {/* Amount Card */}
                         <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
                             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
                             <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>
@@ -399,7 +392,6 @@ export default function HistoryDetailPage() {
                         </div>
 
                         <div className="space-y-8 px-2">
-                            {/* Date */}
                             <div className="flex items-start gap-5">
                                 <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 shrink-0 shadow-sm">
                                     <Calendar className="h-6 w-6" />
@@ -413,7 +405,6 @@ export default function HistoryDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Wallet */}
                             <div className="flex items-start gap-5">
                                 <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-500 shrink-0 shadow-sm">
                                     <WalletIcon className="h-6 w-6" />
@@ -424,7 +415,6 @@ export default function HistoryDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Category */}
                             {isExpense && detailItem.categoryName && (
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 shrink-0 shadow-sm">
@@ -437,7 +427,6 @@ export default function HistoryDetailPage() {
                                 </div>
                             )}
 
-                            {/* Saving Goal */}
                             {detailSavingGoal && (
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
@@ -450,7 +439,6 @@ export default function HistoryDetailPage() {
                                 </div>
                             )}
 
-                            {/* Debt */}
                             {detailDebt && (
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
@@ -463,7 +451,6 @@ export default function HistoryDetailPage() {
                                 </div>
                             )}
 
-                            {/* Notes */}
                             <div className="flex items-start gap-5">
                                 <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
                                     <FileText className="h-6 w-6" />
@@ -483,7 +470,7 @@ export default function HistoryDetailPage() {
 
                 <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
                     <Button 
-                        className="w-full h-16 rounded-[1.5rem] bg-[#F97316] hover:bg-[#EA580C] text-white font-black text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                        className="w-full h-16 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
                         onClick={() => detailItem && handleEditRequest(detailItem)}
                     >
                         <Pencil className="h-6 w-6" />

@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react';
@@ -48,7 +47,6 @@ type UnifiedTransaction = (Expense | Income) & {
   categoryIcon?: React.ElementType;
 };
 
-// --- Sub-components ---
 const TransactionItem = React.memo(({ transaction, categoryMap, walletMap, onClick }: { 
     transaction: UnifiedTransaction; 
     categoryMap: Map<string, Category>; 
@@ -91,7 +89,7 @@ const TransactionItem = React.memo(({ transaction, categoryMap, walletMap, onCli
                     <p className="text-xs text-muted-foreground">{walletName}</p>
                  </div>
                 <div className="text-right">
-                    <p className={cn("font-semibold whitespace-nowrap text-sm", isExpense ? "text-foreground" : "text-green-600")}>
+                    <p className={cn("font-semibold whitespace-nowrap text-sm", isExpense ? "text-foreground" : "text-primary")}>
                         {isExpense ? '-' : '+'} {formatCurrency(amount)}
                     </p>
                     <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), "d MMM, HH:mm", { locale: idLocale })}</p>
@@ -304,20 +302,16 @@ const TransactionList = React.memo(({ transactions, categoryMap, walletMap, onTr
 });
 TransactionList.displayName = 'TransactionList';
 
-
-// --- Main Component ---
 export default function HistoryPage() {
     const { user, idToken, loading: authLoading } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
 
-    // State for Archive Tab
     const [currentPeriod, setCurrentPeriod] = React.useState<BudgetPeriod | null>(null);
     const [archivedPeriods, setArchivedPeriods] = React.useState<(BudgetPeriod & {id: string})[]>([]);
     const [archiveToDelete, setArchiveToDelete] = React.useState<string | null>(null);
     const [isDeleting, setIsDeleting] = React.useState(false);
     
-    // State for All Transactions Tab
     const [allTransactions, setAllTransactions] = React.useState<UnifiedTransaction[]>([]);
     const [searchQuery, setSearchQuery] = React.useState("");
     const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
@@ -325,14 +319,12 @@ export default function HistoryPage() {
     const [typeFilter, setTypeFilter] = React.useState<'all' | 'income' | 'expense'>('all');
     const [walletFilter, setWalletFilter] = React.useState<string>('all');
     
-    // Shared state
     const [allCategories, setAllCategories] = React.useState<Category[]>([]);
     const [wallets, setWallets] = React.useState<Wallet[]>([]);
     const [savingGoals, setSavingGoals] = React.useState<SavingGoal[]>([]);
     const [debts, setDebts] = React.useState<Debt[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     
-    // CRUD State
     const [isExpenseFormOpen, setIsExpenseFormOpen] = React.useState(false);
     const [isIncomeFormOpen, setIsIncomeFormOpen] = React.useState(false);
     const [editingItem, setEditingItem] = React.useState<UnifiedTransaction | null>(null);
@@ -375,7 +367,8 @@ export default function HistoryPage() {
             setAllCategories(allCats);
             
             const walletsSnapshot = await getDocs(collection(db, 'users', user.uid, 'wallets'));
-            setWallets(walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Wallet[]);
+            const walletsData = walletsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Wallet[];
+            setWallets(walletsData);
             const goalsSnapshot = await getDocs(collection(db, 'users', user.uid, 'savingGoals'));
             setSavingGoals(goalsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as SavingGoal[]);
             const debtsSnapshot = await getDocs(collection(db, 'users', user.uid, 'debts'));
@@ -474,7 +467,6 @@ export default function HistoryPage() {
 
     }, [allTransactions, dateRange, searchQuery, typeFilter, walletFilter]);
 
-    // CRUD handlers
     const handleEditRequest = (item: UnifiedTransaction) => {
         setDetailItem(null);
         setEditingItem(item);
@@ -673,7 +665,6 @@ export default function HistoryPage() {
                     
                     {detailItem && (
                         <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
-                            {/* Amount Card */}
                             <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
                                 <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
                                 <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>
@@ -685,7 +676,6 @@ export default function HistoryPage() {
                             </div>
 
                             <div className="space-y-8 px-2">
-                                {/* Date */}
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 shrink-0 shadow-sm">
                                         <Calendar className="h-6 w-6" />
@@ -699,7 +689,6 @@ export default function HistoryPage() {
                                     </div>
                                 </div>
 
-                                {/* Wallet */}
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-500 shrink-0 shadow-sm">
                                         <WalletIcon className="h-6 w-6" />
@@ -710,7 +699,6 @@ export default function HistoryPage() {
                                     </div>
                                 </div>
 
-                                {/* Category */}
                                 {isExpense && detailItem.categoryName && (
                                     <div className="flex items-start gap-5">
                                         <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 shrink-0 shadow-sm">
@@ -723,7 +711,6 @@ export default function HistoryPage() {
                                     </div>
                                 )}
 
-                                {/* Saving Goal */}
                                 {detailSavingGoal && (
                                     <div className="flex items-start gap-5">
                                         <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
@@ -736,7 +723,6 @@ export default function HistoryPage() {
                                     </div>
                                 )}
 
-                                {/* Debt */}
                                 {detailDebt && (
                                     <div className="flex items-start gap-5">
                                         <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
@@ -749,7 +735,6 @@ export default function HistoryPage() {
                                     </div>
                                 )}
 
-                                {/* Notes */}
                                 <div className="flex items-start gap-5">
                                     <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
                                         <FileText className="h-6 w-6" />
@@ -769,7 +754,7 @@ export default function HistoryPage() {
 
                     <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
                         <Button 
-                            className="w-full h-16 rounded-[1.5rem] bg-[#F97316] hover:bg-[#EA580C] text-white font-black text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                            className="w-full h-16 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
                             onClick={() => detailItem && handleEditRequest(detailItem)}
                         >
                             <Pencil className="h-6 w-6" />
@@ -824,7 +809,6 @@ export default function HistoryPage() {
                 </AlertDialogContent>
             </AlertDialog>
 
-
             <AlertDialog open={!!archiveToDelete} onOpenChange={(open) => !open && setArchiveToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -842,6 +826,7 @@ export default function HistoryPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
         </div>
     );
 }

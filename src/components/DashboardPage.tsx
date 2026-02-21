@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from 'react';
@@ -466,7 +465,6 @@ export default function DashboardPage({
               
               {detailItem && (
                   <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
-                      {/* Amount Card */}
                       <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
                           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
                           <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>
@@ -478,7 +476,6 @@ export default function DashboardPage({
                       </div>
 
                       <div className="space-y-8 px-2">
-                          {/* Date */}
                           <div className="flex items-start gap-5">
                               <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 shrink-0 shadow-sm">
                                   <Calendar className="h-6 w-6" />
@@ -492,7 +489,6 @@ export default function DashboardPage({
                               </div>
                           </div>
 
-                          {/* Wallet */}
                           <div className="flex items-start gap-5">
                               <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-500 shrink-0 shadow-sm">
                                   <WalletIcon className="h-6 w-6" />
@@ -503,7 +499,6 @@ export default function DashboardPage({
                               </div>
                           </div>
 
-                          {/* Category */}
                           {isExpense && detailCategory && (
                               <div className="flex items-start gap-5">
                                   <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 shrink-0 shadow-sm">
@@ -516,7 +511,6 @@ export default function DashboardPage({
                               </div>
                           )}
 
-                          {/* Saving Goal */}
                           {detailSavingGoal && (
                               <div className="flex items-start gap-5">
                                   <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
@@ -529,7 +523,6 @@ export default function DashboardPage({
                               </div>
                           )}
 
-                          {/* Debt */}
                           {detailDebt && (
                               <div className="flex items-start gap-5">
                                   <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
@@ -542,7 +535,6 @@ export default function DashboardPage({
                               </div>
                           )}
 
-                          {/* Notes */}
                           <div className="flex items-start gap-5">
                               <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
                                   <FileText className="h-6 w-6" />
@@ -562,7 +554,7 @@ export default function DashboardPage({
 
               <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
                   <Button 
-                      className="w-full h-16 rounded-[1.5rem] bg-[#F97316] hover:bg-[#EA580C] text-white font-black text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                      className="w-full h-16 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
                       onClick={() => detailItem && handleEditClick(detailItem)}
                   >
                       <Pencil className="h-6 w-6" />
@@ -583,7 +575,7 @@ export default function DashboardPage({
       <Dialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
         <DialogContent className="sm:rounded-3xl">
             <DialogHeader>
-                <DialogTitle className="font-bold uppercase tracking-widest">Mulai Periode Baru?</DialogTitle>
+                <DialogTitle className="font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100">Mulai Periode Baru?</DialogTitle>
                 <DialogDescription className="text-[10px] font-bold uppercase tracking-tight text-slate-400">
                     Data transaksi saat ini akan diarsipkan secara otomatis ke riwayat. Anda tidak akan kehilangan data lama.
                 </DialogDescription>
