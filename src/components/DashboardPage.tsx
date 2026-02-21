@@ -419,17 +419,17 @@ export default function DashboardPage({
       </SpeedDial>
 
       <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
-          <DialogContent className="max-w-2xl sm:rounded-3xl p-6 sm:p-8">
-              <DialogHeader>
-                  <DialogTitle className="flex items-center gap-3 font-bold text-lg sm:text-xl uppercase tracking-widest text-slate-800 dark:text-slate-100">
-                      <div className="p-2 bg-primary/10 rounded-xl shrink-0">
-                        <LayoutGrid className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                      </div>
-                      Menu Utama
-                  </DialogTitle>
-                  <DialogDescription className="text-[10px] sm:text-xs font-bold uppercase tracking-tight text-slate-400">Navigasi cepat ke seluruh fitur Jaga Duit.</DialogDescription>
+          <DialogContent className="max-w-2xl h-full flex flex-col sm:h-auto sm:max-h-[85vh] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+              <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
+                  <div className="flex flex-col">
+                    <DialogTitle className="font-bold text-xl uppercase tracking-widest text-slate-800 dark:text-white">Menu Utama</DialogTitle>
+                    <DialogDescription className="text-[10px] font-bold uppercase tracking-tighter text-slate-400">Navigasi fitur Jaga Duit</DialogDescription>
+                  </div>
+                  <DialogClose className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                      <X className="h-5 w-5 text-slate-400" />
+                  </DialogClose>
               </DialogHeader>
-              <div className="grid grid-cols-4 gap-y-8 gap-x-2 py-6 overflow-y-auto max-h-[65vh] hide-scrollbar">
+              <div className="flex-1 grid grid-cols-4 gap-y-8 gap-x-2 p-8 overflow-y-auto hide-scrollbar">
                   {allMenuItems.map((item) => (
                       <QuickActionItem key={item.label} href={item.href} icon={item.icon} label={item.label} onClick={() => setIsMenuDialogOpen(false)} />
                   ))}
@@ -455,7 +455,7 @@ export default function DashboardPage({
       <TransferFundsForm isOpen={isTransferFormOpen} onOpenChange={setIsTransferFormOpen} wallets={wallets} expenses={allExpenses} incomes={allIncomes} />
 
       <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-          <DialogContent className="sm:max-w-lg sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+          <DialogContent className="sm:max-w-lg h-full flex flex-col sm:h-auto sm:max-h-[85vh] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
               <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
                   <DialogTitle className="font-bold text-xl text-slate-800 dark:text-white mx-auto">Detail Transaksi</DialogTitle>
                   <DialogClose className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -464,7 +464,7 @@ export default function DashboardPage({
               </DialogHeader>
               
               {detailItem && (
-                  <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
+                  <div className="flex-1 p-8 space-y-8 overflow-y-auto hide-scrollbar">
                       <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
                           <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
                           <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>

@@ -655,7 +655,7 @@ export default function HistoryPage() {
             </main>
             
             <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-                <DialogContent className="sm:max-w-lg sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+                <DialogContent className="sm:max-w-lg h-full flex flex-col sm:h-auto sm:max-h-[85vh] sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
                     <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
                         <DialogTitle className="font-bold text-xl text-slate-800 dark:text-white mx-auto">Detail Transaksi</DialogTitle>
                         <DialogClose className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -664,7 +664,7 @@ export default function HistoryPage() {
                     </DialogHeader>
                     
                     {detailItem && (
-                        <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
+                        <div className="flex-1 p-8 space-y-8 overflow-y-auto hide-scrollbar">
                             <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
                                 <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
                                 <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>
@@ -709,123 +709,125 @@ export default function HistoryPage() {
                                             <p className="font-bold text-slate-800 dark:text-white text-base">{detailItem.categoryName}</p>
                                         </div>
                                     </div>
-                                )}
+                                head
+                                </div>
+                            )}
 
-                                {detailSavingGoal && (
-                                    <div className="flex items-start gap-5">
-                                        <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
-                                            <Landmark className="h-6 w-6" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">TUJUAN TABUNGAN</p>
-                                            <p className="font-bold text-slate-800 dark:text-white text-base">{detailSavingGoal.name}</p>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {detailDebt && (
-                                    <div className="flex items-start gap-5">
-                                        <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
-                                            <CreditCard className="h-6 w-6" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">UTANG</p>
-                                            <p className="font-bold text-slate-800 dark:text-white text-base">{detailDebt.name}</p>
-                                        </div>
-                                    </div>
-                                )}
-
+                            {detailSavingGoal && (
                                 <div className="flex items-start gap-5">
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
-                                        <FileText className="h-6 w-6" />
+                                    <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
+                                        <Landmark className="h-6 w-6" />
                                     </div>
                                     <div className="flex-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">CATATAN</p>
-                                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
-                                            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
-                                                "{detailItem.notes || 'Tidak ada catatan untuk transaksi ini'}"
-                                            </p>
-                                        </div>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">TUJUAN TABUNGAN</p>
+                                        <p className="font-bold text-slate-800 dark:text-white text-base">{detailSavingGoal.name}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {detailDebt && (
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
+                                        <CreditCard className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">UTANG</p>
+                                        <p className="font-bold text-slate-800 dark:text-white text-base">{detailDebt.name}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-start gap-5">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
+                                    <FileText className="h-6 w-6" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">CATATAN</p>
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                            "{detailItem.notes || 'Tidak ada catatan untuk transaksi ini'}"
+                                        </p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
-                        <Button 
-                            className="w-full h-16 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
-                            onClick={() => detailItem && handleEditRequest(detailItem)}
-                        >
-                            <Pencil className="h-6 w-6" />
-                            Ubah Transaksi
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            className="w-full text-red-500 font-black uppercase text-xs tracking-[0.2em] hover:bg-red-50 dark:hover:bg-red-900/20 h-10 rounded-xl"
-                            onClick={() => detailItem && handleDeleteTransactionRequest(detailItem)}
-                        >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Hapus Transaksi
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
+                    <Button 
+                        className="w-full h-16 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                        onClick={() => detailItem && handleEditRequest(detailItem)}
+                    >
+                        <Pencil className="h-6 w-6" />
+                        Ubah Transaksi
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        className="w-full text-red-500 font-black uppercase text-xs tracking-[0.2em] hover:bg-red-50 dark:hover:bg-red-900/20 h-10 rounded-xl"
+                        onClick={() => detailItem && handleDeleteTransactionRequest(detailItem)}
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Hapus Transaksi
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        
+        <AddExpenseForm
+            isOpen={isExpenseFormOpen}
+            onOpenChange={setIsExpenseFormOpen}
+            categories={allCategories}
+            savingGoals={savingGoals}
+            debts={debts}
+            wallets={wallets}
+            onSubmit={(data) => handleSaveTransaction(data, 'expense')}
+            expenseToEdit={editingItem?.type === 'expense' ? editingItem as Expense : null}
+        />
+        
+        <AddIncomeForm
+            isOpen={isIncomeFormOpen}
+            onOpenChange={setIsIncomeFormOpen}
+            wallets={wallets}
+            onSubmit={(data) => handleSaveTransaction(data, 'income')}
+            incomeToEdit={editingItem?.type === 'income' ? editingItem as Income : null}
+        />
 
-            <AddExpenseForm
-                isOpen={isExpenseFormOpen}
-                onOpenChange={setIsExpenseFormOpen}
-                categories={allCategories}
-                savingGoals={savingGoals}
-                debts={debts}
-                wallets={wallets}
-                onSubmit={(data) => handleSaveTransaction(data, 'expense')}
-                expenseToEdit={editingItem?.type === 'expense' ? editingItem as Expense : null}
-            />
-            
-            <AddIncomeForm
-                isOpen={isIncomeFormOpen}
-                onOpenChange={setIsIncomeFormOpen}
-                wallets={wallets}
-                onSubmit={(data) => handleSaveTransaction(data, 'income')}
-                incomeToEdit={editingItem?.type === 'income' ? editingItem as Income : null}
-            />
+        <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Hapus Transaksi Ini?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Tindakan ini akan menghapus transaksi ini secara permanen dari riwayat Anda. Ini tidak bisa dibatalkan.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDeleteTransaction} className="bg-destructive hover:bg-destructive/90" disabled={isDeleting}>
+                       {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                       Ya, Hapus
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
-            <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Hapus Transaksi Ini?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Tindakan ini akan menghapus transaksi ini secara permanen dari riwayat Anda. Ini tidak bisa dibatalkan.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteTransaction} className="bg-destructive hover:bg-destructive/90" disabled={isDeleting}>
-                           {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                           Ya, Hapus
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-
-            <AlertDialog open={!!archiveToDelete} onOpenChange={(open) => !open && setArchiveToDelete(null)}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Hapus Arsip Ini?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data arsip untuk periode ini secara permanen.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setArchiveToDelete(null)}>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteArchive} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                            Hapus
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+        <AlertDialog open={!!archiveToDelete} onOpenChange={(open) => !open && setArchiveToDelete(null)}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Hapus Arsip Ini?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Tindakan ini tidak dapat dibatalkan. Ini akan menghapus data arsip untuk periode ini secara permanen.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={() => setArchiveToDelete(null)}>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={confirmDeleteArchive} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Hapus
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
         </div>
     );
