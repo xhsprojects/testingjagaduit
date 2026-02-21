@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import * as React from 'react';
@@ -7,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import type { Wallet, Expense, Income, Category, SavingGoal, Debt } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, ChevronRight, Pencil, Trash2, History } from 'lucide-react';
+import { Wallet as WalletIcon, PlusCircle, Loader2, ArrowLeft, TrendingUp, TrendingDown, ArrowLeftRight, ChevronRight, Pencil, Trash2, History, X, Calendar, Landmark, CreditCard, Tag, FileText } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -19,7 +18,7 @@ import { AddWalletForm } from '@/components/AddWalletForm';
 import { deleteWallet } from './actions';
 import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { AddIncomeForm } from '@/components/AddIncomeForm';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
@@ -29,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { TransferFundsForm } from '@/components/TransferFundsForm';
 import { iconMap } from '@/lib/icons';
 import Link from 'next/link';
+import { Badge } from '@/components/ui/badge';
 
 type UnifiedTransaction = (Expense | Income) & {
   type: 'expense' | 'income';
@@ -103,7 +103,6 @@ export default function WalletsPage() {
             toast({ title: "Gagal memuat dompet", variant: "destructive" });
         });
         
-        // This is a new, more robust way to load ALL transactions for accurate balance calculation
         const loadAllTransactions = async () => {
             const tempAllExpenses: Expense[] = [];
             const tempAllIncomes: Income[] = [];
@@ -194,24 +193,15 @@ export default function WalletsPage() {
     
     const handleSaveTransaction = async (data: Expense | Income, type: 'expense' | 'income') => {
         if (!idToken) return;
-        const currentPeriodId = 'current'; // Wallets page only deals with current period
+        const currentPeriodId = 'current';
 
-        // If it's a new transaction, assign a new ID. Otherwise, use the existing one.
-        const transactionData = {
-            ...data,
-            id: type === 'expense'
-                ? (editingExpense?.id || `exp-${Date.now()}`)
-                : (editingIncome?.id || `inc-${Date.now()}`),
-        };
-        
-        const result = await updateTransaction(idToken, currentPeriodId, transactionData, type);
+        const result = await updateTransaction(idToken, currentPeriodId, data, type);
         if (result.success) {
-            toast({ title: "Sukses", description: `Transaksi berhasil ${editingExpense || editingIncome ? 'diperbarui' : 'ditambahkan'}.` });
+            toast({ title: "Sukses", description: `Transaksi berhasil disimpan.` });
         } else {
             toast({ title: "Gagal", description: result.message, variant: "destructive" });
         }
         
-        // Close forms
         setIsAddExpenseFormOpen(false);
         setIsAddIncomeFormOpen(false);
         setEditingExpense(null);
@@ -232,18 +222,19 @@ export default function WalletsPage() {
             toast({ title: 'Gagal', description: result.message, variant: 'destructive' });
         }
         setTransactionToDelete(null);
-        setTransactionDetail(null); // Close the detail view
+        setTransactionDetail(null); 
         setIsDeleting(false);
     };
     
-    const handleAddExpenseFormOpenChange = (open: boolean) => {
-        if (!open) setEditingExpense(null);
-        setIsAddExpenseFormOpen(open);
-    };
-    
-    const handleAddIncomeFormOpenChange = (open: boolean) => {
-        if (!open) setEditingIncome(null);
-        setIsAddIncomeFormOpen(open);
+    const handleEditTransaction = (item: UnifiedTransaction) => {
+        setTransactionDetail(null);
+        if (item.type === 'expense') {
+            setEditingExpense(item as Expense);
+            setIsAddExpenseFormOpen(true);
+        } else {
+            setEditingIncome(item as Income);
+            setIsAddIncomeFormOpen(true);
+        }
     };
 
     const categoryMap = new Map(categories.map(c => [c.id, { name: c.name, icon: c.icon }]));
@@ -290,6 +281,18 @@ export default function WalletsPage() {
             </div>
         );
     }
+
+    const detailSavingGoal = transactionDetail?.type === 'expense' && (transactionDetail as Expense).savingGoalId ? savingGoals.find(g => g.id === (transactionDetail as Expense).savingGoalId) : null;
+    const detailDebt = transactionDetail?.type === 'expense' && (transactionDetail as Expense).debtId ? debts.find(d => d.id === (transactionDetail as Expense).debtId) : null;
+    const detailCategory = transactionDetail?.type === 'expense' && (transactionDetail as Expense).categoryId ? categoryMap.get((transactionDetail as Expense).categoryId) : null;
+    const DetailCategoryIcon = detailCategory ? iconMap[detailCategory.icon as keyof typeof iconMap] : Tag;
+
+    const isExpense = transactionDetail?.type === 'expense';
+    const amountColor = isExpense ? "text-red-500" : "text-emerald-500";
+    const badgeBg = isExpense ? "bg-red-50 text-red-500" : "bg-emerald-50 text-emerald-500";
+    const typeLabel = isExpense ? "Pengeluaran" : "Pemasukan";
+    const walletLabel = isExpense ? "DIBAYAR DARI" : "MASUK KE";
+    const detailWalletObj = transactionDetail?.walletId ? wallets.find(w => w.id === transactionDetail.walletId) : null;
     
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
@@ -324,7 +327,7 @@ export default function WalletsPage() {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {walletsWithBalance.map(wallet => {
-                            const Icon = iconMap[wallet.icon] || WalletIcon;
+                            const Icon = iconMap[wallet.icon as keyof typeof iconMap] || WalletIcon;
                             return (
                                 <Card 
                                     key={wallet.id}
@@ -475,6 +478,131 @@ export default function WalletsPage() {
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={!!transactionDetail} onOpenChange={(open) => !open && setTransactionDetail(null)}>
+                <DialogContent className="sm:max-w-lg sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+                    <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
+                        <DialogTitle className="font-bold text-xl text-slate-800 dark:text-white mx-auto">Detail Transaksi</DialogTitle>
+                        <DialogClose className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <X className="h-5 w-5 text-slate-400" />
+                        </DialogClose>
+                    </DialogHeader>
+                    
+                    {transactionDetail && (
+                        <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
+                            {/* Amount Card */}
+                            <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
+                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
+                                <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>
+                                    {formatCurrency(transactionDetail.amount || 0)}
+                                </p>
+                                <Badge variant="outline" className={cn("border-none font-black uppercase text-[10px] tracking-[0.2em] px-4 py-1.5 rounded-full shadow-sm", badgeBg)}>
+                                    {transactionDetail.type}
+                                </Badge>
+                            </div>
+
+                            <div className="space-y-8 px-2">
+                                {/* Date */}
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 shrink-0 shadow-sm">
+                                        <Calendar className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">TANGGAL</p>
+                                        <p className="font-bold text-slate-800 dark:text-white text-base">
+                                            {transactionDetail.date ? format(new Date(transactionDetail.date), "EEEE, d MMMM yyyy", { locale: idLocale }) : '-'}
+                                        </p>
+                                        <p className="text-sm font-bold text-slate-400 mt-0.5">{transactionDetail.date ? format(new Date(transactionDetail.date), "HH:mm") : '-'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Wallet */}
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-500 shrink-0 shadow-sm">
+                                        <WalletIcon className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{walletLabel}</p>
+                                        <p className="font-bold text-slate-800 dark:text-white text-base">{detailWalletObj?.name || 'Tanpa Dompet'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Category */}
+                                {isExpense && detailCategory && (
+                                    <div className="flex items-start gap-5">
+                                        <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 shrink-0 shadow-sm">
+                                            <DetailCategoryIcon className="h-6 w-6" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">KATEGORI</p>
+                                            <p className="font-bold text-slate-800 dark:text-white text-base">{detailCategory.name}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Saving Goal */}
+                                {detailSavingGoal && (
+                                    <div className="flex items-start gap-5">
+                                        <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
+                                            <Landmark className="h-6 w-6" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">TUJUAN TABUNGAN</p>
+                                            <p className="font-bold text-slate-800 dark:text-white text-base">{detailSavingGoal.name}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Debt */}
+                                {detailDebt && (
+                                    <div className="flex items-start gap-5">
+                                        <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
+                                            <CreditCard className="h-6 w-6" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">UTANG</p>
+                                            <p className="font-bold text-slate-800 dark:text-white text-base">{detailDebt.name}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Notes */}
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
+                                        <FileText className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">CATATAN</p>
+                                        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                                "{transactionDetail.notes || 'Tidak ada catatan untuk transaksi ini'}"
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
+                        <Button 
+                            className="w-full h-16 rounded-[1.5rem] bg-[#F97316] hover:bg-[#EA580C] text-white font-black text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                            onClick={() => transactionDetail && handleEditTransaction(transactionDetail)}
+                        >
+                            <Pencil className="h-6 w-6" />
+                            Ubah Transaksi
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            className="w-full text-red-500 font-black uppercase text-xs tracking-[0.2em] hover:bg-red-50 dark:hover:bg-red-900/20 h-10 rounded-xl"
+                            onClick={() => transactionDetail && handleDeleteTransactionRequest(transactionDetail)}
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Hapus Transaksi
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <AlertDialog open={!!walletToDelete} onOpenChange={(open) => !open && setWalletToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -486,6 +614,24 @@ export default function WalletsPage() {
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setWalletToDelete(null)}>Batal</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                            {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Ya, Hapus
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!transactionToDelete} onOpenChange={(open) => !open && setTransactionToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Hapus Transaksi Ini?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tindakan ini tidak dapat dibatalkan.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Batal</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDeleteTransaction} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
                             {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Ya, Hapus
                         </AlertDialogAction>

@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import type { BudgetPeriod, Expense, Income, SavingGoal, Debt, Wallet, Category } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Loader2, Search, TrendingDown, TrendingUp, Wallet as WalletIcon, CreditCard, Landmark, FileText, Calendar, Tag, Coins, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Search, TrendingDown, TrendingUp, Wallet as WalletIcon, CreditCard, Landmark, FileText, Calendar, Tag, Coins, Pencil, Trash2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -19,11 +19,12 @@ import type { DateRange } from 'react-day-picker';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { iconMap } from '@/lib/icons';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AddExpenseForm } from '@/components/AddExpenseForm';
 import { AddIncomeForm } from '@/components/AddIncomeForm';
 import { updateTransaction, deleteTransaction } from '../actions';
+import { Badge } from '@/components/ui/badge';
 
 const convertTimestamps = (data: any): any => {
   if (!data) return data;
@@ -124,7 +125,8 @@ export default function HistoryDetailPage() {
             setAllCategories(Array.from(categoryMap.values()));
             
             const walletsSnapshot = await getDocs(collection(db, 'users', user.uid, 'wallets'));
-            setWallets(walletsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Wallet)));
+            const walletsData = walletsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Wallet));
+            setWallets(walletsData);
             const goalsSnapshot = await getDocs(collection(db, 'users', user.uid, 'savingGoals'));
             setSavingGoals(goalsSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as SavingGoal[]);
             const debtsSnapshot = await getDocs(collection(db, 'users', user.uid, 'debts'));
@@ -194,13 +196,12 @@ export default function HistoryDetailPage() {
 
     const summaryStats = React.useMemo(() => {
         if (!period) return { income: 0, expenses: 0, remaining: 0 };
-        // FIX: Calculate income only from additional incomes, not base budget
         const income = (period.incomes || []).reduce((sum, i) => sum + i.amount, 0);
         const expenses = (period.expenses || []).reduce((sum, e) => sum + e.amount, 0);
         return {
             income,
             expenses,
-            remaining: (period.income || 0) + income - expenses, // Remaining budget should still consider base budget
+            remaining: (period.income || 0) + income - expenses,
         };
     }, [period]);
 
@@ -264,12 +265,19 @@ export default function HistoryDetailPage() {
         )
     }
     
+    const walletMap = new Map(wallets.map(w => [w.id, w]));
     const detailTransactionData = detailItem ? (detailItem.type === 'expense' ? period.expenses.find(e => e.id === detailItem.id) : period.incomes.find(i => i.id === detailItem.id)) : null;
-    const detailWallet = detailItem && detailTransactionData?.walletId ? wallets.find(w => w.id === (detailTransactionData as Expense | Income).walletId) : null;
-    const detailSavingGoal = detailItem?.type === 'expense' && detailTransactionData ? savingGoals.find(g => g.id === (detailTransactionData as Expense).savingGoalId) : null;
-    const detailDebt = detailItem?.type === 'expense' && detailTransactionData ? debts.find(d => d.id === (detailTransactionData as Expense).debtId) : null;
-    const DetailCategoryIcon = detailItem?.categoryIcon;
+    const detailWallet = detailItem && detailTransactionData?.walletId ? walletMap.get(detailTransactionData.walletId) : null;
+    const expenseData = detailItem?.type === 'expense' ? (detailItem as Expense) : null;
+    const detailSavingGoal = expenseData?.savingGoalId ? savingGoals.find(g => g.id === expenseData.savingGoalId) : null;
+    const detailDebt = expenseData?.debtId ? debts.find(d => d.id === expenseData.debtId) : null;
+    const DetailCategoryIcon = detailItem?.categoryIcon || Tag;
 
+    const isExpense = detailItem?.type === 'expense';
+    const amountColor = isExpense ? "text-red-500" : "text-emerald-500";
+    const badgeBg = isExpense ? "bg-red-50 text-red-500" : "bg-emerald-50 text-emerald-500";
+    const typeLabel = isExpense ? "Pengeluaran" : "Pemasukan";
+    const walletLabel = isExpense ? "DIBAYAR DARI" : "MASUK KE";
 
     return (
       <div className="flex min-h-screen w-full flex-col bg-muted/40 pb-16">
@@ -369,83 +377,126 @@ export default function HistoryDetailPage() {
         </main>
         
         <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Detail Transaksi</DialogTitle>
+            <DialogContent className="sm:max-w-lg sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+                <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
+                    <DialogTitle className="font-bold text-xl text-slate-800 dark:text-white mx-auto">Detail Transaksi</DialogTitle>
+                    <DialogClose className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <X className="h-5 w-5 text-slate-400" />
+                    </DialogClose>
                 </DialogHeader>
-                {detailItem && detailTransactionData && (
-                    <div className="space-y-4 py-2">
-                        <div className="rounded-lg bg-secondary p-4">
-                            <p className="text-sm text-muted-foreground">Jumlah</p>
-                            <p className={cn("text-2xl font-bold", detailItem.type === 'income' ? 'text-green-600' : 'text-destructive')}>{formatCurrency(detailItem.amount)}</p>
-                             {detailItem.adminFee && detailItem.adminFee > 0 && (
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {detailItem.type === 'expense'
-                                        ? `(Pokok: ${formatCurrency(detailItem.baseAmount || 0)} + Admin: ${formatCurrency(detailItem.adminFee)})`
-                                        : `(Pokok: ${formatCurrency(detailItem.baseAmount || 0)} - Potongan: ${formatCurrency(detailItem.adminFee)})`
-                                    }
-                                </p>
-                            )}
+                
+                {detailItem && (
+                    <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
+                        {/* Amount Card */}
+                        <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
+                            <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>
+                                {formatCurrency(detailItem.amount || 0)}
+                            </p>
+                            <Badge variant="outline" className={cn("border-none font-black uppercase text-[10px] tracking-[0.2em] px-4 py-1.5 rounded-full shadow-sm", badgeBg)}>
+                                {detailItem.type}
+                            </Badge>
                         </div>
-                        <div className="space-y-3 pt-2">
-                            <div className="flex items-start gap-3">
-                                <Calendar className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                <div>
-                                    <p className="text-xs text-muted-foreground">Tanggal</p>
-                                    <p className="font-medium">{format(new Date(detailItem.date), "EEEE, d MMMM yyyy, HH:mm", { locale: idLocale })}</p>
+
+                        <div className="space-y-8 px-2">
+                            {/* Date */}
+                            <div className="flex items-start gap-5">
+                                <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 shrink-0 shadow-sm">
+                                    <Calendar className="h-6 w-6" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">TANGGAL</p>
+                                    <p className="font-bold text-slate-800 dark:text-white text-base">
+                                        {detailItem.date ? format(new Date(detailItem.date), "EEEE, d MMMM yyyy", { locale: idLocale }) : '-'}
+                                    </p>
+                                    <p className="text-sm font-bold text-slate-400 mt-0.5">{detailItem.date ? format(new Date(detailItem.date), "HH:mm") : '-'}</p>
                                 </div>
                             </div>
-                             {detailWallet && (
-                                <div className="flex items-start gap-3">
-                                    <WalletIcon className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">{detailItem.type === 'expense' ? 'Dibayar dari' : 'Masuk ke'}</p>
-                                        <p className="font-medium">{detailWallet.name}</p>
+
+                            {/* Wallet */}
+                            <div className="flex items-start gap-5">
+                                <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-500 shrink-0 shadow-sm">
+                                    <WalletIcon className="h-6 w-6" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{walletLabel}</p>
+                                    <p className="font-bold text-slate-800 dark:text-white text-base">{detailWallet?.name || 'Tanpa Dompet'}</p>
+                                </div>
+                            </div>
+
+                            {/* Category */}
+                            {isExpense && detailItem.categoryName && (
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 shrink-0 shadow-sm">
+                                        <DetailCategoryIcon className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">KATEGORI</p>
+                                        <p className="font-bold text-slate-800 dark:text-white text-base">{detailItem.categoryName}</p>
                                     </div>
                                 </div>
                             )}
-                            {detailItem.categoryName && detailItem.type === 'expense' && (
-                                <div className="flex items-start gap-3">
-                                    <Tag className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Kategori</p>
-                                        <p className="font-medium">{detailItem.categoryName}</p>
-                                    </div>
-                                </div>
-                            )}
+
+                            {/* Saving Goal */}
                             {detailSavingGoal && (
-                                <div className="flex items-start gap-3">
-                                    <Landmark className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Tujuan Tabungan</p>
-                                        <p className="font-medium">{detailSavingGoal.name}</p>
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
+                                        <Landmark className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">TUJUAN TABUNGAN</p>
+                                        <p className="font-bold text-slate-800 dark:text-white text-base">{detailSavingGoal.name}</p>
                                     </div>
                                 </div>
                             )}
+
+                            {/* Debt */}
                             {detailDebt && (
-                                <div className="flex items-start gap-3">
-                                    <CreditCard className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Pembayaran Utang</p>
-                                        <p className="font-medium">{detailDebt.name}</p>
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
+                                        <CreditCard className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">UTANG</p>
+                                        <p className="font-bold text-slate-800 dark:text-white text-base">{detailDebt.name}</p>
                                     </div>
                                 </div>
                             )}
-                            {detailItem.notes && (
-                                <div className="flex items-start gap-3">
-                                    <FileText className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
-                                    <div>
-                                        <p className="text-xs text-muted-foreground">Catatan</p>
-                                        <p className="font-medium whitespace-pre-wrap">{detailItem.notes}</p>
+
+                            {/* Notes */}
+                            <div className="flex items-start gap-5">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
+                                    <FileText className="h-6 w-6" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">CATATAN</p>
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                            "{detailItem.notes || 'Tidak ada catatan untuk transaksi ini'}"
+                                        </p>
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
                 )}
-                 <DialogFooter>
-                    <Button variant="ghost" className="text-destructive" onClick={() => handleDeleteRequest(detailItem!)}>Hapus</Button>
-                    <Button onClick={() => handleEditRequest(detailItem!)}>Ubah Transaksi</Button>
+
+                <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
+                    <Button 
+                        className="w-full h-16 rounded-[1.5rem] bg-[#F97316] hover:bg-[#EA580C] text-white font-black text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                        onClick={() => detailItem && handleEditRequest(detailItem)}
+                    >
+                        <Pencil className="h-6 w-6" />
+                        Ubah Transaksi
+                    </Button>
+                    <Button 
+                        variant="ghost" 
+                        className="w-full text-red-500 font-black uppercase text-xs tracking-[0.2em] hover:bg-red-50 dark:hover:bg-red-900/20 h-10 rounded-xl"
+                        onClick={() => detailItem && handleDeleteRequest(detailItem)}
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Hapus Transaksi
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

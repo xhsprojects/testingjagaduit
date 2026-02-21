@@ -17,10 +17,10 @@ import {
     Repeat, BellRing, Trophy, CalendarDays, Upload, Users2,
     ChevronRight, GitCommitHorizontal, Calculator, Wallet as WalletIcon, Tag,
     ArrowLeftRight, Scale, PiggyBank, CreditCard, LayoutGrid, Target, Landmark,
-    BookOpen, FileText, Calendar, Info, Mic, Search, Trash2
+    BookOpen, FileText, Calendar, Info, Mic, Search, Trash2, Pencil, X
 } from 'lucide-react';
 import Link from 'next/link';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { iconMap } from '@/lib/icons';
 import PredictiveAnalysis from './PredictiveAnalysis';
 import { useAuth } from '@/context/AuthContext';
@@ -32,6 +32,7 @@ import { deleteTransaction, updateTransaction } from '@/app/history/actions';
 import { format, subDays, startOfDay } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
+import { Badge } from './ui/badge';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -148,6 +149,8 @@ export default function DashboardPage({
 
   const [isAddExpenseFormOpen, setIsAddExpenseFormOpen] = React.useState(false);
   const [isAddIncomeFormOpen, setIsAddIncomeFormOpen] = React.useState(false);
+  const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null);
+  const [editingIncome, setEditingIncome] = React.useState<Income | null>(null);
   const [isTransferFormOpen, setIsTransferFormOpen] = React.useState(false);
   const [isChatbotOpen, setIsChatbotOpen] = React.useState(false);
   const [isMenuDialogOpen, setIsMenuDialogOpen] = React.useState(false);
@@ -171,7 +174,6 @@ export default function DashboardPage({
   const totalFilteredIncomes = React.useMemo(() => (incomes || []).reduce((sum, inc) => sum + (inc.amount || 0), 0), [incomes]);
   const remainingBudget = (income || 0) - totalFilteredExpenses;
   
-  // Trend Calculation (Last 7 Days)
   const trendData = React.useMemo(() => {
       const now = new Date();
       const sevenDaysAgo = startOfDay(subDays(now, 7));
@@ -228,6 +230,8 @@ export default function DashboardPage({
         setIsAddExpenseFormOpen(false);
         setIsAddIncomeFormOpen(false);
         setIsTransferFormOpen(false);
+        setEditingExpense(null);
+        setEditingIncome(null);
     } else {
         toast({ title: 'Gagal', description: result.message, variant: 'destructive' });
     }
@@ -245,6 +249,17 @@ export default function DashboardPage({
       const result = await deleteTransaction(idToken, 'current', item.id, item.type);
       if (result.success) toast({ title: "Berhasil dihapus" });
       setDetailItem(null);
+  };
+
+  const handleEditClick = (item: UnifiedTransaction) => {
+      setDetailItem(null);
+      if (item.type === 'expense') {
+          setEditingExpense(item as Expense);
+          setIsAddExpenseFormOpen(true);
+      } else {
+          setEditingIncome(item as Income);
+          setIsAddIncomeFormOpen(true);
+      }
   };
 
   if (!isDataReady) {
@@ -268,13 +283,18 @@ export default function DashboardPage({
     { label: 'Catatan', icon: BookOpen, href: '/notes' },
   ];
 
-  // For Detail Transaction View
   const detailWallet = detailItem?.walletId ? walletMap.get(detailItem.walletId) : null;
   const expenseData = detailItem?.type === 'expense' ? (detailItem as Expense) : null;
   const detailSavingGoal = expenseData?.savingGoalId ? savingGoals.find(g => g.id === expenseData.savingGoalId) : null;
   const detailDebt = expenseData?.debtId ? (debts || []).find(d => d.id === expenseData.debtId) : null;
   const detailCategory = expenseData?.categoryId ? categoryMap.get(expenseData.categoryId) : null;
   const DetailCategoryIcon = detailCategory ? iconMap[detailCategory.icon] : Tag;
+
+  const isExpense = detailItem?.type === 'expense';
+  const amountColor = isExpense ? "text-red-500" : "text-emerald-500";
+  const badgeBg = isExpense ? "bg-red-50 text-red-500" : "bg-emerald-50 text-emerald-500";
+  const typeLabel = isExpense ? "Pengeluaran" : "Pemasukan";
+  const walletLabel = isExpense ? "DIBAYAR DARI" : "MASUK KE";
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
@@ -431,71 +451,131 @@ export default function DashboardPage({
         </DialogContent>
       </Dialog>
 
-      <AddExpenseForm isOpen={isAddExpenseFormOpen} onOpenChange={setIsAddExpenseFormOpen} categories={categories} savingGoals={savingGoals} debts={debts} wallets={wallets} expenses={allExpenses} incomes={allIncomes} onSubmit={(data) => handleSaveTransaction(data, 'expense')} />
-      <AddIncomeForm isOpen={isAddIncomeFormOpen} onOpenChange={setIsAddIncomeFormOpen} wallets={wallets} expenses={allExpenses} incomes={allIncomes} onSubmit={(data) => handleSaveTransaction(data, 'income')} />
+      <AddExpenseForm isOpen={isAddExpenseFormOpen} onOpenChange={setIsAddExpenseFormOpen} categories={categories} savingGoals={savingGoals} debts={debts} wallets={wallets} expenses={allExpenses} incomes={allIncomes} onSubmit={(data) => handleSaveTransaction(data, 'expense')} expenseToEdit={editingExpense} />
+      <AddIncomeForm isOpen={isAddIncomeFormOpen} onOpenChange={setIsAddIncomeFormOpen} wallets={wallets} expenses={allExpenses} incomes={allIncomes} onSubmit={(data) => handleSaveTransaction(data, 'income')} incomeToEdit={editingIncome} />
       <TransferFundsForm isOpen={isTransferFormOpen} onOpenChange={setIsTransferFormOpen} wallets={wallets} expenses={allExpenses} incomes={allIncomes} />
 
       <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
-          <DialogContent className="sm:max-w-lg sm:rounded-3xl">
-              <DialogHeader><DialogTitle className="font-bold uppercase tracking-widest text-slate-800 dark:text-slate-100">Detail Transaksi</DialogTitle></DialogHeader>
+          <DialogContent className="sm:max-w-lg sm:rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+              <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
+                  <DialogTitle className="font-bold text-xl text-slate-800 dark:text-white mx-auto">Detail Transaksi</DialogTitle>
+                  <DialogClose className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                      <X className="h-5 w-5 text-slate-400" />
+                  </DialogClose>
+              </DialogHeader>
+              
               {detailItem && (
-                  <div className="space-y-6 py-4">
-                      <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl text-center border border-slate-100 dark:border-slate-800">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-2">Jumlah Transaksi</p>
-                          <p className={cn("text-4xl font-extrabold tracking-tight", detailItem.type === 'income' ? "text-primary" : "text-slate-900 dark:text-white")}>
+                  <div className="p-8 space-y-8 overflow-y-auto max-h-[75vh] hide-scrollbar">
+                      {/* Amount Card */}
+                      <div className="bg-slate-50/50 dark:bg-slate-800/50 rounded-[2.5rem] p-10 text-center border border-slate-100 dark:border-slate-800 shadow-inner">
+                          <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{typeLabel}</p>
+                          <p className={cn("text-5xl font-black tracking-tighter mb-4", amountColor)}>
                               {formatCurrency(detailItem.amount || 0)}
                           </p>
-                          {detailItem.adminFee && detailItem.adminFee > 0 && (
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">
-                                    {detailItem.type === 'expense'
-                                        ? `(Pokok: ${formatCurrency(detailItem.baseAmount || 0)} + Admin: ${formatCurrency(detailItem.adminFee)})`
-                                        : `(Pokok: ${formatCurrency(detailItem.baseAmount || 0)} - Potongan: ${formatCurrency(detailItem.adminFee)})`
-                                    }
-                                </p>
-                            )}
+                          <Badge variant="outline" className={cn("border-none font-black uppercase text-[10px] tracking-[0.2em] px-4 py-1.5 rounded-full shadow-sm", badgeBg)}>
+                              {detailItem.type}
+                          </Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar className="h-2.5 w-2.5"/> Tanggal</p>
-                              <p className="text-sm font-bold">{detailItem.date ? format(new Date(detailItem.date), "d MMM yyyy") : '-'}</p>
+
+                      <div className="space-y-8 px-2">
+                          {/* Date */}
+                          <div className="flex items-start gap-5">
+                              <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-500 shrink-0 shadow-sm">
+                                  <Calendar className="h-6 w-6" />
+                              </div>
+                              <div className="flex-1">
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">TANGGAL</p>
+                                  <p className="font-bold text-slate-800 dark:text-white text-base">
+                                      {detailItem.date ? format(new Date(detailItem.date), "EEEE, d MMMM yyyy", { locale: idLocale }) : '-'}
+                                  </p>
+                                  <p className="text-sm font-bold text-slate-400 mt-0.5">{detailItem.date ? format(new Date(detailItem.date), "HH:mm") : '-'}</p>
+                              </div>
                           </div>
-                          <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><WalletIcon className="h-2.5 w-2.5"/> Dompet</p>
-                              <p className="text-sm font-bold truncate">{detailWallet?.name || '-'}</p>
+
+                          {/* Wallet */}
+                          <div className="flex items-start gap-5">
+                              <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-500 shrink-0 shadow-sm">
+                                  <WalletIcon className="h-6 w-6" />
+                              </div>
+                              <div className="flex-1">
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{walletLabel}</p>
+                                  <p className="font-bold text-slate-800 dark:text-white text-base">{detailWallet?.name || 'Tanpa Dompet'}</p>
+                              </div>
                           </div>
-                          {detailCategory && (
-                                <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Tag className="h-2.5 w-2.5"/> Kategori</p>
-                                    <div className="flex items-center gap-2">
-                                        <DetailCategoryIcon className="h-3 w-3 text-primary" />
-                                        <p className="text-sm font-bold truncate">{detailCategory.name}</p>
-                                    </div>
-                                </div>
-                            )}
-                            {detailSavingGoal && (
-                                <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Landmark className="h-2.5 w-2.5"/> Tujuan Tabungan</p>
-                                    <p className="text-sm font-bold truncate">{detailSavingGoal.name}</p>
-                                </div>
-                            )}
-                            {detailDebt && (
-                                <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><CreditCard className="h-2.5 w-2.5"/> Utang</p>
-                                    <p className="text-sm font-bold truncate">{detailDebt.name}</p>
-                                </div>
-                            )}
+
+                          {/* Category */}
+                          {isExpense && detailCategory && (
+                              <div className="flex items-start gap-5">
+                                  <div className="w-12 h-12 rounded-2xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center text-orange-500 shrink-0 shadow-sm">
+                                      <DetailCategoryIcon className="h-6 w-6" />
+                                  </div>
+                                  <div className="flex-1">
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">KATEGORI</p>
+                                      <p className="font-bold text-slate-800 dark:text-white text-base">{detailCategory.name}</p>
+                                  </div>
+                              </div>
+                          )}
+
+                          {/* Saving Goal */}
+                          {detailSavingGoal && (
+                              <div className="flex items-start gap-5">
+                                  <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center text-teal-500 shrink-0 shadow-sm">
+                                      <Landmark className="h-6 w-6" />
+                                  </div>
+                                  <div className="flex-1">
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">TUJUAN TABUNGAN</p>
+                                      <p className="font-bold text-slate-800 dark:text-white text-base">{detailSavingGoal.name}</p>
+                                  </div>
+                              </div>
+                          )}
+
+                          {/* Debt */}
+                          {detailDebt && (
+                              <div className="flex items-start gap-5">
+                                  <div className="w-12 h-12 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-500 shrink-0 shadow-sm">
+                                      <CreditCard className="h-6 w-6" />
+                                  </div>
+                                  <div className="flex-1">
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">UTANG</p>
+                                      <p className="font-bold text-slate-800 dark:text-white text-base">{detailDebt.name}</p>
+                                  </div>
+                              </div>
+                          )}
+
+                          {/* Notes */}
+                          <div className="flex items-start gap-5">
+                              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 shrink-0 shadow-sm">
+                                  <FileText className="h-6 w-6" />
+                              </div>
+                              <div className="flex-1">
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">CATATAN</p>
+                                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-3xl p-5 border border-slate-100 dark:border-slate-800 shadow-sm">
+                                      <p className="text-sm font-medium text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                                          "{detailItem.notes || 'Tidak ada catatan untuk transaksi ini'}"
+                                      </p>
+                                  </div>
+                              </div>
+                          </div>
                       </div>
-                      {detailItem.notes && (
-                          <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-transparent">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><FileText className="h-2.5 w-2.5"/> Catatan</p>
-                              <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{detailItem.notes}</p>
-                          </div>
-                      )}
                   </div>
               )}
-              <DialogFooter className="flex-row gap-3 pt-4 border-t dark:border-slate-800">
-                  <Button variant="ghost" className="flex-1 text-red-500 font-bold uppercase text-[10px] tracking-widest hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => detailItem && handleDeleteRequest(detailItem)}><Trash2 className="h-3 w-3 mr-1"/> Hapus</Button>
-                  <Button className="flex-1 font-bold uppercase text-[10px] tracking-widest" onClick={() => setDetailItem(null)}>Tutup</Button>
+
+              <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
+                  <Button 
+                      className="w-full h-16 rounded-[1.5rem] bg-[#F97316] hover:bg-[#EA580C] text-white font-black text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                      onClick={() => detailItem && handleEditClick(detailItem)}
+                  >
+                      <Pencil className="h-6 w-6" />
+                      Ubah Transaksi
+                  </Button>
+                  <Button 
+                      variant="ghost" 
+                      className="w-full text-red-500 font-black uppercase text-xs tracking-[0.2em] hover:bg-red-50 dark:hover:bg-red-900/20 h-10 rounded-xl"
+                      onClick={() => detailItem && handleDeleteRequest(detailItem)}
+                  >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Hapus Transaksi
+                  </Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
