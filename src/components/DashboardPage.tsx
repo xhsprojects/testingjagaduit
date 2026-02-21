@@ -10,7 +10,6 @@ import StatsCards from '@/components/StatsCards';
 import { AddExpenseForm } from './AddExpenseForm';
 import { AddIncomeForm } from './AddIncomeForm';
 import { TransferFundsForm } from './TransferFundsForm';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { 
@@ -18,7 +17,7 @@ import {
     Repeat, BellRing, Trophy, CalendarDays, Upload, Users2,
     ChevronRight, GitCommitHorizontal, Calculator, Wallet as WalletIcon, Tag,
     ArrowLeftRight, Scale, PiggyBank, CreditCard, LayoutGrid, Target, Landmark,
-    BookOpen, FilePenLine, Info, Mic, Search
+    BookOpen, FileText, Calendar, Info, Mic, Search, Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -30,10 +29,9 @@ import { Card } from './ui/card';
 import WalletsSummaryCard from './WalletsSummaryCard';
 import BudgetChart from '@/components/charts/BudgetChart';
 import { deleteTransaction, updateTransaction } from '@/app/history/actions';
-import { format } from 'date-fns';
+import { format, subDays, startOfDay } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { SpeedDial, SpeedDialAction } from './SpeedDial';
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 
 interface DashboardPageProps {
   categories: Category[];
@@ -63,11 +61,11 @@ type UnifiedTransaction = (Expense | Income) & {
 
 const QuickActionItem = ({ href, icon: Icon, label, onClick }: { href?: string, icon: React.ElementType, label: string, onClick?: () => void }) => {
     const content = (
-        <div className="flex flex-col items-center gap-2 group cursor-pointer w-[60px] flex-shrink-0" onClick={onClick}>
+        <div className="flex flex-col items-center gap-2 group cursor-pointer w-[64px] flex-shrink-0" onClick={onClick}>
             <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-center text-slate-400 group-hover:border-primary/50 group-hover:text-primary transition-all">
                 <Icon className="h-5 w-5" />
             </div>
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 text-center whitespace-nowrap uppercase tracking-tight">{label}</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 text-center whitespace-nowrap uppercase tracking-tighter">{label}</span>
         </div>
     );
 
@@ -103,19 +101,19 @@ const TransactionItem = ({ transaction, categoryMap, walletMap, onClick }: {
 
     return (
         <div onClick={onClick} className="flex items-center justify-between py-4 cursor-pointer border-b last:border-b-0 group border-slate-50 dark:border-slate-800/50">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 overflow-hidden">
                 <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm",
-                    isExpense ? "bg-slate-50 dark:bg-slate-800 text-slate-400 group-hover:bg-primary group-hover:text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm shrink-0",
+                    isExpense ? "bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-primary group-hover:text-white" : "bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white"
                 )}>
                     {isExpense ? <Icon className="h-5 w-5" /> : <TrendingUp className="h-5 w-5" />}
                 </div>
-                <div>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-none mb-1">{title}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{walletName}</p>
+                <div className="overflow-hidden">
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-none mb-1 truncate">{title}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{walletName}</p>
                 </div>
             </div>
-            <div className="text-right">
+            <div className="text-right shrink-0 ml-2">
                 <p className={cn("text-sm font-bold whitespace-nowrap", isExpense ? "text-slate-800 dark:text-slate-100" : "text-primary")}>
                     {isExpense ? '-' : '+'} {formatCurrency(amount)}
                 </p>
@@ -138,13 +136,11 @@ export default function DashboardPage({
   recurringTxs,
   wallets,
   budgetPeriod,
-  onExpensesUpdate, 
-  onSavingGoalsUpdate,
-  onReset, 
   allExpenses,
-  allIncomes
+  allIncomes,
+  onReset
 }: DashboardPageProps) {
-  const { isPremium, idToken } = useAuth();
+  const { idToken } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -173,6 +169,26 @@ export default function DashboardPage({
   const totalFilteredIncomes = React.useMemo(() => (incomes || []).reduce((sum, inc) => sum + (inc.amount || 0), 0), [incomes]);
   const remainingBudget = (income || 0) - totalFilteredExpenses;
   
+  // Trend Calculation (Last 7 Days)
+  const trendData = React.useMemo(() => {
+      const now = new Date();
+      const sevenDaysAgo = startOfDay(subDays(now, 7));
+      
+      const recentIncomes = allIncomes.filter(i => new Date(i.date) >= sevenDaysAgo);
+      const recentExpenses = allExpenses.filter(e => new Date(e.date) >= sevenDaysAgo);
+      
+      const recentIncomeSum = recentIncomes.reduce((s, i) => s + i.amount, 0);
+      const recentExpenseSum = recentExpenses.reduce((s, e) => s + e.amount, 0);
+      
+      const previousBalance = totalWalletBalance - recentIncomeSum + recentExpenseSum;
+      const percentage = previousBalance === 0 ? 0 : ((totalWalletBalance - previousBalance) / previousBalance) * 100;
+      
+      return {
+          percentage: percentage.toFixed(1),
+          isPositive: percentage >= 0
+      };
+  }, [allIncomes, allExpenses, totalWalletBalance]);
+
   const unifiedTransactions = React.useMemo(() => {
       const combined = [
           ...(expenses || []).map(e => ({ ...e, type: 'expense' as const })),
@@ -250,6 +266,14 @@ export default function DashboardPage({
     { label: 'Catatan', icon: BookOpen, href: '/notes' },
   ];
 
+  // For Detail Transaction View
+  const detailWallet = detailItem?.walletId ? walletMap.get(detailItem.walletId) : null;
+  const expenseData = detailItem?.type === 'expense' ? (detailItem as Expense) : null;
+  const detailSavingGoal = expenseData?.savingGoalId ? savingGoals.find(g => g.id === expenseData.savingGoalId) : null;
+  const detailDebt = expenseData?.debtId ? debts.find(d => d.id === expenseData.debtId) : null;
+  const detailCategory = expenseData?.categoryId ? categoryMap.get(expenseData.categoryId) : null;
+  const DetailCategoryIcon = detailCategory ? iconMap[detailCategory.icon] : Tag;
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       <Header />
@@ -257,7 +281,6 @@ export default function DashboardPage({
       <main className="pt-24 pb-24 px-4 sm:px-6 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           
-          {/* Main Content Column */}
           <div className="lg:col-span-2 space-y-8">
             <StatsCards
               totalIncome={totalFilteredIncomes}
@@ -266,10 +289,11 @@ export default function DashboardPage({
               totalSavings={(expenses || []).filter(e => e.savingGoalId).reduce((s, e) => s + (e.amount || 0), 0)}
               totalWalletBalance={totalWalletBalance}
               periodLabel={periodLabel}
+              trendPercentage={trendData.percentage}
+              isTrendPositive={trendData.isPositive}
               onReset={() => setIsResetConfirmOpen(true)}
             />
 
-            {/* Quick Actions - Horizontal Scroll */}
             <section className="bg-transparent">
                 <div className="flex justify-between items-center mb-4 px-1">
                     <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest">Akses Cepat</h3>
@@ -289,12 +313,10 @@ export default function DashboardPage({
                 </div>
             </section>
 
-            {/* AI Predictive Card - Large on Desktop */}
             <div className="lg:hidden">
                 <PredictiveAnalysis expenses={expenses} categories={categories} dateRange={{ from: new Date(budgetPeriod?.periodStart || Date.now()), to: budgetPeriod?.periodEnd ? new Date(budgetPeriod.periodEnd) : new Date() }} />
             </div>
 
-            {/* Transactions History */}
             <Card className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="flex flex-col space-y-6 mb-6">
                 <div className="flex justify-between items-center">
@@ -310,24 +332,9 @@ export default function DashboardPage({
                 </div>
                 
                 <div className="flex space-x-2">
-                    <button 
-                        onClick={() => setHistoryTab('all')}
-                        className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'all' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700")}
-                    >
-                        Semua
-                    </button>
-                    <button 
-                        onClick={() => setHistoryTab('income')}
-                        className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'income' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700")}
-                    >
-                        Pemasukan
-                    </button>
-                    <button 
-                        onClick={() => setHistoryTab('expense')}
-                        className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'expense' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700")}
-                    >
-                        Pengeluaran
-                    </button>
+                    <button onClick={() => setHistoryTab('all')} className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'all' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500")}>Semua</button>
+                    <button onClick={() => setHistoryTab('income')} className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'income' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500")}>Pemasukan</button>
+                    <button onClick={() => setHistoryTab('expense')} className={cn("px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", historyTab === 'expense' ? "bg-primary text-white shadow-lg shadow-primary/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500")}>Pengeluaran</button>
                 </div>
               </div>
 
@@ -346,7 +353,6 @@ export default function DashboardPage({
             </Card>
           </div>
 
-          {/* Sidebar Column (Desktop) */}
           <div className="lg:col-span-1 space-y-8">
             <Card className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="flex justify-between items-center mb-6">
@@ -371,11 +377,7 @@ export default function DashboardPage({
         </div>
       </main>
 
-      {/* AI Bot FAB - Refined */}
-      <button 
-          onClick={() => setIsChatbotOpen(true)}
-          className="fixed bottom-24 left-4 w-14 h-14 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-xl shadow-slate-900/40 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-200 group border border-slate-700"
-      >
+      <button onClick={() => setIsChatbotOpen(true)} className="fixed bottom-24 left-4 w-14 h-14 bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-900 rounded-2xl shadow-xl shadow-slate-900/40 flex items-center justify-center text-white z-40 hover:scale-110 transition-transform duration-200 group border border-slate-700">
           <Bot className="h-7 w-7 text-primary animate-pulse group-hover:animate-none" />
           <div className="absolute -top-1 -right-1 flex h-4 w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -383,7 +385,6 @@ export default function DashboardPage({
           </div>
       </button>
 
-      {/* Main Action FAB */}
       <SpeedDial mainIcon={<PlusCircle className="h-8 w-8" />}>
           <SpeedDialAction label="Transfer Dana" onClick={() => setIsTransferFormOpen(true)}>
               <ArrowLeftRight className="h-5 w-5 text-purple-500" />
@@ -396,19 +397,18 @@ export default function DashboardPage({
           </SpeedDialAction>
       </SpeedDial>
 
-      {/* All Menus Dialog */}
       <Dialog open={isMenuDialogOpen} onOpenChange={setIsMenuDialogOpen}>
-          <DialogContent className="max-w-2xl sm:rounded-3xl p-8">
+          <DialogContent className="max-w-2xl sm:rounded-3xl p-6 sm:p-8">
               <DialogHeader>
-                  <DialogTitle className="flex items-center gap-3 font-bold text-xl uppercase tracking-widest text-slate-800 dark:text-slate-100">
-                      <div className="p-2 bg-primary/10 rounded-xl">
-                        <LayoutGrid className="h-6 w-6 text-primary" />
+                  <DialogTitle className="flex items-center gap-3 font-bold text-lg sm:text-xl uppercase tracking-widest text-slate-800 dark:text-slate-100">
+                      <div className="p-2 bg-primary/10 rounded-xl shrink-0">
+                        <LayoutGrid className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                       </div>
                       Menu Utama
                   </DialogTitle>
-                  <DialogDescription className="text-xs font-bold uppercase tracking-tight text-slate-400">Navigasi cepat ke seluruh fitur Jaga Duit.</DialogDescription>
+                  <DialogDescription className="text-[10px] sm:text-xs font-bold uppercase tracking-tight text-slate-400">Navigasi cepat ke seluruh fitur Jaga Duit.</DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-y-10 gap-x-2 py-8 overflow-y-auto max-h-[60vh] hide-scrollbar">
+              <div className="grid grid-cols-4 gap-y-8 gap-x-2 py-6 overflow-y-auto max-h-[65vh] hide-scrollbar">
                   {allMenuItems.map((item) => (
                       <QuickActionItem key={item.label} href={item.href} icon={item.icon} label={item.label} onClick={() => setIsMenuDialogOpen(false)} />
                   ))}
@@ -416,7 +416,6 @@ export default function DashboardPage({
           </DialogContent>
       </Dialog>
 
-      {/* Modals & Forms */}
       <Dialog open={isChatbotOpen} onOpenChange={setIsChatbotOpen}>
         <DialogContent className="h-full w-full rounded-none border-none sm:h-[85vh] sm:max-w-lg sm:rounded-3xl sm:border flex flex-col p-0 gap-0 overflow-hidden shadow-2xl">
           <DialogHeader className="p-6 border-b bg-white dark:bg-slate-900">
@@ -430,34 +429,9 @@ export default function DashboardPage({
         </DialogContent>
       </Dialog>
 
-      <AddExpenseForm
-        isOpen={isAddExpenseFormOpen}
-        onOpenChange={setIsAddExpenseFormOpen}
-        categories={categories}
-        savingGoals={savingGoals}
-        debts={[]}
-        wallets={wallets}
-        expenses={allExpenses}
-        incomes={allIncomes}
-        onSubmit={(data) => handleSaveTransaction(data, 'expense')}
-      />
-
-      <AddIncomeForm
-        isOpen={isAddIncomeFormOpen}
-        onOpenChange={setIsAddIncomeFormOpen}
-        wallets={wallets}
-        expenses={allExpenses}
-        incomes={allIncomes}
-        onSubmit={(data) => handleSaveTransaction(data, 'income')}
-      />
-
-      <TransferFundsForm
-        isOpen={isTransferFormOpen}
-        onOpenChange={setIsTransferFormOpen}
-        wallets={wallets}
-        expenses={allExpenses}
-        incomes={allIncomes}
-      />
+      <AddExpenseForm isOpen={isAddExpenseFormOpen} onOpenChange={setIsAddExpenseFormOpen} categories={categories} savingGoals={savingGoals} debts={debts} wallets={wallets} expenses={allExpenses} incomes={allIncomes} onSubmit={(data) => handleSaveTransaction(data, 'expense')} />
+      <AddIncomeForm isOpen={isAddIncomeFormOpen} onOpenChange={setIsAddIncomeFormOpen} wallets={wallets} expenses={allExpenses} incomes={allIncomes} onSubmit={(data) => handleSaveTransaction(data, 'income')} />
+      <TransferFundsForm isOpen={isTransferFormOpen} onOpenChange={setIsTransferFormOpen} wallets={wallets} expenses={allExpenses} incomes={allIncomes} />
 
       <Dialog open={!!detailItem} onOpenChange={(open) => !open && setDetailItem(null)}>
           <DialogContent className="sm:max-w-lg sm:rounded-3xl">
@@ -469,46 +443,77 @@ export default function DashboardPage({
                           <p className={cn("text-4xl font-extrabold tracking-tight", detailItem.type === 'income' ? "text-primary" : "text-slate-900 dark:text-white")}>
                               {formatCurrency(detailItem.amount || 0)}
                           </p>
+                          {detailItem.adminFee && detailItem.adminFee > 0 && (
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">
+                                    {detailItem.type === 'expense'
+                                        ? `(Pokok: ${formatCurrency(detailItem.baseAmount || 0)} + Admin: ${formatCurrency(detailItem.adminFee)})`
+                                        : `(Pokok: ${formatCurrency(detailItem.baseAmount || 0)} - Potongan: ${formatCurrency(detailItem.adminFee)})`
+                                    }
+                                </p>
+                            )}
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                           <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tanggal</p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Calendar className="h-2.5 w-2.5"/> Tanggal</p>
                               <p className="text-sm font-bold">{detailItem.date ? format(new Date(detailItem.date), "d MMM yyyy") : '-'}</p>
                           </div>
                           <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Dompet</p>
-                              <p className="text-sm font-bold truncate">{walletMap.get(detailItem.walletId || '')?.name || '-'}</p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><WalletIcon className="h-2.5 w-2.5"/> Dompet</p>
+                              <p className="text-sm font-bold truncate">{detailWallet?.name || '-'}</p>
                           </div>
+                          {detailCategory && (
+                                <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Tag className="h-2.5 w-2.5"/> Kategori</p>
+                                    <div className="flex items-center gap-2">
+                                        <DetailCategoryIcon className="h-3 w-3 text-primary" />
+                                        <p className="text-sm font-bold truncate">{detailCategory.name}</p>
+                                    </div>
+                                </div>
+                            )}
+                            {detailSavingGoal && (
+                                <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><Landmark className="h-2.5 w-2.5"/> Tujuan Tabungan</p>
+                                    <p className="text-sm font-bold truncate">{detailSavingGoal.name}</p>
+                                </div>
+                            )}
+                            {detailDebt && (
+                                <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><CreditCard className="h-2.5 w-2.5"/> Utang</p>
+                                    <p className="text-sm font-bold truncate">{detailDebt.name}</p>
+                                </div>
+                            )}
                       </div>
                       {detailItem.notes && (
                           <div className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-transparent">
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Catatan</p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><FileText className="h-2.5 w-2.5"/> Catatan</p>
                               <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{detailItem.notes}</p>
                           </div>
                       )}
                   </div>
               )}
               <DialogFooter className="flex-row gap-3 pt-4 border-t dark:border-slate-800">
-                  <Button variant="ghost" className="flex-1 text-red-500 font-bold uppercase text-[10px] tracking-widest hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => detailItem && handleDeleteRequest(detailItem)}>Hapus</Button>
+                  <Button variant="ghost" className="flex-1 text-red-500 font-bold uppercase text-[10px] tracking-widest hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => detailItem && handleDeleteRequest(detailItem)}><Trash2 className="h-3 w-3 mr-1"/> Hapus</Button>
                   <Button className="flex-1 font-bold uppercase text-[10px] tracking-widest" onClick={() => setDetailItem(null)}>Tutup</Button>
               </DialogFooter>
           </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
-        <AlertDialogContent className="sm:rounded-3xl">
-            <AlertDialogHeader>
-                <AlertDialogTitle className="font-bold uppercase tracking-widest">Mulai Periode Baru?</AlertDialogTitle>
-                <AlertDialogDescription className="text-xs font-medium text-slate-500 leading-relaxed uppercase">
-                    Data transaksi saat ini akan diarsipkan secara otomatis ke riwayat. Anda tidak akan kehilangan data lama. Lanjutkan?
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-row gap-3">
-                <AlertDialogCancel className="flex-1 mt-0 sm:mt-0 font-bold uppercase text-[10px] tracking-widest">Batal</AlertDialogCancel>
-                <AlertDialogAction onClick={handleResetClick} disabled={isResetting} className="flex-1 font-bold uppercase text-[10px] tracking-widest">Ya, Lanjutkan</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={isResetConfirmOpen} onOpenChange={setIsResetConfirmOpen}>
+        <DialogContent className="sm:rounded-3xl">
+            <DialogHeader>
+                <DialogTitle className="font-bold uppercase tracking-widest">Mulai Periode Baru?</DialogTitle>
+                <DialogDescription className="text-[10px] font-bold uppercase tracking-tight text-slate-400">
+                    Data transaksi saat ini akan diarsipkan secara otomatis ke riwayat. Anda tidak akan kehilangan data lama.
+                </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-row gap-3 mt-4">
+                <Button variant="outline" className="flex-1 font-bold uppercase text-[10px] tracking-widest" onClick={() => setIsResetConfirmOpen(false)}>Batal</Button>
+                <Button className="flex-1 font-bold uppercase text-[10px] tracking-widest" onClick={handleResetClick} disabled={isResetting}>
+                    {isResetting ? <Loader2 className="h-3 w-3 animate-spin"/> : "Ya, Lanjutkan"}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
