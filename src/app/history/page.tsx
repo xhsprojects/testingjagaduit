@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from 'react';
@@ -660,9 +659,6 @@ export default function HistoryPage() {
                 <DialogContent className="flex h-full flex-col gap-0 p-0 sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-lg">
                     <DialogHeader className="p-6 border-b flex flex-row items-center justify-between">
                         <DialogTitle className="font-bold text-xl text-slate-800 dark:text-white mx-auto">Detail Transaksi</DialogTitle>
-                        <DialogClose className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                            <X className="h-5 w-5 text-slate-400" />
-                        </DialogClose>
                     </DialogHeader>
                     
                     {detailItem && (
@@ -754,20 +750,20 @@ export default function HistoryPage() {
                         </div>
                     )}
 
-                    <DialogFooter className="p-8 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-col gap-4">
+                    <DialogFooter className="p-6 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex flex-row gap-3">
                         <button 
-                            className="w-full h-16 rounded-[1.5rem] bg-primary hover:bg-primary/90 text-primary-foreground font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+                            className="flex-1 h-12 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm shadow-lg shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                             onClick={() => detailItem && handleEditRequest(detailItem)}
                         >
-                            <Pencil className="h-6 w-6" />
-                            Ubah Transaksi
+                            <Pencil className="h-4 w-4" />
+                            Ubah
                         </button>
                         <button 
-                            className="w-full text-red-500 font-black uppercase text-xs tracking-[0.2em] hover:bg-red-50 dark:hover:bg-red-900/20 h-10 rounded-xl"
+                            className="flex-1 h-12 rounded-2xl border border-red-200 dark:border-red-900/50 text-red-500 font-bold text-sm hover:bg-red-50 dark:hover:bg-red-950/30 active:scale-95 transition-all flex items-center justify-center gap-2"
                             onClick={() => detailItem && handleDeleteTransactionRequest(detailItem)}
                         >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Hapus Transaksi
+                            <Trash2 className="h-4 w-4" />
+                            Hapus
                         </button>
                     </DialogFooter>
                 </DialogContent>
