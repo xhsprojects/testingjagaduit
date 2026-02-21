@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import type { Category, Expense, SavingGoal, BudgetPeriod, Income, Reminder, Wallet, RecurringTransaction } from '@/lib/types';
+import type { Category, Expense, SavingGoal, BudgetPeriod, Income, Reminder, Wallet, RecurringTransaction, Debt } from '@/lib/types';
 import DashboardPage from '@/components/DashboardPage';
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc, setDoc, updateDoc, collection, addDoc, deleteDoc, getDocs, writeBatch, query, where, orderBy, onSnapshot } from 'firebase/firestore';
@@ -59,6 +59,7 @@ export default function ClientPage() {
   const [allExpenses, setAllExpenses] = React.useState<Expense[]>([]);
   const [allIncomes, setAllIncomes] = React.useState<Income[]>([]);
   const [savingGoals, setSavingGoals] = React.useState<SavingGoal[]>([]);
+  const [debts, setDebts] = React.useState<Debt[]>([]);
   const [recurringTxs, setRecurringTxs] = React.useState<RecurringTransaction[]>([]);
   const [wallets, setWallets] = React.useState<Wallet[]>([]);
   const [currentBudget, setCurrentBudget] = React.useState<BudgetPeriod | null>(null);
@@ -185,9 +186,10 @@ export default function ClientPage() {
 
       const walletsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'wallets'), snap => setWallets(snap.docs.map(d => ({id: d.id, ...d.data()}) as Wallet)));
       const goalsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'savingGoals'), snap => setSavingGoals(snap.docs.map(d => ({id: d.id, ...d.data()}) as SavingGoal)));
+      const debtsUnsubscribe = onSnapshot(collection(db, 'users', uid, 'debts'), snap => setDebts(snap.docs.map(d => ({id: d.id, ...d.data()}) as Debt)));
       const recurringUnsubscribe = onSnapshot(collection(db, 'users', uid, 'recurringTransactions'), snap => setRecurringTxs(snap.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }) as RecurringTransaction)));
       
-      unsubscribes.push(walletsUnsubscribe, goalsUnsubscribe, recurringUnsubscribe);
+      unsubscribes.push(walletsUnsubscribe, goalsUnsubscribe, debtsUnsubscribe, recurringUnsubscribe);
       
       const budgetCollectionGroupQuery = query(collection(db, 'users', uid, 'budgets'));
       const archivedBudgetsCollectionQuery = query(collection(db, 'users', uid, 'archivedBudgets'));
@@ -462,13 +464,14 @@ export default function ClientPage() {
   return (
     <>
         <DashboardPage 
-            key={JSON.stringify(categories) + JSON.stringify(savingGoals) + JSON.stringify(wallets) + JSON.stringify(allIncomes) + JSON.stringify(allExpenses)} 
+            key={JSON.stringify(categories) + JSON.stringify(savingGoals) + JSON.stringify(wallets) + JSON.stringify(allIncomes) + JSON.stringify(allExpenses) + JSON.stringify(debts)} 
             categories={categories} 
             expenses={expensesInCurrentPeriod}
             income={incomeInCurrentPeriod}
             incomes={incomesInCurrentPeriod}
             totalWalletBalance={totalWalletBalance}
             savingGoals={savingGoals}
+            debts={debts}
             reminders={reminders}
             recurringTxs={recurringTxs}
             wallets={wallets}

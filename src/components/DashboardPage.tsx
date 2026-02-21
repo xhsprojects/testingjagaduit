@@ -40,6 +40,7 @@ interface DashboardPageProps {
   incomes: Income[];
   totalWalletBalance: number;
   savingGoals: SavingGoal[];
+  debts: Debt[];
   reminders: Reminder[];
   recurringTxs: RecurringTransaction[];
   wallets: Wallet[];
@@ -132,6 +133,7 @@ export default function DashboardPage({
   incomes,
   totalWalletBalance,
   savingGoals, 
+  debts,
   reminders,
   recurringTxs,
   wallets,
@@ -270,7 +272,7 @@ export default function DashboardPage({
   const detailWallet = detailItem?.walletId ? walletMap.get(detailItem.walletId) : null;
   const expenseData = detailItem?.type === 'expense' ? (detailItem as Expense) : null;
   const detailSavingGoal = expenseData?.savingGoalId ? savingGoals.find(g => g.id === expenseData.savingGoalId) : null;
-  const detailDebt = expenseData?.debtId ? debts.find(d => d.id === expenseData.debtId) : null;
+  const detailDebt = expenseData?.debtId ? (debts || []).find(d => d.id === expenseData.debtId) : null;
   const detailCategory = expenseData?.categoryId ? categoryMap.get(expenseData.categoryId) : null;
   const DetailCategoryIcon = detailCategory ? iconMap[detailCategory.icon] : Tag;
 
